@@ -60,47 +60,47 @@ namespace VmmSharpEx.Internal
 
 #pragma warning disable SYSLIB1054
         [RequiresDynamicCode("This P/Invoke was not able to be converted to LibraryImport")]
-        [DllImport("leechcore", EntryPoint = "LcCreate")]
+        [DllImport("leechcore.dll", EntryPoint = "LcCreate")]
         public static extern IntPtr LcCreate(ref LeechCore.LCConfig pLcCreateConfig);
 
         [RequiresDynamicCode("This P/Invoke was not able to be converted to LibraryImport")]
-        [DllImport("leechcore", EntryPoint = "LcCreateEx")]
+        [DllImport("leechcore.dll", EntryPoint = "LcCreateEx")]
         public static extern IntPtr LcCreateEx(ref LeechCore.LCConfig pLcCreateConfig, out IntPtr ppLcCreateErrorInfo);
 #pragma warning restore SYSLIB1054
 
-        [LibraryImport("leechcore", EntryPoint = "LcClose")]
+        [LibraryImport("leechcore.dll", EntryPoint = "LcClose")]
         internal static partial void LcClose(IntPtr hLC);
 
-        [LibraryImport("leechcore", EntryPoint = "LcMemFree")]
+        [LibraryImport("leechcore.dll", EntryPoint = "LcMemFree")]
         internal static unsafe partial void LcMemFree(IntPtr pv);
 
-        [LibraryImport("leechcore", EntryPoint = "LcAllocScatter1")]
+        [LibraryImport("leechcore.dll", EntryPoint = "LcAllocScatter1")]
         [return: MarshalAs(UnmanagedType.Bool)]
         internal static unsafe partial bool LcAllocScatter1(uint cMEMs, out IntPtr pppMEMs);
 
-        [LibraryImport("leechcore", EntryPoint = "LcRead")]
+        [LibraryImport("leechcore.dll", EntryPoint = "LcRead")]
         [return: MarshalAs(UnmanagedType.Bool)]
         internal static unsafe partial bool LcRead(IntPtr hLC, ulong pa, uint cb, byte* pb);
 
-        [LibraryImport("leechcore", EntryPoint = "LcReadScatter")]
+        [LibraryImport("leechcore.dll", EntryPoint = "LcReadScatter")]
         internal static unsafe partial void LcReadScatter(IntPtr hLC, uint cMEMs, IntPtr ppMEMs);
 
-        [LibraryImport("leechcore", EntryPoint = "LcWrite")]
+        [LibraryImport("leechcore.dll", EntryPoint = "LcWrite")]
         [return: MarshalAs(UnmanagedType.Bool)]
         internal static unsafe partial bool LcWrite(IntPtr hLC, ulong pa, uint cb, byte* pb);
 
-        [LibraryImport("leechcore", EntryPoint = "LcWriteScatter")]
+        [LibraryImport("leechcore.dll", EntryPoint = "LcWriteScatter")]
         internal static unsafe partial void LcWriteScatter(IntPtr hLC, uint cMEMs, IntPtr ppMEMs);
 
-        [LibraryImport("leechcore", EntryPoint = "LcGetOption")]
+        [LibraryImport("leechcore.dll", EntryPoint = "LcGetOption")]
         [return: MarshalAs(UnmanagedType.Bool)]
         public static partial bool GetOption(IntPtr hLC, ulong fOption, out ulong pqwValue);
 
-        [LibraryImport("leechcore", EntryPoint = "LcSetOption")]
+        [LibraryImport("leechcore.dll", EntryPoint = "LcSetOption")]
         [return: MarshalAs(UnmanagedType.Bool)]
         public static partial bool SetOption(IntPtr hLC, ulong fOption, ulong qwValue);
 
-        [LibraryImport("leechcore", EntryPoint = "LcCommand")]
+        [LibraryImport("leechcore.dll", EntryPoint = "LcCommand")]
         [return: MarshalAs(UnmanagedType.Bool)]
         internal static unsafe partial bool LcCommand(IntPtr hLC, ulong fOption, uint cbDataIn, byte* pbDataIn, out IntPtr ppbDataOut, out uint pcbDataOut);
     }

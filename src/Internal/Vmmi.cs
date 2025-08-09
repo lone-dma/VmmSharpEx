@@ -908,48 +908,48 @@ namespace VmmSharpEx.Internal
 
         #region Base functionality
 
-        [LibraryImport("vmm", EntryPoint = "VMMDLL_InitializeEx")]
+        [LibraryImport("vmm.dll", EntryPoint = "VMMDLL_InitializeEx")]
         internal static partial IntPtr VMMDLL_InitializeEx(
             int argc,
             [MarshalAs(UnmanagedType.LPArray, ArraySubType = UnmanagedType.LPStr)]
             string[] argv,
             out IntPtr ppLcErrorInfo);
 
-        [LibraryImport("vmm", EntryPoint = "VMMDLL_CloseAll")]
+        [LibraryImport("vmm.dll", EntryPoint = "VMMDLL_CloseAll")]
         public static partial void VMMDLL_CloseAll();
 
-        [LibraryImport("vmm", EntryPoint = "VMMDLL_Close")]
+        [LibraryImport("vmm.dll", EntryPoint = "VMMDLL_Close")]
         public static partial void VMMDLL_Close(
             IntPtr hVMM);
 
-        [LibraryImport("vmm", EntryPoint = "VMMDLL_ConfigGet")]
+        [LibraryImport("vmm.dll", EntryPoint = "VMMDLL_ConfigGet")]
         [return: MarshalAs(UnmanagedType.Bool)]
         public static partial bool VMMDLL_ConfigGet(
             IntPtr hVMM,
             ulong fOption,
             out ulong pqwValue);
 
-        [LibraryImport("vmm", EntryPoint = "VMMDLL_ConfigSet")]
+        [LibraryImport("vmm.dll", EntryPoint = "VMMDLL_ConfigSet")]
         [return: MarshalAs(UnmanagedType.Bool)]
         public static partial bool VMMDLL_ConfigSet(
             IntPtr hVMM,
             ulong fOption,
             ulong qwValue);
 
-        [LibraryImport("vmm", EntryPoint = "VMMDLL_MemFree")]
+        [LibraryImport("vmm.dll", EntryPoint = "VMMDLL_MemFree")]
         internal static unsafe partial void VMMDLL_MemFree(
             byte* pvMem);
 
         // VFS (VIRTUAL FILE SYSTEM) FUNCTIONALITY BELOW:
 
-        [LibraryImport("vmm", EntryPoint = "VMMDLL_VfsListU")]
+        [LibraryImport("vmm.dll", EntryPoint = "VMMDLL_VfsListU")]
         [return: MarshalAs(UnmanagedType.Bool)]
         internal static unsafe partial bool VMMDLL_VfsList(
             IntPtr hVMM,
             [MarshalAs(UnmanagedType.LPUTF8Str)] string wcsPath,
             ref VMMDLL_VFS_FILELIST pFileList);
 
-        [LibraryImport("vmm", EntryPoint = "VMMDLL_VfsReadU")]
+        [LibraryImport("vmm.dll", EntryPoint = "VMMDLL_VfsReadU")]
         internal static unsafe partial uint VMMDLL_VfsRead(
             IntPtr hVMM,
             [MarshalAs(UnmanagedType.LPUTF8Str)] string wcsFileName,
@@ -958,7 +958,7 @@ namespace VmmSharpEx.Internal
             out uint pcbRead,
             ulong cbOffset);
 
-        [LibraryImport("vmm", EntryPoint = "VMMDLL_VfsWriteU")]
+        [LibraryImport("vmm.dll", EntryPoint = "VMMDLL_VfsWriteU")]
         internal static unsafe partial uint VMMDLL_VfsWrite(
             IntPtr hVMM,
             [MarshalAs(UnmanagedType.LPUTF8Str)] string wcsFileName,
@@ -969,13 +969,13 @@ namespace VmmSharpEx.Internal
 
         // PLUGIN FUNCTIONALITY BELOW:
 
-        [LibraryImport("vmm", EntryPoint = "VMMDLL_InitializePlugins")]
+        [LibraryImport("vmm.dll", EntryPoint = "VMMDLL_InitializePlugins")]
         [return: MarshalAs(UnmanagedType.Bool)]
         public static partial bool VMMDLL_InitializePlugins(IntPtr hVMM);
 
         // MEMORY READ/WRITE FUNCTIONALITY BELOW:
 
-        [LibraryImport("vmm", EntryPoint = "VMMDLL_MemReadScatter")]
+        [LibraryImport("vmm.dll", EntryPoint = "VMMDLL_MemReadScatter")]
         internal static unsafe partial uint VMMDLL_MemReadScatter(
             IntPtr hVMM,
             uint dwPID,
@@ -983,7 +983,7 @@ namespace VmmSharpEx.Internal
             uint cpMEMs,
             uint flags);
 
-        [LibraryImport("vmm", EntryPoint = "VMMDLL_MemReadEx")]
+        [LibraryImport("vmm.dll", EntryPoint = "VMMDLL_MemReadEx")]
         [return: MarshalAs(UnmanagedType.Bool)]
         internal static unsafe partial bool VMMDLL_MemReadEx(
             IntPtr hVMM,
@@ -994,7 +994,7 @@ namespace VmmSharpEx.Internal
             out uint pcbReadOpt,
             uint flags);
 
-        [LibraryImport("vmm", EntryPoint = "VMMDLL_MemPrefetchPages")]
+        [LibraryImport("vmm.dll", EntryPoint = "VMMDLL_MemPrefetchPages")]
         [return: MarshalAs(UnmanagedType.Bool)]
         internal static unsafe partial bool VMMDLL_MemPrefetchPages(
             IntPtr hVMM,
@@ -1002,7 +1002,7 @@ namespace VmmSharpEx.Internal
             byte* pPrefetchAddresses,
             uint cPrefetchAddresses);
 
-        [LibraryImport("vmm", EntryPoint = "VMMDLL_MemWrite")]
+        [LibraryImport("vmm.dll", EntryPoint = "VMMDLL_MemWrite")]
         [return: MarshalAs(UnmanagedType.Bool)]
         internal static unsafe partial bool VMMDLL_MemWrite(
             IntPtr hVMM,
@@ -1011,7 +1011,7 @@ namespace VmmSharpEx.Internal
             byte* pb,
             uint cb);
 
-        [LibraryImport("vmm", EntryPoint = "VMMDLL_MemVirt2Phys")]
+        [LibraryImport("vmm.dll", EntryPoint = "VMMDLL_MemVirt2Phys")]
         [return: MarshalAs(UnmanagedType.Bool)]
         public static partial bool VMMDLL_MemVirt2Phys(
             IntPtr hVMM,
@@ -1022,20 +1022,20 @@ namespace VmmSharpEx.Internal
 
         // MEMORY NEW SCATTER READ/WRITE FUNCTIONALITY BELOW:
 
-        [LibraryImport("vmm", EntryPoint = "VMMDLL_Scatter_Initialize")]
+        [LibraryImport("vmm.dll", EntryPoint = "VMMDLL_Scatter_Initialize")]
         internal static unsafe partial IntPtr VMMDLL_Scatter_Initialize(
             IntPtr hVMM,
             uint dwPID,
             uint flags);
 
-        [LibraryImport("vmm", EntryPoint = "VMMDLL_Scatter_Prepare")]
+        [LibraryImport("vmm.dll", EntryPoint = "VMMDLL_Scatter_Prepare")]
         [return: MarshalAs(UnmanagedType.Bool)]
         internal static unsafe partial bool VMMDLL_Scatter_Prepare(
             IntPtr hS,
             ulong va,
             uint cb);
 
-        [LibraryImport("vmm", EntryPoint = "VMMDLL_Scatter_PrepareWrite")]
+        [LibraryImport("vmm.dll", EntryPoint = "VMMDLL_Scatter_PrepareWrite")]
         [return: MarshalAs(UnmanagedType.Bool)]
         internal static unsafe partial bool VMMDLL_Scatter_PrepareWrite(
             IntPtr hS,
@@ -1043,17 +1043,17 @@ namespace VmmSharpEx.Internal
             byte* pb,
             uint cb);
 
-        [LibraryImport("vmm", EntryPoint = "VMMDLL_Scatter_ExecuteRead")]
+        [LibraryImport("vmm.dll", EntryPoint = "VMMDLL_Scatter_ExecuteRead")]
         [return: MarshalAs(UnmanagedType.Bool)]
         internal static unsafe partial bool VMMDLL_Scatter_ExecuteRead(
             IntPtr hS);
 
-        [LibraryImport("vmm", EntryPoint = "VMMDLL_Scatter_Execute")]
+        [LibraryImport("vmm.dll", EntryPoint = "VMMDLL_Scatter_Execute")]
         [return: MarshalAs(UnmanagedType.Bool)]
         internal static unsafe partial bool VMMDLL_Scatter_Execute(
             IntPtr hS);
 
-        [LibraryImport("vmm", EntryPoint = "VMMDLL_Scatter_Read")]
+        [LibraryImport("vmm.dll", EntryPoint = "VMMDLL_Scatter_Read")]
         [return: MarshalAs(UnmanagedType.Bool)]
         internal static unsafe partial bool VMMDLL_Scatter_Read(
             IntPtr hS,
@@ -1062,38 +1062,38 @@ namespace VmmSharpEx.Internal
             byte* pb,
             out uint pcbRead);
 
-        [LibraryImport("vmm", EntryPoint = "VMMDLL_Scatter_Clear")]
+        [LibraryImport("vmm.dll", EntryPoint = "VMMDLL_Scatter_Clear")]
         [return: MarshalAs(UnmanagedType.Bool)]
         public static partial bool SVMMDLL_Scatter_Clear(IntPtr hS, uint dwPID, uint flags);
 
-        [LibraryImport("vmm", EntryPoint = "VMMDLL_Scatter_Clear")]
+        [LibraryImport("vmm.dll", EntryPoint = "VMMDLL_Scatter_Clear")]
         [return: MarshalAs(UnmanagedType.Bool)]
         internal static unsafe partial bool VMMDLL_Scatter_Clear(
             IntPtr hS,
             uint dwPID,
             uint flags);
 
-        [LibraryImport("vmm", EntryPoint = "VMMDLL_Scatter_CloseHandle")]
+        [LibraryImport("vmm.dll", EntryPoint = "VMMDLL_Scatter_CloseHandle")]
         internal static unsafe partial void VMMDLL_Scatter_CloseHandle(
             IntPtr hS);
 
         // PROCESS FUNCTIONALITY BELOW:
 
-        [LibraryImport("vmm", EntryPoint = "VMMDLL_PidList")]
+        [LibraryImport("vmm.dll", EntryPoint = "VMMDLL_PidList")]
         [return: MarshalAs(UnmanagedType.Bool)]
         internal static unsafe partial bool VMMDLL_PidList(IntPtr hVMM, byte* pPIDs, ref ulong pcPIDs);
 
-        [LibraryImport("vmm", EntryPoint = "VMMDLL_PidGetFromName")]
+        [LibraryImport("vmm.dll", EntryPoint = "VMMDLL_PidGetFromName")]
         [return: MarshalAs(UnmanagedType.Bool)]
         public static partial bool VMMDLL_PidGetFromName(IntPtr hVMM, [MarshalAs(UnmanagedType.LPStr)] string szProcName, out uint pdwPID);
 
-        [LibraryImport("vmm", EntryPoint = "VMMDLL_ProcessGetProcAddressU")]
+        [LibraryImport("vmm.dll", EntryPoint = "VMMDLL_ProcessGetProcAddressU")]
         public static partial ulong VMMDLL_ProcessGetProcAddress(IntPtr hVMM, uint pid, [MarshalAs(UnmanagedType.LPUTF8Str)] string uszModuleName, [MarshalAs(UnmanagedType.LPStr)] string szFunctionName);
 
-        [LibraryImport("vmm", EntryPoint = "VMMDLL_ProcessGetModuleBaseU")]
+        [LibraryImport("vmm.dll", EntryPoint = "VMMDLL_ProcessGetModuleBaseU")]
         public static partial ulong VMMDLL_ProcessGetModuleBase(IntPtr hVMM, uint pid, [MarshalAs(UnmanagedType.LPUTF8Str)] string uszModuleName);
 
-        [LibraryImport("vmm", EntryPoint = "VMMDLL_ProcessGetInformation")]
+        [LibraryImport("vmm.dll", EntryPoint = "VMMDLL_ProcessGetInformation")]
         [return: MarshalAs(UnmanagedType.Bool)]
         internal static unsafe partial bool VMMDLL_ProcessGetInformation(
             IntPtr hVMM,
@@ -1101,13 +1101,13 @@ namespace VmmSharpEx.Internal
             byte* pProcessInformation,
             ref ulong pcbProcessInformation);
 
-        [LibraryImport("vmm", EntryPoint = "VMMDLL_ProcessGetInformationString")]
+        [LibraryImport("vmm.dll", EntryPoint = "VMMDLL_ProcessGetInformationString")]
         internal static unsafe partial byte* VMMDLL_ProcessGetInformationString(
             IntPtr hVMM,
             uint dwPID,
             uint fOptionString);
 
-        [LibraryImport("vmm", EntryPoint = "VMMDLL_ProcessGetDirectoriesU")]
+        [LibraryImport("vmm.dll", EntryPoint = "VMMDLL_ProcessGetDirectoriesU")]
         [return: MarshalAs(UnmanagedType.Bool)]
         internal static unsafe partial bool VMMDLL_ProcessGetDirectories(
             IntPtr hVMM,
@@ -1115,7 +1115,7 @@ namespace VmmSharpEx.Internal
             [MarshalAs(UnmanagedType.LPUTF8Str)] string uszModule,
             byte* pData);
 
-        [LibraryImport("vmm", EntryPoint = "VMMDLL_ProcessGetSectionsU")]
+        [LibraryImport("vmm.dll", EntryPoint = "VMMDLL_ProcessGetSectionsU")]
         [return: MarshalAs(UnmanagedType.Bool)]
         internal static unsafe partial bool VMMDLL_ProcessGetSections(
             IntPtr hVMM,
@@ -1127,7 +1127,7 @@ namespace VmmSharpEx.Internal
 
         // WINDOWS SPECIFIC DEBUGGING / SYMBOL FUNCTIONALITY BELOW:
 
-        [LibraryImport("vmm", EntryPoint = "VMMDLL_PdbLoad")]
+        [LibraryImport("vmm.dll", EntryPoint = "VMMDLL_PdbLoad")]
         [return: MarshalAs(UnmanagedType.Bool)]
         internal static unsafe partial bool VMMDLL_PdbLoad(
             IntPtr hVMM,
@@ -1135,7 +1135,7 @@ namespace VmmSharpEx.Internal
             ulong vaModuleBase,
             byte* pModuleMapEntry);
 
-        [LibraryImport("vmm", EntryPoint = "VMMDLL_PdbSymbolName")]
+        [LibraryImport("vmm.dll", EntryPoint = "VMMDLL_PdbSymbolName")]
         [return: MarshalAs(UnmanagedType.Bool)]
         internal static unsafe partial bool VMMDLL_PdbSymbolName(
             IntPtr hVMM,
@@ -1144,7 +1144,7 @@ namespace VmmSharpEx.Internal
             byte* szSymbolName,
             out uint pdwSymbolDisplacement);
 
-        [LibraryImport("vmm", EntryPoint = "VMMDLL_PdbSymbolAddress")]
+        [LibraryImport("vmm.dll", EntryPoint = "VMMDLL_PdbSymbolAddress")]
         [return: MarshalAs(UnmanagedType.Bool)]
         public static partial bool VMMDLL_PdbSymbolAddress(
             IntPtr hVMM,
@@ -1152,7 +1152,7 @@ namespace VmmSharpEx.Internal
             [MarshalAs(UnmanagedType.LPStr)] string szSymbolName,
             out ulong pvaSymbolAddress);
 
-        [LibraryImport("vmm", EntryPoint = "VMMDLL_PdbTypeSize")]
+        [LibraryImport("vmm.dll", EntryPoint = "VMMDLL_PdbTypeSize")]
         [return: MarshalAs(UnmanagedType.Bool)]
         public static partial bool VMMDLL_PdbTypeSize(
             IntPtr hVMM,
@@ -1160,7 +1160,7 @@ namespace VmmSharpEx.Internal
             [MarshalAs(UnmanagedType.LPStr)] string szTypeName,
             out uint pcbTypeSize);
 
-        [LibraryImport("vmm", EntryPoint = "VMMDLL_PdbTypeChildOffset")]
+        [LibraryImport("vmm.dll", EntryPoint = "VMMDLL_PdbTypeChildOffset")]
         [return: MarshalAs(UnmanagedType.Bool)]
         public static partial bool VMMDLL_PdbTypeChildOffset(
             IntPtr hVMM,
@@ -1170,7 +1170,7 @@ namespace VmmSharpEx.Internal
             out uint pcbTypeChildOffset);
 
         // VMMDLL_Map_GetPte
-        [LibraryImport("vmm", EntryPoint = "VMMDLL_Map_GetPteU")]
+        [LibraryImport("vmm.dll", EntryPoint = "VMMDLL_Map_GetPteU")]
         [return: MarshalAs(UnmanagedType.Bool)]
         internal static unsafe partial bool VMMDLL_Map_GetPte(
             IntPtr hVMM,
@@ -1179,7 +1179,7 @@ namespace VmmSharpEx.Internal
             out IntPtr ppPteMap);
 
         // VMMDLL_Map_GetVad
-        [LibraryImport("vmm", EntryPoint = "VMMDLL_Map_GetVadU")]
+        [LibraryImport("vmm.dll", EntryPoint = "VMMDLL_Map_GetVadU")]
         [return: MarshalAs(UnmanagedType.Bool)]
         internal static unsafe partial bool VMMDLL_Map_GetVad(
             IntPtr hVMM,
@@ -1188,7 +1188,7 @@ namespace VmmSharpEx.Internal
             out IntPtr ppVadMap);
 
         // VMMDLL_Map_GetVadEx
-        [LibraryImport("vmm", EntryPoint = "VMMDLL_Map_GetVadEx")]
+        [LibraryImport("vmm.dll", EntryPoint = "VMMDLL_Map_GetVadEx")]
         [return: MarshalAs(UnmanagedType.Bool)]
         internal static unsafe partial bool VMMDLL_Map_GetVadEx(
             IntPtr hVMM,
@@ -1198,7 +1198,7 @@ namespace VmmSharpEx.Internal
             out IntPtr ppVadExMap);
 
         // VMMDLL_Map_GetModule
-        [LibraryImport("vmm", EntryPoint = "VMMDLL_Map_GetModuleU")]
+        [LibraryImport("vmm.dll", EntryPoint = "VMMDLL_Map_GetModuleU")]
         [return: MarshalAs(UnmanagedType.Bool)]
         internal static unsafe partial bool VMMDLL_Map_GetModule(
             IntPtr hVMM,
@@ -1207,7 +1207,7 @@ namespace VmmSharpEx.Internal
             uint flags);
 
         // VMMDLL_Map_GetModuleFromName
-        [LibraryImport("vmm", EntryPoint = "VMMDLL_Map_GetModuleFromNameU")]
+        [LibraryImport("vmm.dll", EntryPoint = "VMMDLL_Map_GetModuleFromNameU")]
         [return: MarshalAs(UnmanagedType.Bool)]
         internal static unsafe partial bool VMMDLL_Map_GetModuleFromName(
             IntPtr hVMM,
@@ -1217,7 +1217,7 @@ namespace VmmSharpEx.Internal
             uint flags);
 
         // VMMDLL_Map_GetUnloadedModule
-        [LibraryImport("vmm", EntryPoint = "VMMDLL_Map_GetUnloadedModuleU")]
+        [LibraryImport("vmm.dll", EntryPoint = "VMMDLL_Map_GetUnloadedModuleU")]
         [return: MarshalAs(UnmanagedType.Bool)]
         internal static unsafe partial bool VMMDLL_Map_GetUnloadedModule(
             IntPtr hVMM,
@@ -1225,7 +1225,7 @@ namespace VmmSharpEx.Internal
             out IntPtr ppModuleMap);
 
         // VMMDLL_Map_GetEAT
-        [LibraryImport("vmm", EntryPoint = "VMMDLL_Map_GetEATU")]
+        [LibraryImport("vmm.dll", EntryPoint = "VMMDLL_Map_GetEATU")]
         [return: MarshalAs(UnmanagedType.Bool)]
         internal static unsafe partial bool VMMDLL_Map_GetEAT(
             IntPtr hVMM,
@@ -1234,7 +1234,7 @@ namespace VmmSharpEx.Internal
             out IntPtr ppEatMap);
 
         // VMMDLL_Map_GetIAT
-        [LibraryImport("vmm", EntryPoint = "VMMDLL_Map_GetIATU")]
+        [LibraryImport("vmm.dll", EntryPoint = "VMMDLL_Map_GetIATU")]
         [return: MarshalAs(UnmanagedType.Bool)]
         internal static unsafe partial bool VMMDLL_Map_GetIAT(
             IntPtr hVMM,
@@ -1243,7 +1243,7 @@ namespace VmmSharpEx.Internal
             out IntPtr ppIatMap);
 
         // VMMDLL_Map_GetHeap
-        [LibraryImport("vmm", EntryPoint = "VMMDLL_Map_GetHeap")]
+        [LibraryImport("vmm.dll", EntryPoint = "VMMDLL_Map_GetHeap")]
         [return: MarshalAs(UnmanagedType.Bool)]
         internal static unsafe partial bool VMMDLL_Map_GetHeap(
             IntPtr hVMM,
@@ -1251,7 +1251,7 @@ namespace VmmSharpEx.Internal
             out IntPtr ppHeapMap);
 
         // VMMDLL_Map_GetHeapAlloc
-        [LibraryImport("vmm", EntryPoint = "VMMDLL_Map_GetHeapAlloc")]
+        [LibraryImport("vmm.dll", EntryPoint = "VMMDLL_Map_GetHeapAlloc")]
         [return: MarshalAs(UnmanagedType.Bool)]
         internal static unsafe partial bool VMMDLL_Map_GetHeapAlloc(
             IntPtr hVMM,
@@ -1260,7 +1260,7 @@ namespace VmmSharpEx.Internal
             out IntPtr ppHeapAllocMap);
 
         // VMMDLL_Map_GetThread
-        [LibraryImport("vmm", EntryPoint = "VMMDLL_Map_GetThread")]
+        [LibraryImport("vmm.dll", EntryPoint = "VMMDLL_Map_GetThread")]
         [return: MarshalAs(UnmanagedType.Bool)]
         internal static unsafe partial bool VMMDLL_Map_GetThread(
             IntPtr hVMM,
@@ -1268,7 +1268,7 @@ namespace VmmSharpEx.Internal
             out IntPtr ppThreadMap);
 
         // VMMDLL_Map_GetThread_Callstack
-        [LibraryImport("vmm", EntryPoint = "VMMDLL_Map_GetThread_CallstackU")]
+        [LibraryImport("vmm.dll", EntryPoint = "VMMDLL_Map_GetThread_CallstackU")]
         [return: MarshalAs(UnmanagedType.Bool)]
         internal static unsafe partial bool VMMDLL_Map_GetThread_Callstack(
             IntPtr hVMM,
@@ -1278,7 +1278,7 @@ namespace VmmSharpEx.Internal
             out IntPtr ppThreadCallstack);
 
         // VMMDLL_Map_GetHandle
-        [LibraryImport("vmm", EntryPoint = "VMMDLL_Map_GetHandleU")]
+        [LibraryImport("vmm.dll", EntryPoint = "VMMDLL_Map_GetHandleU")]
         [return: MarshalAs(UnmanagedType.Bool)]
         internal static unsafe partial bool VMMDLL_Map_GetHandle(
             IntPtr hVMM,
@@ -1286,42 +1286,42 @@ namespace VmmSharpEx.Internal
             out IntPtr ppHandleMap);
 
         // VMMDLL_Map_GetNet
-        [LibraryImport("vmm", EntryPoint = "VMMDLL_Map_GetNetU")]
+        [LibraryImport("vmm.dll", EntryPoint = "VMMDLL_Map_GetNetU")]
         [return: MarshalAs(UnmanagedType.Bool)]
         internal static unsafe partial bool VMMDLL_Map_GetNet(
             IntPtr hVMM,
             out IntPtr ppNetMap);
 
         // VMMDLL_Map_GetPhysMem
-        [LibraryImport("vmm", EntryPoint = "VMMDLL_Map_GetPhysMem")]
+        [LibraryImport("vmm.dll", EntryPoint = "VMMDLL_Map_GetPhysMem")]
         [return: MarshalAs(UnmanagedType.Bool)]
         internal static unsafe partial bool VMMDLL_Map_GetPhysMem(
             IntPtr hVMM,
             out IntPtr ppPhysMemMap);
 
         // VMMDLL_Map_GetKDevice
-        [LibraryImport("vmm", EntryPoint = "VMMDLL_Map_GetKDeviceU")]
+        [LibraryImport("vmm.dll", EntryPoint = "VMMDLL_Map_GetKDeviceU")]
         [return: MarshalAs(UnmanagedType.Bool)]
         internal static unsafe partial bool VMMDLL_Map_GetKDevice(
             IntPtr hVMM,
             out IntPtr ppKDeviceMap);
 
         // VMMDLL_Map_GetKDriver
-        [LibraryImport("vmm", EntryPoint = "VMMDLL_Map_GetKDriverU")]
+        [LibraryImport("vmm.dll", EntryPoint = "VMMDLL_Map_GetKDriverU")]
         [return: MarshalAs(UnmanagedType.Bool)]
         internal static unsafe partial bool VMMDLL_Map_GetKDriver(
             IntPtr hVMM,
             out IntPtr ppKDriverMap);
 
         // VMMDLL_Map_GetKObject
-        [LibraryImport("vmm", EntryPoint = "VMMDLL_Map_GetKObjectU")]
+        [LibraryImport("vmm.dll", EntryPoint = "VMMDLL_Map_GetKObjectU")]
         [return: MarshalAs(UnmanagedType.Bool)]
         internal static unsafe partial bool VMMDLL_Map_GetKObject(
             IntPtr hVMM,
             out IntPtr ppKObjectMap);
 
         // VMMDLL_Map_GetPool
-        [LibraryImport("vmm", EntryPoint = "VMMDLL_Map_GetPool")]
+        [LibraryImport("vmm.dll", EntryPoint = "VMMDLL_Map_GetPool")]
         [return: MarshalAs(UnmanagedType.Bool)]
         internal static unsafe partial bool VMMDLL_Map_GetPool(
             IntPtr hVMM,
@@ -1329,28 +1329,28 @@ namespace VmmSharpEx.Internal
             uint flags);
 
         // VMMDLL_Map_GetUsers
-        [LibraryImport("vmm", EntryPoint = "VMMDLL_Map_GetUsersU")]
+        [LibraryImport("vmm.dll", EntryPoint = "VMMDLL_Map_GetUsersU")]
         [return: MarshalAs(UnmanagedType.Bool)]
         internal static unsafe partial bool VMMDLL_Map_GetUsers(
             IntPtr hVMM,
             out IntPtr ppUserMap);
 
         // VMMDLL_Map_GetVM
-        [LibraryImport("vmm", EntryPoint = "VMMDLL_Map_GetVMU")]
+        [LibraryImport("vmm.dll", EntryPoint = "VMMDLL_Map_GetVMU")]
         [return: MarshalAs(UnmanagedType.Bool)]
         internal static unsafe partial bool VMMDLL_Map_GetVM(
             IntPtr hVMM,
             out IntPtr ppUserMap);
 
         // VMMDLL_Map_GetServices
-        [LibraryImport("vmm", EntryPoint = "VMMDLL_Map_GetServicesU")]
+        [LibraryImport("vmm.dll", EntryPoint = "VMMDLL_Map_GetServicesU")]
         [return: MarshalAs(UnmanagedType.Bool)]
         internal static unsafe partial bool VMMDLL_Map_GetServices(
             IntPtr hVMM,
             out IntPtr ppServiceMap);
 
         // VMMDLL_Map_GetPfn
-        [LibraryImport("vmm", EntryPoint = "VMMDLL_Map_GetPfn")]
+        [LibraryImport("vmm.dll", EntryPoint = "VMMDLL_Map_GetPfn")]
         [return: MarshalAs(UnmanagedType.Bool)]
         internal static unsafe partial bool VMMDLL_Map_GetPfn(
             IntPtr hVMM,
@@ -1360,7 +1360,7 @@ namespace VmmSharpEx.Internal
             ref uint pcbPfnMap);
 
         // REGISTRY FUNCTIONALITY BELOW:
-        [LibraryImport("vmm", EntryPoint = "VMMDLL_WinReg_HiveList")]
+        [LibraryImport("vmm.dll", EntryPoint = "VMMDLL_WinReg_HiveList")]
         [return: MarshalAs(UnmanagedType.Bool)]
         internal static unsafe partial bool VMMDLL_WinReg_HiveList(
             IntPtr hVMM,
@@ -1368,7 +1368,7 @@ namespace VmmSharpEx.Internal
             uint cHives,
             out uint pcHives);
 
-        [LibraryImport("vmm", EntryPoint = "VMMDLL_WinReg_HiveReadEx")]
+        [LibraryImport("vmm.dll", EntryPoint = "VMMDLL_WinReg_HiveReadEx")]
         [return: MarshalAs(UnmanagedType.Bool)]
         internal static unsafe partial bool VMMDLL_WinReg_HiveReadEx(
             IntPtr hVMM,
@@ -1379,7 +1379,7 @@ namespace VmmSharpEx.Internal
             out uint pcbReadOpt,
             uint flags);
 
-        [LibraryImport("vmm", EntryPoint = "VMMDLL_WinReg_HiveWrite")]
+        [LibraryImport("vmm.dll", EntryPoint = "VMMDLL_WinReg_HiveWrite")]
         [return: MarshalAs(UnmanagedType.Bool)]
         internal static unsafe partial bool VMMDLL_WinReg_HiveWrite(
             IntPtr hVMM,
@@ -1388,7 +1388,7 @@ namespace VmmSharpEx.Internal
             byte* pb,
             uint cb);
 
-        [LibraryImport("vmm", EntryPoint = "VMMDLL_WinReg_EnumKeyExU")]
+        [LibraryImport("vmm.dll", EntryPoint = "VMMDLL_WinReg_EnumKeyExU")]
         [return: MarshalAs(UnmanagedType.Bool)]
         internal static unsafe partial bool VMMDLL_WinReg_EnumKeyEx(
             IntPtr hVMM,
@@ -1398,7 +1398,7 @@ namespace VmmSharpEx.Internal
             ref uint lpcchName,
             out ulong lpftLastWriteTime);
 
-        [LibraryImport("vmm", EntryPoint = "VMMDLL_WinReg_EnumValueU")]
+        [LibraryImport("vmm.dll", EntryPoint = "VMMDLL_WinReg_EnumValueU")]
         [return: MarshalAs(UnmanagedType.Bool)]
         internal static unsafe partial bool VMMDLL_WinReg_EnumValue(
             IntPtr hVMM,
@@ -1410,7 +1410,7 @@ namespace VmmSharpEx.Internal
             byte* lpData,
             ref uint lpcbData);
 
-        [LibraryImport("vmm", EntryPoint = "VMMDLL_WinReg_QueryValueExU")]
+        [LibraryImport("vmm.dll", EntryPoint = "VMMDLL_WinReg_QueryValueExU")]
         [return: MarshalAs(UnmanagedType.Bool)]
         internal static unsafe partial bool VMMDLL_WinReg_QueryValueEx(
             IntPtr hVMM,
@@ -1423,7 +1423,7 @@ namespace VmmSharpEx.Internal
 
 #pragma warning disable SYSLIB1054
         [RequiresDynamicCode("This P/Invoke was not able to be converted to LibraryImport")]
-        [DllImport("vmm", EntryPoint = "VMMDLL_MemSearch")]
+        [DllImport("vmm.dll", EntryPoint = "VMMDLL_MemSearch")]
         internal static extern unsafe bool VMMDLL_MemSearch(
             IntPtr hVMM,
             uint dwPID,
@@ -1432,7 +1432,7 @@ namespace VmmSharpEx.Internal
             out uint pcva);
 
         [RequiresDynamicCode("This P/Invoke was not able to be converted to LibraryImport")]
-        [DllImport("vmm", EntryPoint = "VMMDLL_MemSearch")]
+        [DllImport("vmm.dll", EntryPoint = "VMMDLL_MemSearch")]
         internal static extern unsafe bool VMMDLL_MemSearch2(
             IntPtr hVMM,
             uint dwPID,
@@ -1441,7 +1441,7 @@ namespace VmmSharpEx.Internal
             IntPtr pcva);
 
         [RequiresDynamicCode("This P/Invoke was not able to be converted to LibraryImport")]
-        [DllImport("vmm", EntryPoint = "VMMDLL_YaraSearch")]
+        [DllImport("vmm.dll", EntryPoint = "VMMDLL_YaraSearch")]
         internal static extern unsafe bool VMMDLL_YaraSearch(
             IntPtr hVMM,
             uint dwPID,
@@ -1450,7 +1450,7 @@ namespace VmmSharpEx.Internal
             IntPtr pcva);
 
         [RequiresDynamicCode("This P/Invoke was not able to be converted to LibraryImport")]
-        [DllImport("vmm", EntryPoint = "VMMDLL_YaraSearch")]
+        [DllImport("vmm.dll", EntryPoint = "VMMDLL_YaraSearch")]
         internal static extern unsafe bool VMMDLL_YaraSearch2(
             IntPtr hVMM,
             uint dwPID,
@@ -1459,7 +1459,7 @@ namespace VmmSharpEx.Internal
             IntPtr pcva);
 #pragma warning restore SYSLIB1054
 
-        [LibraryImport("vmm", EntryPoint = "VMMDLL_UtilFillHexAscii")]
+        [LibraryImport("vmm.dll", EntryPoint = "VMMDLL_UtilFillHexAscii")]
         [return: MarshalAs(UnmanagedType.Bool)]
         internal static unsafe partial bool VMMDLL_UtilFillHexAscii(
             byte* pb,
@@ -1468,7 +1468,7 @@ namespace VmmSharpEx.Internal
             byte* sz,
             ref uint pcsz);
 
-        [LibraryImport("vmm", EntryPoint = "VMMDLL_Log")]
+        [LibraryImport("vmm.dll", EntryPoint = "VMMDLL_Log")]
         [return: MarshalAs(UnmanagedType.Bool)]
         internal static unsafe partial bool VMMDLL_Log(
             IntPtr hVMM,
