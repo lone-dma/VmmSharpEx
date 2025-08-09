@@ -10,6 +10,7 @@
 		<Product>VmmSharpEx</Product>
 		<Copyright>Copyright © Ulf Frisk 2024</Copyright>
 		<Platforms>x64</Platforms>
+		<RuntimeIdentifier>win-x64</RuntimeIdentifier>
 	</PropertyGroup>
 
 	<ItemGroup>
@@ -19,15 +20,19 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<Content Include="..\native\**\*">
+		<!-- Pack the targets file -->
+		<None Include="VmmSharpEx.targets"
+			  Pack="true"
+			  PackagePath="build\" />
+		<!-- Pack the native files -->
+		<None Include="..\native\**\*">
 			<Pack>true</Pack>
-			<PackagePath>.</PackagePath>
-			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
-		</Content>
+			<PackagePath>native\</PackagePath>
+		</None>
 	</ItemGroup>
 
 	<PropertyGroup>
-		<Version>1.0.2</Version>
+		<Version>1.0.4</Version>
 		<RepositoryUrl>https://github.com/boggle4539/VmmSharpEx</RepositoryUrl>
 		<RepositoryType>git</RepositoryType>
 		<PackageLicenseFile>LICENSE</PackageLicenseFile>
