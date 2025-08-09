@@ -36,12 +36,12 @@ namespace VmmSharpEx
     /// The PDB sub-system requires that MemProcFS supporting DLLs/.SO’s for debugging and symbol server are put alongside vmm.dll.
     /// Also it’s recommended that the file info.db is put alongside vmm.dll.
     /// </summary>
-    public class VmmPdb
+    public sealed class VmmPdb
     {
         #region Base Functionality
 
-        protected readonly string _module;
-        protected readonly Vmm _hVmm;
+        private readonly string _module;
+        private readonly Vmm _hVmm;
 
         private VmmPdb()
         {

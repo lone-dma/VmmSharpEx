@@ -37,13 +37,13 @@ namespace VmmSharpEx
     /// <summary>
     /// The VmmScatterMemory class is used to ease the reading and writing of memory in bulk using the VMM Scatter API.
     /// </summary>
-    public class VmmScatter : IDisposable
+    public sealed class VmmScatter : IDisposable
     {
         #region Base Functionality
 
         private readonly uint pid;
         private bool disposed = false;
-        protected IntPtr hS = IntPtr.Zero;
+        private IntPtr hS = IntPtr.Zero;
 
         private VmmScatter()
         {
@@ -67,7 +67,7 @@ namespace VmmSharpEx
             GC.SuppressFinalize(this);
         }
 
-        protected virtual void Dispose(bool disposing)
+        private void Dispose(bool disposing)
         {
             if (!this.disposed)
             {

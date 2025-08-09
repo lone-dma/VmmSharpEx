@@ -39,12 +39,12 @@ namespace VmmSharpEx
     /// <summary>
     /// The VmmYara class represents a Yara search in memory.
     /// </summary>
-    public class VmmYara : IDisposable
+    public sealed class VmmYara : IDisposable
     {
         #region Base Functionality
 
-        protected readonly Vmm _hVmm;
-        protected readonly uint _PID;
+        private readonly Vmm _hVmm;
+        private readonly uint _PID;
 
         internal YaraResult _result;
         internal Vmmi.VMMDLL_YARA_CONFIG _native;
@@ -103,7 +103,7 @@ namespace VmmSharpEx
             GC.SuppressFinalize(this);
         }
 
-        protected virtual void Dispose(bool disposing)
+        private void Dispose(bool disposing)
         {
             if (!this.disposed)
             {

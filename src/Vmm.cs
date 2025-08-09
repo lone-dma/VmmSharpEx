@@ -27,7 +27,6 @@
  * PERFORMANCE OF THIS SOFTWARE.
  */
 
-using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
 using System.Text;
@@ -40,18 +39,18 @@ namespace VmmSharpEx
     /// <summary>
     /// MemProcFS public API
     /// </summary>
-    public class Vmm : IDisposable
+    public sealed class Vmm : IDisposable
     {
         #region Base Functionality
 
         public static implicit operator IntPtr(Vmm x) => x?.hVMM ?? IntPtr.Zero;
         private bool disposed = false;
-        protected IntPtr hVMM = IntPtr.Zero;
+        private IntPtr hVMM = IntPtr.Zero;
 
         /// <summary>
         /// Underlying LeechCore handle.
         /// </summary>
-        public virtual LeechCore LeechCore { get; }
+        public LeechCore LeechCore { get; }
 
         /// <summary>
         /// ToString() override.
@@ -65,7 +64,7 @@ namespace VmmSharpEx
         /// <summary>
         /// Internal initialization method.
         /// </summary>
-        protected static unsafe IntPtr Initialize(out LeechCore.LCConfigErrorInfo configErrorInfo, bool initPlugins, params string[] args)
+        private static unsafe IntPtr Initialize(out LeechCore.LCConfigErrorInfo configErrorInfo, params string[] args)
         {
             IntPtr pLcErrorInfo;
             int cbERROR_INFO = System.Runtime.InteropServices.Marshal.SizeOf<Lci.LC_CONFIG_ERRORINFO>();
@@ -79,10 +78,6 @@ namespace VmmSharpEx
             }
             if (vaLcCreateErrorInfo == 0)
             {
-                if (initPlugins)
-                {
-                    Vmmi.VMMDLL_InitializePlugins(hVMM);
-                }
                 return hVMM;
             }
             Lci.LC_CONFIG_ERRORINFO e = Marshal.PtrToStructure<Lci.LC_CONFIG_ERRORINFO>(pLcErrorInfo);
@@ -94,10 +89,6 @@ namespace VmmSharpEx
                 {
                     configErrorInfo.strUserText = Marshal.PtrToStringUni((System.IntPtr)(vaLcCreateErrorInfo + cbERROR_INFO));
                 }
-            }
-            if (initPlugins)
-            {
-                Vmmi.VMMDLL_InitializePlugins(hVMM);
             }
             return hVMM;
         }
@@ -116,8 +107,11 @@ namespace VmmSharpEx
         /// <param name="configErrorInfo">Error information in case of an error.</param>
         /// <param name="args">MemProcFS/Vmm command line arguments.</param>
         public Vmm(out LeechCore.LCConfigErrorInfo configErrorInfo, params string[] args)
-            : this(out configErrorInfo, true, args)
         {
+            this.hVMM = Vmm.Initialize(out configErrorInfo, args);
+            ulong hLC = GetConfig(CONFIG_OPT_CORE_LEECHCORE_HANDLE);
+            string sLC = $"existing://0x{hLC:X}";
+            this.LeechCore = new LeechCore(sLC);
         }
 
         /// <summary>
@@ -125,33 +119,8 @@ namespace VmmSharpEx
         /// </summary>
         /// <param name="args">MemProcFS/Vmm command line arguments.</param>
         public Vmm(params string[] args)
-            : this(out LeechCore.LCConfigErrorInfo errorInfo, true, args)
+            : this(out _, args)
         {
-        }
-
-        /// <summary>
-        /// Initialize a new Vmm instance with command line arguments.
-        /// </summary>
-        /// <param name="initializePlugins">Initialize plugins on startup.</param>
-        /// <param name="args">MemProcFS/Vmm command line arguments.</param>
-        public Vmm(bool initializePlugins, params string[] args)
-            : this(out _, initializePlugins, args)
-        {
-        }
-
-        /// <summary>
-        /// Initialize a new Vmm instance with command line arguments.
-        /// Also retrieve the extended error information (if there is an error).
-        /// </summary>
-        /// <param name="configErrorInfo">Error information in case of an error.</param>
-        /// <param name="initializePlugins">Initialize plugins on startup.</param>
-        /// <param name="args">MemProcFS/Vmm command line arguments.</param>
-        public Vmm(out LeechCore.LCConfigErrorInfo configErrorInfo, bool initializePlugins, params string[] args)
-        {
-            this.hVMM = Vmm.Initialize(out configErrorInfo, initializePlugins, args);
-            ulong hLC = GetConfig(CONFIG_OPT_CORE_LEECHCORE_HANDLE);
-            string sLC = $"existing://0x{hLC:X}";
-            this.LeechCore = new LeechCore(sLC);
         }
 
         /// <summary>
@@ -174,7 +143,7 @@ namespace VmmSharpEx
             GC.SuppressFinalize(this);
         }
 
-        protected virtual void Dispose(bool disposing)
+        private void Dispose(bool disposing)
         {
             if (!this.disposed)
             {
@@ -204,26 +173,6 @@ namespace VmmSharpEx
         public static void CloseAll()
         {
             Vmmi.VMMDLL_CloseAll();
-        }
-
-        /// <summary>
-        /// Load the native vmm.dll and leechcore.dll libraries. This may sometimes be necessary if the libraries are not in the system path.
-        /// NB! This method should be called before any other Vmm API methods. This method is only available on Windows.
-        /// </summary>
-        /// <param name="path"></param>
-        public static void LoadNativeLibrary(string path)
-        {
-            // Load the native vmm.dll and leechcore.dll libraries if possible.
-            // Leak the handles to the libraries as it will be used by the API.
-            if(NativeLibrary.TryLoad("leechcore", out _) && NativeLibrary.TryLoad("vmm", out _))
-            {
-                return;
-            }
-            if (NativeLibrary.TryLoad(Path.Combine(path, "leechcore"), out _) && NativeLibrary.TryLoad(Path.Combine(path, "vmm"), out _))
-            {
-                return;
-            }
-            throw new VmmException("Failed to load native libraries vmm.dll and leechcore.dll.");
         }
 
         #endregion

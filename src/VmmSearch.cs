@@ -38,12 +38,12 @@ namespace VmmSharpEx
     /// <summary>
     /// VmmSearch represents a binary search in memory.
     /// </summary>
-    public class VmmSearch : IDisposable
+    public sealed class VmmSearch : IDisposable
     {
         #region Base Functionality
 
-        protected readonly Vmm _hVmm;
-        protected readonly uint _PID;
+        private readonly Vmm _hVmm;
+        private readonly uint _PID;
 
         internal SearchResult _result;
         internal Vmmi.VMMDLL_MEM_SEARCH_CONTEXT _native;
@@ -98,7 +98,7 @@ namespace VmmSharpEx
             GC.SuppressFinalize(this);
         }
 
-        protected virtual void Dispose(bool disposing)
+        private void Dispose(bool disposing)
         {
             if (!this.disposed)
             {

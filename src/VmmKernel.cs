@@ -35,11 +35,11 @@ namespace VmmSharpEx
     /// - Kernel build number.
     /// - Kernel debug symbols(nt).
     /// </summary>
-    public class VmmKernel
+    public sealed class VmmKernel
     {
         #region Base Functionality
 
-        protected readonly Vmm _hVmm;
+        private readonly Vmm _hVmm;
 
         private VmmKernel()
         {

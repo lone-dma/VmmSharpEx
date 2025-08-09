@@ -38,11 +38,11 @@ namespace VmmSharpEx
     /// <summary>
     /// VmmProcess represents a process in the system.
     /// </summary>
-    public class VmmProcess
+    public sealed class VmmProcess
     {
         #region Base Functionality
 
-        protected readonly Vmm _hVmm;
+        private readonly Vmm _hVmm;
 
         /// <summary>
         /// Process ID for this Process.

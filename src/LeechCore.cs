@@ -39,12 +39,12 @@ namespace VmmSharpEx
     /// <summary>
     /// LeechCore public API
     /// </summary>
-    public class LeechCore : IDisposable
+    public sealed class LeechCore : IDisposable
     {
         public static implicit operator IntPtr(LeechCore x) => x?.hLC ?? IntPtr.Zero;
 
         private bool disposed = false;
-        protected IntPtr hLC = IntPtr.Zero;
+        private IntPtr hLC = IntPtr.Zero;
 
         #region Constants/Types
         //---------------------------------------------------------------------
@@ -191,7 +191,7 @@ namespace VmmSharpEx
         {
         }
 
-        protected LeechCore(IntPtr hLC)
+        private LeechCore(IntPtr hLC)
         {
             this.hLC = hLC;
         }
@@ -301,7 +301,7 @@ namespace VmmSharpEx
             GC.SuppressFinalize(this);
         }
 
-        protected virtual void Dispose(bool disposing)
+        private void Dispose(bool disposing)
         {
             if (!this.disposed)
             {
@@ -317,27 +317,6 @@ namespace VmmSharpEx
         public void Close()
         {
             Dispose(disposing: true);
-        }
-
-
-        /// <summary>
-        /// Load the native vmm.dll and leechcore.dll libraries. This may sometimes be necessary if the libraries are not in the system path.
-        /// NB! This method should be called before any other Vmm API methods. This method is only available on Windows.
-        /// </summary>
-        /// <param name="path"></param>
-        public static void LoadNativeLibrary(string path)
-        {
-            // Load the native leechcore.dll library if possible.
-            // Leak the handles to the libraries as it will be used by the API.
-            if(NativeLibrary.TryLoad("leechcore", out _))
-            {
-                return;
-            }
-            if (NativeLibrary.TryLoad(Path.Combine(path, "leechcore"), out _))
-            {
-                return;
-            }
-            throw new VmmException("Failed to load native library leechcore.dll.");
         }
 
         //---------------------------------------------------------------------
