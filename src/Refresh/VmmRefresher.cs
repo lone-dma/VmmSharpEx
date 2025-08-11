@@ -33,7 +33,7 @@
         private void Interval_Elapsed(object sender, System.Timers.ElapsedEventArgs e)
         {
             if (!_instance.SetConfig((ulong)_option, 1))
-                _instance.Log($"WARNING: {_option} Refresh Failed!", Vmm.LogLevel.Warning);
+                _instance.Log($"WARNING: {_option} Auto Refresh Failed!", Vmm.LogLevel.Warning);
         }
 
         public void Dispose()
