@@ -543,6 +543,7 @@ namespace VmmSharpEx
         /// Write multiple page-sized physical memory ranges. The write is best-effort and may fail. It's recommended to verify the writes with subsequent reads.
         /// </summary>
         /// <param name="MEMs">MEMs containing the memory addresses and data to write.</param>
+        [Obsolete("Use VmmScatter to Write Memory, this may be removed in the future.")]
         public void WriteScatter(ref MemScatter[] MEMs)
         {
             int i;
