@@ -1,5 +1,4 @@
 ﻿using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 using System.Text;
 using VmmSharpEx.Internal;
 
@@ -26,10 +25,7 @@ namespace VmmSharpEx
             _pid = pid;
         }
 
-        ~VmmScatter()
-        {
-            Dispose(disposing: false);
-        }
+        ~VmmScatter() => Dispose(disposing: false);
 
         public void Dispose()
         {
@@ -54,7 +50,7 @@ namespace VmmSharpEx
             {
                 return "VmmScatterMemory:NotValid";
             }
-            else if(_pid == 0xFFFFFFFF)
+            else if (_pid == 0xFFFFFFFF)
             {
                 return "VmmScatterMemory:physical";
             }
@@ -74,8 +70,34 @@ namespace VmmSharpEx
         /// <param name="qwA">Address of the memory to be read.</param>
         /// <param name="cb">Length in bytes of the data to be read.</param>
         /// <returns>true/false.</returns>
-        public bool Prepare(ulong qwA, uint cb)
+        public bool PrepareRead(ulong qwA, uint cb)
         {
+            return Vmmi.VMMDLL_Scatter_Prepare(_h, qwA, cb);
+        }
+
+        /// <summary>
+        /// Prepare to read memory of a certain struct.
+        /// </summary>
+        /// <typeparam name="T">Struct type to read.</typeparam>
+        /// <param name="qwA">Address of the memory to be read.</param>
+        /// <returns>true/false.</returns>
+        public unsafe bool PrepareReadValue<T>(ulong qwA)
+            where T : unmanaged, allows ref struct
+        {
+            uint cb = (uint)sizeof(T);
+            return Vmmi.VMMDLL_Scatter_Prepare(_h, qwA, cb);
+        }
+
+        /// <summary>
+        /// Prepare to read memory from an array/collection of structs.
+        /// </summary>
+        /// <param name="qwA">Address of the memory to be read.</param>
+        /// <param name="count">Number of elements to be read.</param>
+        /// <returns>true/false.</returns>
+        public unsafe bool PrepareReadCollection<T>(ulong qwA, int count)
+            where T : unmanaged
+        {
+            uint cb = (uint)sizeof(T) * (uint)count;
             return Vmmi.VMMDLL_Scatter_Prepare(_h, qwA, cb);
         }
 
@@ -107,6 +129,23 @@ namespace VmmSharpEx
         }
 
         /// <summary>
+        /// Prepare to write a span of a certain struct to memory.
+        /// </summary>
+        /// <typeparam name="T">The type of struct to write.</typeparam>
+        /// <param name="qwA">The address where to write the data.</param>
+        /// <param name="data">The data to write to memory.</param>
+        /// <returns>true/false.</returns>
+        public unsafe bool PrepareWriteSpan<T>(ulong qwA, Span<T> data)
+            where T : unmanaged
+        {
+            uint cb = (uint)sizeof(T) * (uint)data.Length;
+            fixed (T* pb = data)
+            {
+                return Vmmi.VMMDLL_Scatter_PrepareWrite(_h, qwA, (byte*)pb, cb);
+            }
+        }
+
+        /// <summary>
         /// Prepare to write a struct to memory.
         /// </summary>
         /// <typeparam name="T">The type of struct to write.</typeparam>
@@ -117,8 +156,7 @@ namespace VmmSharpEx
             where T : unmanaged, allows ref struct
         {
             uint cb = (uint)sizeof(T);
-            byte* pb = (byte*)&value;
-            return Vmmi.VMMDLL_Scatter_PrepareWrite(_h, qwA, pb, cb);
+            return Vmmi.VMMDLL_Scatter_PrepareWrite(_h, qwA, (byte*)&value, cb);
         }
 
         /// <summary>
@@ -189,6 +227,24 @@ namespace VmmSharpEx
                 Array.Resize<T>(ref data, partialCount);
             }
             return data;
+        }
+
+        /// <summary>
+        /// Read memory from an address into a Span of a certain type.
+        /// </summary>
+        /// <typeparam name="T">The type of struct to read.</typeparam>
+        /// <param name="qwA">Address to read from.</param>
+        /// <param name="span">The span to read into.</param>
+        /// <param name="cbRead">The number of bytes read.</param>
+        /// <returns>TRUE if successful, otherwise FALSE.</returns>
+        public unsafe bool ReadSpan<T>(ulong qwA, Span<T> span, out uint cbRead)
+            where T : unmanaged
+        {
+            uint cb = (uint)sizeof(T) * (uint)span.Length;
+            fixed (T* pb = span)
+            {
+                return Vmmi.VMMDLL_Scatter_Read(_h, qwA, cb, (byte*)pb, out cbRead);
+            }
         }
 
         /// <summary>
