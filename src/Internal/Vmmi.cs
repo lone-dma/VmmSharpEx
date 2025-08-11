@@ -1483,7 +1483,7 @@ namespace VmmSharpEx.Internal
         {
             if (!Lci.LcAllocScatter1((uint)qwA.Length, out IntPtr pppMEMs))
                 throw new VmmException("LcAllocScatter1 FAIL");
-            var ppMEMs = (LeechCore.tdMEM_SCATTER**)pppMEMs.ToPointer();
+            var ppMEMs = (LeechCore.TdMEM_SCATTER**)pppMEMs.ToPointer();
             for (int i = 0; i < qwA.Length; i++)
             {
                 var pMEM = ppMEMs[i];

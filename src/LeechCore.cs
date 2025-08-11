@@ -11,7 +11,8 @@ namespace VmmSharpEx
     {
         public static implicit operator IntPtr(LeechCore x) => x?.hLC ?? IntPtr.Zero;
 
-        private IntPtr hLC = IntPtr.Zero;
+        private readonly bool _inherited;
+        private IntPtr hLC;
 
         #region Constants/Types
         //---------------------------------------------------------------------
@@ -153,16 +154,6 @@ namespace VmmSharpEx
         }
         #endregion
 
-        // private zero-argument constructor - do not use!
-        private LeechCore()
-        {
-        }
-
-        private LeechCore(IntPtr hLC)
-        {
-            this.hLC = hLC;
-        }
-
         /// <summary>
         /// ToString() override.
         /// </summary>
@@ -172,17 +163,23 @@ namespace VmmSharpEx
             return hLC == IntPtr.Zero ? "LeechCore:NotValid" : "LeechCore";
         }
 
-        // Factory method creating a new LeechCore object taking a LC_CONFIG structure
-        // containing the configuration and optionally return a LC_CONFIG_ERRORINFO
-        // structure containing any error.
-        // Use this when you wish to gain greater control of creating LeechCore objects.
-        public static unsafe LeechCore CreateFromConfig(ref LCConfig pLcCreateConfig, out LCConfigErrorInfo ConfigErrorInfo)
+        /// <summary>
+        /// Factory method creating a new LeechCore object taking a LC_CONFIG structure
+        /// containing the configuration and optionally return a LC_CONFIG_ERRORINFO
+        /// structure containing any error.
+        /// Use this when you wish to gain greater control of creating LeechCore objects.
+        /// </summary>
+        /// <param name="pLcCreateConfig"></param>
+        /// <param name="configErrorInfo"></param>
+        /// <returns>Initialized LeechCore Instance.</returns>
+        public static unsafe LeechCore Create(ref LCConfig pLcCreateConfig, out LCConfigErrorInfo configErrorInfo)
         {
-            IntPtr pLcErrorInfo;
             int cbERROR_INFO = System.Runtime.InteropServices.Marshal.SizeOf<Lci.LC_CONFIG_ERRORINFO>();
-            IntPtr hLC = Lci.LcCreateEx(ref pLcCreateConfig, out pLcErrorInfo);
-            ConfigErrorInfo = new LCConfigErrorInfo();
-            ConfigErrorInfo.strUserText = "";
+            IntPtr hLC = Lci.LcCreateEx(ref pLcCreateConfig, out var pLcErrorInfo);
+            configErrorInfo = new LCConfigErrorInfo
+            {
+                strUserText = ""
+            };
             if ((pLcErrorInfo != IntPtr.Zero) && (hLC != IntPtr.Zero))
             {
                 return new LeechCore(hLC);
@@ -196,11 +193,11 @@ namespace VmmSharpEx
                 Lci.LC_CONFIG_ERRORINFO e = Marshal.PtrToStructure<Lci.LC_CONFIG_ERRORINFO>(pLcErrorInfo);
                 if (e.dwVersion == LeechCore.LC_CONFIG_ERRORINFO_VERSION)
                 {
-                    ConfigErrorInfo.fValid = true;
-                    ConfigErrorInfo.fUserInputRequest = e.fUserInputRequest;
+                    configErrorInfo.fValid = true;
+                    configErrorInfo.fUserInputRequest = e.fUserInputRequest;
                     if (e.cwszUserText > 0)
                     {
-                        ConfigErrorInfo.strUserText = Marshal.PtrToStringUni((System.IntPtr)(pLcErrorInfo.ToInt64() + cbERROR_INFO));
+                        configErrorInfo.strUserText = Marshal.PtrToStringUni((System.IntPtr)(pLcErrorInfo.ToInt64() + cbERROR_INFO));
                     }
                 }
                 Lci.LcMemFree(pLcErrorInfo);
@@ -208,59 +205,43 @@ namespace VmmSharpEx
             return null;
         }
 
-        /// <summary>
-        /// Create a new LeechCore instance given a device connection string, and possibly other optional parameters.
-        /// </summary>
-        /// <param name="sDevice"></param>
-        /// <param name="sRemote"></param>
-        /// <param name="dwVerbosityFlags"></param>
-        /// <param name="paMax"></param>
-        /// <exception cref="VmmException"></exception>
-        public LeechCore(string sDevice, string sRemote = null, uint dwVerbosityFlags = 0, ulong paMax = 0)
+        private LeechCore()
         {
-            LCConfig cfg = new LCConfig();
-            cfg.dwVersion = LeechCore.LC_CONFIG_VERSION;
-            cfg.szDevice = sDevice;
-            cfg.szRemote = sRemote;
-            cfg.dwPrintfVerbosity = dwVerbosityFlags;
-            cfg.paMax = paMax;
-            IntPtr hLC = Lci.LcCreate(ref cfg);
-            if (hLC == IntPtr.Zero)
-            {
-                throw new VmmException("LeechCore: failed to create object.");
-            }
+        }
+
+        private LeechCore(IntPtr hLC)
+        {
             this.hLC = hLC;
         }
 
         /// <summary>
-        /// Create a new LeechCore instance from a given Vmm instance.
+        /// Create a new inherited LeechCore instance from a given Vmm instance.
         /// </summary>
         /// <param name="vmm"></param>
         /// <exception cref="VmmException"></exception>
-        public LeechCore(Vmm vmm)
+        internal LeechCore(Vmm vmm)
         {
-            bool fVmmConfigValue;
-            ulong pqwValue = vmm.GetConfig(Vmm.CONFIG_OPT_CORE_LEECHCORE_HANDLE, out fVmmConfigValue);
+            ulong pqwValue = vmm.GetConfig(Vmm.CONFIG_OPT_CORE_LEECHCORE_HANDLE, out bool fVmmConfigValue);
             if (!fVmmConfigValue)
             {
                 throw new VmmException("LeechCore: failed retrieving handle from Vmm.");
             }
             string strDevice = string.Format("existing://0x{0:X}", pqwValue);
-            LCConfig cfg = new LCConfig();
-            cfg.dwVersion = LeechCore.LC_CONFIG_VERSION;
-            cfg.szDevice = strDevice;
+            var cfg = new LCConfig
+            {
+                dwVersion = LeechCore.LC_CONFIG_VERSION,
+                szDevice = strDevice
+            };
             IntPtr hLC = Lci.LcCreate(ref cfg);
             if (hLC == IntPtr.Zero)
             {
                 throw new VmmException("LeechCore: failed to create object.");
             }
             this.hLC = hLC;
+            _inherited = true;
         }
 
-        ~LeechCore()
-        {
-            Dispose(disposing: false);
-        }
+        ~LeechCore() => Dispose(disposing: false);
 
         public void Dispose()
         {
@@ -270,7 +251,7 @@ namespace VmmSharpEx
 
         private void Dispose(bool disposing)
         {
-            if (Interlocked.Exchange(ref hLC, IntPtr.Zero) is IntPtr h && h != IntPtr.Zero)
+            if (!_inherited && Interlocked.Exchange(ref hLC, IntPtr.Zero) is IntPtr h && h != IntPtr.Zero)
             {
                 Lci.LcClose(h);
             }
@@ -394,8 +375,8 @@ namespace VmmSharpEx
         {
             int i;
             long vappMEMs, vapMEM;
-            IntPtr pMEM, pMEM_qwA, pppMEMs;
-            if (!Lci.LcAllocScatter1((uint)pas.Length, out pppMEMs))
+            IntPtr pMEM, pMEM_qwA;
+            if (!Lci.LcAllocScatter1((uint)pas.Length, out var pppMEMs))
                 throw new VmmException("LcAllocScatter1 FAIL");
             vappMEMs = pppMEMs.ToInt64();
             for (i = 0; i < pas.Length; i++)
@@ -430,7 +411,7 @@ namespace VmmSharpEx
         {
             if (!Lci.LcAllocScatter1((uint)pas.Length, out IntPtr pppMEMs))
                 throw new VmmException("LcAllocScatter1 FAIL");
-            var ppMEMs = (tdMEM_SCATTER**)pppMEMs.ToPointer();
+            var ppMEMs = (TdMEM_SCATTER**)pppMEMs.ToPointer();
             for (int i = 0; i < pas.Length; i++)
             {
                 var pMEM = ppMEMs[i];
@@ -448,7 +429,7 @@ namespace VmmSharpEx
         }
 
         [StructLayout(LayoutKind.Explicit, Pack = 8, Size = 24)]
-        internal struct tdMEM_SCATTER
+        internal struct TdMEM_SCATTER
         {
             [FieldOffset(4)]
             public readonly int f;
@@ -495,11 +476,12 @@ namespace VmmSharpEx
             {
                 if (Interlocked.Exchange(ref _ppMems, IntPtr.Zero) is IntPtr h && h != IntPtr.Zero)
                 {
-                    Lci.LcMemFree(_ppMems);
+                    Lci.LcMemFree(h);
                 }
             }
 
-            ~SCATTER_HANDLE() => Dispose(false);
+            ~SCATTER_HANDLE() => Dispose(disposing: false);
+            
             #endregion
         }
 
@@ -521,7 +503,7 @@ namespace VmmSharpEx
             /// WARNING: Do not access this memory after the SCATTER_HANDLE is disposed!
             /// </summary>
             public readonly unsafe ReadOnlySpan<byte> Page =>
-                new ReadOnlySpan<byte>(_pb.ToPointer(), 0x1000);
+                new(_pb.ToPointer(), 0x1000);
         }
 
         /// <summary>
@@ -596,7 +578,7 @@ namespace VmmSharpEx
         {
             int i;
             long vappMEMs, vapMEM;
-            IntPtr pMEM, pMEM_f, pMEM_qwA, pMEM_pb, pppMEMs;
+            IntPtr pMEM, pMEM_f, pMEM_qwA, pMEM_pb;
             for (i = 0; i < MEMs.Length; i++)
             {
                 if ((MEMs[i].pb == null) || (MEMs[i].pb.Length != 0x1000))
@@ -604,7 +586,7 @@ namespace VmmSharpEx
                     return;
                 }
             }
-            if (!Lci.LcAllocScatter1((uint)MEMs.Length, out pppMEMs))
+            if (!Lci.LcAllocScatter1((uint)MEMs.Length, out var pppMEMs))
             {
                 return;
             }
@@ -634,24 +616,11 @@ namespace VmmSharpEx
         /// Retrieve a LeechCore option value.
         /// </summary>
         /// <param name="fOption">Parameter LeechCore.LC_OPT_*</param>
-        /// <returns>The option value retrieved. Zero on fail.</returns>
-        public ulong GetOption(ulong fOption)
+        /// <returns>The option value retrieved. NULL on fail.</returns>
+        public ulong? GetOption(ulong fOption)
         {
-            ulong pqwValue = 0;
-            Lci.GetOption(hLC, fOption, out pqwValue);
-            return pqwValue;
-        }
-
-        /// <summary>
-        /// Retrieve a LeechCore option value.
-        /// </summary>
-        /// <param name="fOption">Parameter LeechCore.LC_OPT_*</param>
-        /// <param name="result">true(success), false(fail).</param>
-        /// <returns>The option value retrieved. Zero on fail.</returns>
-        public ulong GetOption(ulong fOption, out bool result)
-        {
-            ulong pqwValue = 0;
-            result = Lci.GetOption(hLC, fOption, out pqwValue);
+            if (!Lci.GetOption(hLC, fOption, out var pqwValue))
+                return null;
             return pqwValue;
         }
 
@@ -673,7 +642,7 @@ namespace VmmSharpEx
         /// <param name="DataIn">The data to set (or null).</param>
         /// <param name="DataOut">The data retrieved.</param>
         /// <returns></returns>
-        public bool Command(ulong fOption, byte[] DataIn, out byte[] DataOut)
+        public bool ExecuteCommand(ulong fOption, byte[] DataIn, out byte[] DataOut)
         {
             unsafe
             {
@@ -709,8 +678,7 @@ namespace VmmSharpEx
         /// <returns>The memory map (or null on failure).</returns>
         public string GetMemMap()
         {
-            byte[] bMemMap;
-            if (this.Command(LeechCore.LC_CMD_MEMMAP_GET, null, out bMemMap) && (bMemMap.Length > 0))
+            if (this.ExecuteCommand(LeechCore.LC_CMD_MEMMAP_GET, null, out var bMemMap) && (bMemMap.Length > 0))
             {
                 return System.Text.Encoding.UTF8.GetString(bMemMap);
             }
@@ -724,7 +692,7 @@ namespace VmmSharpEx
         /// <returns></returns>
         public bool SetMemMap(string sMemMap)
         {
-            return this.Command(LeechCore.LC_CMD_MEMMAP_SET, System.Text.Encoding.UTF8.GetBytes(sMemMap), out byte[] bMemMap);
+            return this.ExecuteCommand(LeechCore.LC_CMD_MEMMAP_SET, System.Text.Encoding.UTF8.GetBytes(sMemMap), out _);
         }
     }
 }

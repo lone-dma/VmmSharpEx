@@ -76,9 +76,7 @@ namespace VmmSharpEx
         public Vmm(out LeechCore.LCConfigErrorInfo configErrorInfo, params string[] args)
         {
             this.hVMM = Vmm.Initialize(out configErrorInfo, args);
-            ulong hLC = GetConfig(CONFIG_OPT_CORE_LEECHCORE_HANDLE);
-            string sLC = $"existing://0x{hLC:X}";
-            this.LeechCore = new LeechCore(sLC);
+            this.LeechCore = new LeechCore(this);
         }
 
         /// <summary>
@@ -114,7 +112,7 @@ namespace VmmSharpEx
         {
             if (Interlocked.Exchange(ref hVMM, IntPtr.Zero) is IntPtr h && h != IntPtr.Zero)
             {
-                this.LeechCore.Dispose(); // Contains unmanaged handles
+                this.LeechCore.Dispose(); // Clear finalizer
                 Vmmi.VMMDLL_Close(h);
             }
         }
