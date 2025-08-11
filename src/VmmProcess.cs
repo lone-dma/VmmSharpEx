@@ -25,7 +25,7 @@ namespace VmmSharpEx
         /// Create a new VmmProcess object from a PID.
         /// WARNING: No validation is performed to ensure the process exists.
         /// </summary>
-        /// <param name="hVmm">Vmm instance.</param>
+        /// <param name="vmm">Vmm instance.</param>
         /// <param name="pid">Process ID to wrap.</param>
         internal VmmProcess(Vmm vmm, uint pid)
         {
@@ -233,7 +233,6 @@ namespace VmmSharpEx
         /// <typeparam name="T">Value Type.</typeparam>
         /// <param name="va">Virtual Address to write to.</param>
         /// <param name="data">Managed <typeparamref name="T"/> array to write.</param>
-        /// <param name="flags">VMM Flags.</param>
         /// <returns>True if write successful, otherwise False.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe bool MemWriteArray<T>(ulong va, T[] data)

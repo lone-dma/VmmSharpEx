@@ -278,7 +278,8 @@ namespace VmmSharpEx
         /// </summary>
         /// <typeparam name="T">Value Type.</typeparam>
         /// <param name="pa">Physical address to read.</param>
-        /// <returns>Result if successful, otherwise NULL.</returns>
+        /// <param name="result">Result of the memory read.</param>
+        /// <returns>TRUE if successful, otherwise FALSE.</returns>
         public unsafe bool ReadValue<T>(ulong pa, out T result)
             where T : unmanaged, allows ref struct
         {

@@ -104,7 +104,7 @@ namespace VmmSharpEx
         }
 
         /// <summary>
-        /// Struct with info about a single search result. Address & search term id.
+        /// Struct with info about a single search result. Address, search term id.
         /// </summary>
         public struct SearchResultEntry
         {
