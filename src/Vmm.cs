@@ -1,4 +1,5 @@
-﻿using System.Runtime.InteropServices;
+﻿using System.Diagnostics;
+using System.Runtime.InteropServices;
 using System.Text;
 using VmmSharpEx.Internal;
 using VmmSharpEx.Refresh;
@@ -1293,6 +1294,15 @@ namespace VmmSharpEx
         #endregion // Utility functionality
 
         #region Custom Refresh Functionality
+
+        /// <summary>
+        /// Force a 'Full' Vmm Refresh.
+        /// </summary>
+        public void ForceFullRefresh()
+        {
+            if (!SetConfig(Vmm.CONFIG_OPT_REFRESH_ALL, 1))
+                Log("WARNING: Vmm Full Refresh Failed!", LogLevel.Warning);
+        }
 
         /// <summary>
         /// Registers an Auto Refresher with a specified interval.
