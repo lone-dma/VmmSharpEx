@@ -612,33 +612,30 @@ namespace VmmSharpEx
         /// <returns></returns>
         public unsafe bool ExecuteCommand(ulong fOption, byte[] dataIn, out byte[] dataOut)
         {
-            unsafe
+            uint cbDataOut;
+            IntPtr pbDataOut;
+            dataOut = null;
+            if (dataIn is null)
             {
-                uint cbDataOut;
-                IntPtr pbDataOut;
-                dataOut = null;
-                if (dataIn == null)
+                if (!Lci.LcCommand(_h, fOption, 0, null, out pbDataOut, out cbDataOut))
+                    return false;
+            }
+            else
+            {
+                fixed (byte* pbDataIn = dataIn)
                 {
-                    if (!Lci.LcCommand(_h, fOption, 0, null, out pbDataOut, out cbDataOut))
+                    if (!Lci.LcCommand(_h, fOption, (uint)dataIn.Length, pbDataIn, out pbDataOut, out cbDataOut))
                         return false;
                 }
-                else
-                {
-                    fixed (byte* pbDataIn = dataIn)
-                    {
-                        if (!Lci.LcCommand(_h, fOption, (uint)dataIn.Length, pbDataIn, out pbDataOut, out cbDataOut))
-                            return false;
-                    }
-                }
-                dataOut = new byte[cbDataOut];
-                if (cbDataOut > 0)
-                {
-                    var src = new ReadOnlySpan<byte>(pbDataOut.ToPointer(), (int)cbDataOut);
-                    src.CopyTo(dataOut);
-                    Lci.LcMemFree(pbDataOut);
-                }
-                return true;
             }
+            dataOut = new byte[cbDataOut];
+            if (cbDataOut > 0)
+            {
+                var src = new ReadOnlySpan<byte>(pbDataOut.ToPointer(), (int)cbDataOut);
+                src.CopyTo(dataOut);
+                Lci.LcMemFree(pbDataOut);
+            }
+            return true;
         }
     }
 }
