@@ -89,13 +89,13 @@ namespace VmmSharpEx
         }
 
         /// <summary>
-        /// Prepare to read memory from an array/collection of structs.
+        /// Prepare to read memory from a contiguous array of a certain struct.
         /// </summary>
         /// <typeparam name="T">Struct type to read.</typeparam>
         /// <param name="qwA">Address of the memory to be read.</param>
         /// <param name="count">Number of elements to be read.</param>
         /// <returns>true/false.</returns>
-        public unsafe bool PrepareReadCollection<T>(ulong qwA, int count)
+        public unsafe bool PrepareReadContiguous<T>(ulong qwA, int count)
             where T : unmanaged
         {
             uint cb = (uint)sizeof(T) * (uint)count;
