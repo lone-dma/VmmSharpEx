@@ -76,7 +76,7 @@ namespace VmmSharpEx
         /// <param name="args">MemProcFS/Vmm command line arguments.</param>
         public Vmm(out LeechCore.LCConfigErrorInfo configErrorInfo, params string[] args)
         {
-            this._h = Vmm.Create(out configErrorInfo, args);
+            _h = Vmm.Create(out configErrorInfo, args);
             this.LeechCore = new LeechCore(this);
         }
 

@@ -19,7 +19,7 @@
 
         internal VmmKernel(Vmm hVmm)
         {
-            this._hVmm = hVmm;
+            _hVmm = hVmm;
         }
 
         /// <summary>

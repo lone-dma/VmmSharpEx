@@ -12,7 +12,7 @@ namespace VmmSharpEx
     {
         #region Base Functionality
 
-        private readonly uint pid;
+        private readonly uint _pid;
         private IntPtr _h;
 
         private VmmScatter()
@@ -22,8 +22,8 @@ namespace VmmSharpEx
 
         internal VmmScatter(IntPtr hS, uint pid)
         {
-            this._h = hS;
-            this.pid = pid;
+            _h = hS;
+            _pid = pid;
         }
 
         ~VmmScatter()
@@ -54,13 +54,13 @@ namespace VmmSharpEx
             {
                 return "VmmScatterMemory:NotValid";
             }
-            else if(pid == 0xFFFFFFFF)
+            else if(_pid == 0xFFFFFFFF)
             {
                 return "VmmScatterMemory:physical";
             }
             else
             {
-                return $"VmmScatterMemory:virtual:{pid}";
+                return $"VmmScatterMemory:virtual:{_pid}";
             }
         }
 
@@ -221,7 +221,7 @@ namespace VmmSharpEx
         /// <returns>true/false.</returns>
         public bool Clear(uint flags)
         {
-            return Vmmi.VMMDLL_Scatter_Clear(_h, pid, flags);
+            return Vmmi.VMMDLL_Scatter_Clear(_h, _pid, flags);
         }
 
 #endregion

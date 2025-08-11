@@ -21,8 +21,8 @@ namespace VmmSharpEx
 
         internal VmmPdb(Vmm hVmm, string module)
         {
-            this._hVmm = hVmm;
-            this._module = module;
+            _hVmm = hVmm;
+            _module = module;
         }
 
         internal VmmPdb(Vmm hVmm, uint pid, ulong vaModuleBase)
@@ -38,8 +38,8 @@ namespace VmmSharpEx
                     {
                         szModuleName = Encoding.UTF8.GetString(data);
                         szModuleName = szModuleName.Substring(0, szModuleName.IndexOf((char)0));
-                        this._hVmm = hVmm;
-                        this._module = szModuleName;
+                        _hVmm = hVmm;
+                        _module = szModuleName;
                         return;
                     }
                 }
