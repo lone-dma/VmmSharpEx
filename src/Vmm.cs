@@ -111,9 +111,9 @@ namespace VmmSharpEx
             {
                 if (disposing)
                 {
+                    this.LeechCore.Dispose();
                     RefreshManager.UnregisterAll(this);
                 }
-                this.LeechCore.Dispose(); // Clears finalizer
                 Vmmi.VMMDLL_Close(h);
             }
         }
