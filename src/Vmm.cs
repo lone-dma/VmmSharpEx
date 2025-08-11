@@ -28,11 +28,8 @@
  */
 
 using System.Runtime.InteropServices;
-using System.Runtime.Versioning;
 using System.Text;
 using VmmSharpEx.Internal;
-
-[assembly: SupportedOSPlatform("Windows")]
 
 namespace VmmSharpEx
 {
