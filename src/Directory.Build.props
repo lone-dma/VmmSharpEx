@@ -2,5 +2,9 @@
   <PropertyGroup>
     <NoWarn>$(NoWarn);CS0649</NoWarn>
 	<NoWarn>$(NoWarn);IDE0290</NoWarn>
+	<NoWarn>$(NoWarn);IDE0301</NoWarn>
+	<NoWarn>$(NoWarn);IDE0305</NoWarn>
+	<NoWarn>$(NoWarn);IDE0028</NoWarn>
+	<NoWarn>$(NoWarn);IDE0300</NoWarn>
   </PropertyGroup>
 </Project>

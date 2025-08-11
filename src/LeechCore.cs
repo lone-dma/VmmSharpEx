@@ -221,8 +221,7 @@ namespace VmmSharpEx
         /// <exception cref="VmmException"></exception>
         internal LeechCore(Vmm vmm)
         {
-            ulong pqwValue = vmm.GetConfig(Vmm.CONFIG_OPT_CORE_LEECHCORE_HANDLE, out bool fVmmConfigValue);
-            if (!fVmmConfigValue)
+            if (vmm.GetConfig(Vmm.CONFIG_OPT_CORE_LEECHCORE_HANDLE) is not ulong pqwValue)
             {
                 throw new VmmException("LeechCore: failed retrieving handle from Vmm.");
             }
