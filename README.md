@@ -6,6 +6,7 @@ Custom Vmmsharp fork targeting bleeding edge .NET Core for Windows x64. Also inc
 ```csharp
 Install-Package VmmSharpEx
 ```
+This library is **Windows Only** so make sure your solution is targeting a Windows TFM like `net9.0-windows`, etc.
 
 ## Current Target Version
 MemProcFS Version: `5.15.3`
