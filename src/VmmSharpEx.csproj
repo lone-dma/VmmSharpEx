@@ -2,6 +2,7 @@
 
 	<PropertyGroup>
 		<RootNamespace>VmmSharpEx</RootNamespace>
+		<LangVersion>latest</LangVersion>
 		<TargetFramework>net9.0-windows</TargetFramework>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>warnings</Nullable>
