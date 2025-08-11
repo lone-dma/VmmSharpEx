@@ -19,7 +19,8 @@ namespace VmmSharpEx
         internal List<Vmmi.VMMDLL_MEM_SEARCH_CONTEXT_SEARCHENTRY> _terms;
 
         IntPtr _ptrNative;
-        private bool disposed = false;
+
+        public bool Disposed => _ptrNative == IntPtr.Zero;
 
         private VmmSearch()
         {
@@ -68,11 +69,9 @@ namespace VmmSharpEx
 
         private void Dispose(bool disposing)
         {
-            if (!this.disposed)
+            if (Interlocked.Exchange(ref _ptrNative, IntPtr.Zero) is IntPtr h && h != IntPtr.Zero)
             {
-                Marshal.FreeHGlobal(_ptrNative);
-                _ptrNative = IntPtr.Zero;
-                disposed = true;
+                Marshal.FreeHGlobal(h);
             }
         }
 
@@ -121,7 +120,7 @@ namespace VmmSharpEx
         /// <returns></returns>
         public unsafe uint AddSearch(byte[] search, byte[] skipmask = null, uint align = 1)
         {
-            if (disposed) { throw new VmmException("Object disposed."); }
+            if (Disposed) { throw new ObjectDisposedException("Object disposed."); }
             if (_result.isStarted) { return uint.MaxValue; }
             if (search.Length == 0 || search.Length > 32) { return uint.MaxValue; }
             if (skipmask != null && skipmask.Length != search.Length) { return uint.MaxValue; }
@@ -160,7 +159,7 @@ namespace VmmSharpEx
         /// </summary>
         public void Start()
         {
-            if (disposed) { throw new VmmException("Object disposed."); }
+            if (Disposed) { throw new ObjectDisposedException("Object disposed."); }
             if (_result.isStarted) { return; }
             if (_terms.Count == 0) { return; }
             _result.isStarted = true;
@@ -173,7 +172,7 @@ namespace VmmSharpEx
         /// </summary>
         public void Abort()
         {
-            if (disposed) { throw new VmmException("Object disposed."); }
+            if (Disposed) { throw new ObjectDisposedException("Object disposed."); }
             if (!_result.isStarted) { return; }
             _native.fAbortRequested = true;
             _thread.Join();
@@ -185,7 +184,7 @@ namespace VmmSharpEx
         /// <returns></returns>
         public SearchResult Poll()
         {
-            if (disposed) { throw new VmmException("Object disposed."); }
+            if (Disposed) { throw new ObjectDisposedException("Object disposed."); }
             if (!_result.isStarted) { Start(); }
             _result.addrCurrent = (ulong)Marshal.ReadInt64(_ptrNative, Marshal.OffsetOf<Vmmi.VMMDLL_MEM_SEARCH_CONTEXT>("vaCurrent").ToInt32());
             _result.addrMin = (ulong)Marshal.ReadInt64(_ptrNative, Marshal.OffsetOf<Vmmi.VMMDLL_MEM_SEARCH_CONTEXT>("vaMin").ToInt32());
@@ -200,7 +199,7 @@ namespace VmmSharpEx
         /// <returns></returns>
         public SearchResult Result()
         {
-            if (disposed) { throw new VmmException("Object disposed."); }
+            if (Disposed) { throw new ObjectDisposedException("Object disposed."); }
             if (!_result.isStarted) { Start(); }
             if (_result.isStarted) { _thread.Join(); }
             return Poll();

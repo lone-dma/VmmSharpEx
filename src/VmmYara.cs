@@ -19,8 +19,9 @@ namespace VmmSharpEx
         internal Thread _thread;
         internal List<string> _terms;
 
-        IntPtr _ptrNative;
-        private bool disposed = false;
+        private IntPtr _ptrNative;
+
+        public bool Disposed => _ptrNative == IntPtr.Zero;
 
         private VmmYara()
         {
@@ -73,11 +74,9 @@ namespace VmmSharpEx
 
         private void Dispose(bool disposing)
         {
-            if (!this.disposed)
+            if (Interlocked.Exchange(ref _ptrNative, IntPtr.Zero) is IntPtr h && h != IntPtr.Zero)
             {
-                Marshal.FreeHGlobal(_ptrNative);
-                _ptrNative = IntPtr.Zero;
-                disposed = true;
+                Marshal.FreeHGlobal(h);
             }
         }
 
@@ -152,7 +151,7 @@ namespace VmmSharpEx
         /// </summary>
         public void Start()
         {
-            if (disposed) { throw new VmmException("Object disposed."); }
+            if (Disposed) { throw new ObjectDisposedException("Object disposed."); }
             if (_result.isStarted) { return; }
             if (_terms.Count == 0) { return; }
             _result.isStarted = true;
@@ -165,7 +164,7 @@ namespace VmmSharpEx
         /// </summary>
         public void Abort()
         {
-            if (disposed) { throw new VmmException("Object disposed."); }
+            if (Disposed) { throw new ObjectDisposedException("Object disposed."); }
             if (!_result.isStarted) { return; }
             _native.fAbortRequested = true;
             _thread.Join();
@@ -177,7 +176,7 @@ namespace VmmSharpEx
         /// <returns></returns>
         public YaraResult Poll()
         {
-            if (disposed) { throw new VmmException("Object disposed."); }
+            if (Disposed) { throw new ObjectDisposedException("Object disposed."); }
             if (!_result.isStarted) { Start(); }
             _result.addrCurrent = (ulong)Marshal.ReadInt64(_ptrNative, Marshal.OffsetOf<Vmmi.VMMDLL_YARA_CONFIG>("vaCurrent").ToInt32());
             _result.addrMin = (ulong)Marshal.ReadInt64(_ptrNative, Marshal.OffsetOf<Vmmi.VMMDLL_YARA_CONFIG>("vaMin").ToInt32());
@@ -192,7 +191,7 @@ namespace VmmSharpEx
         /// <returns></returns>
         public YaraResult Result()
         {
-            if (disposed) { throw new VmmException("Object disposed."); }
+            if (Disposed) { throw new ObjectDisposedException("Object disposed."); }
             if (!_result.isStarted) { Start(); }
             if (_result.isStarted) { _thread.Join(); }
             return Poll();

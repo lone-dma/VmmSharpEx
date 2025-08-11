@@ -12,7 +12,6 @@ namespace VmmSharpEx
         #region Base Functionality
 
         public static implicit operator IntPtr(Vmm x) => x?.hVMM ?? IntPtr.Zero;
-        private bool disposed = false;
         private IntPtr hVMM = IntPtr.Zero;
 
         /// <summary>
@@ -26,7 +25,7 @@ namespace VmmSharpEx
         /// <returns></returns>
         public override string ToString()
         {
-            return (disposed || (hVMM == IntPtr.Zero)) ? "Vmm:NotValid" : "Vmm";
+            return hVMM == IntPtr.Zero ? "Vmm:NotValid" : "Vmm";
         }
 
         /// <summary>
@@ -113,17 +112,10 @@ namespace VmmSharpEx
 
         private void Dispose(bool disposing)
         {
-            if (!this.disposed)
+            if (Interlocked.Exchange(ref hVMM, IntPtr.Zero) is IntPtr h && h != IntPtr.Zero)
             {
-                // Dispose managed objects.
-                if (disposing)
-                {
-                }
-                // Free unmanaged objects.
                 this.LeechCore.Dispose(); // Contains unmanaged handles
-                Vmmi.VMMDLL_Close(hVMM);
-                hVMM = IntPtr.Zero;
-                disposed = true;
+                Vmmi.VMMDLL_Close(h);
             }
         }
 

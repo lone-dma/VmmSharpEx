@@ -11,7 +11,6 @@ namespace VmmSharpEx
     {
         public static implicit operator IntPtr(LeechCore x) => x?.hLC ?? IntPtr.Zero;
 
-        private bool disposed = false;
         private IntPtr hLC = IntPtr.Zero;
 
         #region Constants/Types
@@ -170,7 +169,7 @@ namespace VmmSharpEx
         /// <returns></returns>
         public override string ToString()
         {
-            return (disposed || (hLC == IntPtr.Zero)) ? "LeechCore:NotValid" : "LeechCore";
+            return hLC == IntPtr.Zero ? "LeechCore:NotValid" : "LeechCore";
         }
 
         // Factory method creating a new LeechCore object taking a LC_CONFIG structure
@@ -271,20 +270,10 @@ namespace VmmSharpEx
 
         private void Dispose(bool disposing)
         {
-            if (!this.disposed)
+            if (Interlocked.Exchange(ref hLC, IntPtr.Zero) is IntPtr h && h != IntPtr.Zero)
             {
-                Lci.LcClose(hLC);
-                hLC = IntPtr.Zero;
-                disposed = true;
+                Lci.LcClose(h);
             }
-        }
-
-        /// <summary>
-        /// Close the LeechCore instance and free any native resources.
-        /// </summary>
-        public void Close()
-        {
-            Dispose(disposing: true);
         }
 
         //---------------------------------------------------------------------
@@ -492,7 +481,7 @@ namespace VmmSharpEx
             }
 
             #region IDisposable
-            private bool _disposed = false;
+
             /// <summary>
             /// Calls LcMemFree on native memory resources.
             /// </summary>
@@ -504,14 +493,9 @@ namespace VmmSharpEx
 
             private void Dispose(bool disposing)
             {
-                if (!_disposed)
+                if (Interlocked.Exchange(ref _ppMems, IntPtr.Zero) is IntPtr h && h != IntPtr.Zero)
                 {
-                    if (_ppMems != IntPtr.Zero)
-                    {
-                        Lci.LcMemFree(_ppMems);
-                        _ppMems = IntPtr.Zero;
-                    }
-                    _disposed = true;
+                    Lci.LcMemFree(_ppMems);
                 }
             }
 

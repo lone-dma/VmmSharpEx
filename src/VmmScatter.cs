@@ -1,4 +1,5 @@
 ﻿using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Text;
 using VmmSharpEx.Internal;
 
@@ -12,7 +13,6 @@ namespace VmmSharpEx
         #region Base Functionality
 
         private readonly uint pid;
-        private bool disposed = false;
         private IntPtr hS = IntPtr.Zero;
 
         private VmmScatter()
@@ -39,11 +39,9 @@ namespace VmmSharpEx
 
         private void Dispose(bool disposing)
         {
-            if (!this.disposed)
+            if (Interlocked.Exchange(ref hS, IntPtr.Zero) is IntPtr h && h != IntPtr.Zero)
             {
-                Vmmi.VMMDLL_Scatter_CloseHandle(hS);
-                hS = IntPtr.Zero;
-                disposed = true;
+                Vmmi.VMMDLL_Scatter_CloseHandle(h);
             }
         }
 
@@ -52,7 +50,7 @@ namespace VmmSharpEx
         /// </summary>
         public override string ToString()
         {
-            if(disposed || (hS == IntPtr.Zero))
+            if (hS == IntPtr.Zero)
             {
                 return "VmmScatterMemory:NotValid";
             }
