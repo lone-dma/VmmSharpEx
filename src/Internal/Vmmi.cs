@@ -1437,36 +1437,7 @@ namespace VmmSharpEx.Internal
 
         #region Memory read/write helper functionality
 
-        internal static unsafe LeechCore.MemScatter[] MemReadScatter(IntPtr hVMM, uint pid, uint flags, params ulong[] qwA)
-        {
-            int i;
-            long vappMEMs, vapMEM;
-            IntPtr pMEM, pMEM_qwA;
-            if (!Lci.LcAllocScatter1((uint)qwA.Length, out var pppMEMs))
-                throw new VmmException("LcAllocScatter1 FAIL");
-            vappMEMs = pppMEMs.ToInt64();
-            for (i = 0; i < qwA.Length; i++)
-            {
-                vapMEM = Marshal.ReadIntPtr(new IntPtr(vappMEMs + i * 8)).ToInt64();
-                pMEM_qwA = new IntPtr(vapMEM + 8);
-                Marshal.WriteInt64(pMEM_qwA, (long)(qwA[i] & ~(ulong)0xfff));
-            }
-            LeechCore.MemScatter[] MEMs = new LeechCore.MemScatter[qwA.Length];
-            _ = Vmmi.VMMDLL_MemReadScatter(hVMM, pid, pppMEMs, (uint)MEMs.Length, flags);
-            for (i = 0; i < MEMs.Length; i++)
-            {
-                pMEM = Marshal.ReadIntPtr(new IntPtr(vappMEMs + i * 8));
-                Lci.LC_MEM_SCATTER n = Marshal.PtrToStructure<Lci.LC_MEM_SCATTER>(pMEM);
-                MEMs[i].f = n.f;
-                MEMs[i].qwA = n.qwA;
-                MEMs[i].pb = new byte[0x1000];
-                Marshal.Copy(n.pb, MEMs[i].pb, 0, 0x1000);
-            }
-            Lci.LcMemFree(pppMEMs);
-            return MEMs;
-        }
-
-        internal static unsafe LeechCore.SCATTER_HANDLE MemReadScatter2(IntPtr hVMM, uint pid, uint flags, params ulong[] qwA)
+        internal static unsafe LeechCore.SCATTER_HANDLE MemReadScatter(IntPtr hVMM, uint pid, uint flags, params ulong[] qwA)
         {
             if (!Lci.LcAllocScatter1((uint)qwA.Length, out IntPtr pppMEMs))
                 throw new VmmException("LcAllocScatter1 FAIL");

@@ -46,15 +46,6 @@ namespace VmmSharpEx
         #endregion
 
         #region Memory Read/Write
-        /// <summary>
-        /// Performs a Scatter Read on a collection of page-aligned Virtual Addresses.
-        /// </summary>
-        /// <param name="flags">VMM Flags</param>
-        /// <param name="va">Array of Virtual Addresses to read.</param>
-        /// <returns>Array of MEM_SCATTER structures.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public LeechCore.MemScatter[] MemReadScatter(uint flags, params ulong[] va) =>
-            Vmmi.MemReadScatter(_vmm, this.PID, flags, va);
 
         /// <summary>
         /// Perform a scatter read of multiple page-sized physical memory ranges.
@@ -65,8 +56,8 @@ namespace VmmSharpEx
         /// <returns>SCATTER_HANDLE</returns>
         /// <exception cref="VmmException"></exception>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe LeechCore.SCATTER_HANDLE MemReadScatter2(uint flags, params ulong[] va) =>
-        Vmmi.MemReadScatter2(_vmm, this.PID, flags, va);
+        public unsafe LeechCore.SCATTER_HANDLE MemReadScatter(uint flags, params ulong[] va) =>
+        Vmmi.MemReadScatter(_vmm, this.PID, flags, va);
 
         /// <summary>
         /// Initialize a Scatter Memory Read handle used to read multiple virtual memory regions in a single call.

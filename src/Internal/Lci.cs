@@ -1,5 +1,4 @@
 ﻿using System.Runtime.InteropServices;
-using System.Diagnostics.CodeAnalysis;
 
 namespace VmmSharpEx.Internal
 {
@@ -17,7 +16,7 @@ namespace VmmSharpEx.Internal
         }
 
         [System.Runtime.InteropServices.StructLayoutAttribute(System.Runtime.InteropServices.LayoutKind.Sequential)]
-        internal struct LC_MEM_SCATTER
+        internal unsafe struct LC_MEM_SCATTER
         {
             internal uint version;
             internal bool f;
@@ -25,7 +24,7 @@ namespace VmmSharpEx.Internal
             internal IntPtr pb;
             internal uint cb;
             internal uint iStack;
-            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 12)] internal ulong[] vStack;
+            public fixed ulong vStack[12];
         }
 
 #pragma warning disable SYSLIB1054 // Use 'LibraryImportAttribute' instead of 'DllImportAttribute' to generate P/Invoke marshalling code at compile time

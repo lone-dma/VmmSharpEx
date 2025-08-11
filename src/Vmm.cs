@@ -1,6 +1,7 @@
 ﻿using System.Runtime.InteropServices;
 using System.Text;
 using VmmSharpEx.Internal;
+using VmmSharpEx.Refresh;
 
 namespace VmmSharpEx
 {
@@ -108,6 +109,10 @@ namespace VmmSharpEx
         {
             if (Interlocked.Exchange(ref _h, IntPtr.Zero) is IntPtr h && h != IntPtr.Zero)
             {
+                if (disposing)
+                {
+                    RefreshManager.UnregisterAll(this);
+                }
                 this.LeechCore.Dispose(); // Clears finalizer
                 Vmmi.VMMDLL_Close(h);
             }
@@ -1286,5 +1291,26 @@ namespace VmmSharpEx
         public VmmKernel Kernel => _kernel ??= new VmmKernel(this);
 
         #endregion // Utility functionality
+
+        #region Custom Refresh Functionality
+
+        /// <summary>
+        /// Registers an Auto Refresher with a specified interval.
+        /// This is potentially useful if you initialized with -norefresh, and want to control refreshing more closely.
+        /// Minimum interval resolution ~10-15ms.
+        /// </summary>
+        /// <param name="option">Vmm Refresh Option</param>
+        /// <param name="interval">Interval in which to fire a refresh operation.</param>
+        public void RegisterAutoRefresh(RefreshOptions option, TimeSpan interval) =>
+            RefreshManager.Register(this, option, interval);
+
+        /// <summary>
+        /// Unregisters an Auto Refresher.
+        /// </summary>
+        /// <param name="option">Option to unregister.</param>
+        public void UnregisterAutoRefresh(RefreshOptions option) =>
+            RefreshManager.Unregister(this, option);
+
+        #endregion
     }
 }

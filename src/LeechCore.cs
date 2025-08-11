@@ -369,47 +369,13 @@ namespace VmmSharpEx
         }
 
         /// <summary>
-        /// Read multiple page-sized physical memory ranges.
-        /// </summary>
-        /// <param name="pa">Array of multiple physical addresses to read.</param>
-        /// <returns>An arary of MEM_SCATTER containing the page-sized results of the reads.</returns>
-        public MemScatter[] ReadScatter(params ulong[] pas)
-        {
-            int i;
-            long vappMEMs, vapMEM;
-            IntPtr pMEM, pMEM_qwA;
-            if (!Lci.LcAllocScatter1((uint)pas.Length, out var pppMEMs))
-                throw new VmmException("LcAllocScatter1 FAIL");
-            vappMEMs = pppMEMs.ToInt64();
-            for (i = 0; i < pas.Length; i++)
-            {
-                vapMEM = Marshal.ReadIntPtr(new IntPtr(vappMEMs + i * 8)).ToInt64();
-                pMEM_qwA = new IntPtr(vapMEM + 8);
-                Marshal.WriteInt64(pMEM_qwA, (long)(pas[i] & ~(ulong)0xfff));
-            }
-            MemScatter[] MEMs = new MemScatter[pas.Length];
-            Lci.LcReadScatter(_h, (uint)MEMs.Length, pppMEMs);
-            for (i = 0; i < MEMs.Length; i++)
-            {
-                pMEM = Marshal.ReadIntPtr(new IntPtr(vappMEMs + i * 8));
-                Lci.LC_MEM_SCATTER n = Marshal.PtrToStructure<Lci.LC_MEM_SCATTER>(pMEM);
-                MEMs[i].f = n.f;
-                MEMs[i].qwA = n.qwA;
-                MEMs[i].pb = new byte[0x1000];
-                Marshal.Copy(n.pb, MEMs[i].pb, 0, 0x1000);
-            }
-            Lci.LcMemFree(pppMEMs);
-            return MEMs;
-        }
-
-        /// <summary>
         /// Perform a scatter read of multiple page-sized physical memory ranges.
         /// Does not copy the read memory to a managed byte buffer, but instead allows direct access to the native memory via a Span view.
         /// </summary>
         /// <param name="pas">Array of page-aligned Physical Memory Addresses.</param>
         /// <returns>SCATTER_HANDLE</returns>
         /// <exception cref="VmmException"></exception>
-        public unsafe SCATTER_HANDLE ReadScatter2(params ulong[] pas)
+        public unsafe SCATTER_HANDLE ReadScatter(params ulong[] pas)
         {
             if (!Lci.LcAllocScatter1((uint)pas.Length, out IntPtr pppMEMs))
                 throw new VmmException("LcAllocScatter1 FAIL");
@@ -501,7 +467,7 @@ namespace VmmSharpEx
 
             /// <summary>
             /// Page for this scatter read entry.
-            /// Length is always 4096 bytes.
+            /// Length is always 4096 bytes (one page).
             /// WARNING: Do not access this memory after the SCATTER_HANDLE is disposed!
             /// </summary>
             public readonly unsafe ReadOnlySpan<byte> Page =>
@@ -641,34 +607,35 @@ namespace VmmSharpEx
         /// Send a command to LeechCore.
         /// </summary>
         /// <param name="fOption">Parameter LeechCore.LC_CMD_*</param>
-        /// <param name="DataIn">The data to set (or null).</param>
-        /// <param name="DataOut">The data retrieved.</param>
+        /// <param name="dataIn">The data to set (or null).</param>
+        /// <param name="dataOut">The data retrieved.</param>
         /// <returns></returns>
-        public bool ExecuteCommand(ulong fOption, byte[] DataIn, out byte[] DataOut)
+        public unsafe bool ExecuteCommand(ulong fOption, byte[] dataIn, out byte[] dataOut)
         {
             unsafe
             {
-                bool result;
                 uint cbDataOut;
-                IntPtr PtrDataOut;
-                DataOut = null;
-                if (DataIn == null)
+                IntPtr pbDataOut;
+                dataOut = null;
+                if (dataIn == null)
                 {
-                    result = Lci.LcCommand(_h, fOption, 0, null, out PtrDataOut, out cbDataOut);
+                    if (!Lci.LcCommand(_h, fOption, 0, null, out pbDataOut, out cbDataOut))
+                        return false;
                 }
                 else
                 {
-                    fixed (byte* pbDataIn = DataIn)
+                    fixed (byte* pbDataIn = dataIn)
                     {
-                        result = Lci.LcCommand(_h, fOption, (uint)DataIn.Length, pbDataIn, out PtrDataOut, out cbDataOut);
+                        if (!Lci.LcCommand(_h, fOption, (uint)dataIn.Length, pbDataIn, out pbDataOut, out cbDataOut))
+                            return false;
                     }
                 }
-                if (!result) { return false; }
-                DataOut = new byte[cbDataOut];
+                dataOut = new byte[cbDataOut];
                 if (cbDataOut > 0)
                 {
-                    Marshal.Copy(PtrDataOut, DataOut, 0, (int)cbDataOut);
-                    Lci.LcMemFree(PtrDataOut);
+                    var src = new ReadOnlySpan<byte>(pbDataOut.ToPointer(), (int)cbDataOut);
+                    src.CopyTo(dataOut);
+                    Lci.LcMemFree(pbDataOut);
                 }
                 return true;
             }
