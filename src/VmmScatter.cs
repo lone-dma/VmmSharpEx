@@ -91,6 +91,7 @@ namespace VmmSharpEx
         /// <summary>
         /// Prepare to read memory from an array/collection of structs.
         /// </summary>
+        /// <typeparam name="T">Struct type to read.</typeparam>
         /// <param name="qwA">Address of the memory to be read.</param>
         /// <param name="count">Number of elements to be read.</param>
         /// <returns>true/false.</returns>
