@@ -10,6 +10,12 @@
         private readonly System.Timers.Timer _timer;
         private bool _disposed;
 
+        /// <summary>
+        /// Ctor for the VmmRefresher.
+        /// </summary>
+        /// <param name="instance">Parent Vmm instance.</param>
+        /// <param name="option">Option to invoke refresh upon.</param>
+        /// <param name="interval">Timespan interval in which to refresh. Minimum resolution ~10-15ms.</param>
         public VmmRefresher(Vmm instance, RefreshOptions option, TimeSpan interval)
         {
             ArgumentNullException.ThrowIfNull(instance, nameof(instance));
