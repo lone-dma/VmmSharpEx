@@ -114,14 +114,6 @@ namespace VmmSharpEx
         }
 
         /// <summary>
-        /// Close the Vmm instance. This also done automatically on Dispose.
-        /// </summary>
-        public void Close()
-        {
-            Dispose(disposing: true);
-        }
-
-        /// <summary>
         /// Close all Vmm instances in the native layer.
         /// </summary>
         public static void CloseAll()

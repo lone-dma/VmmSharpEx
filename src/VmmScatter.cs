@@ -64,14 +64,6 @@ namespace VmmSharpEx
             }
         }
 
-        /// <summary>
-        /// Force close the scatter object - free up any resources.
-        /// </summary>
-        public void Close()
-        {
-            Dispose(disposing: true);
-        }
-
         #endregion
 
         #region Memory Read/Write
