@@ -75,8 +75,7 @@ namespace VmmSharpEx
         /// <returns></returns>
         public unsafe bool SymbolName(ulong cbSymbolAddressOrOffset, out string szSymbolName)
         {
-            uint pdwSymbolDisplacement;
-            return SymbolName(cbSymbolAddressOrOffset, out szSymbolName, out pdwSymbolDisplacement);
+            return SymbolName(cbSymbolAddressOrOffset, out szSymbolName, out _);
         }
 
         /// <summary>

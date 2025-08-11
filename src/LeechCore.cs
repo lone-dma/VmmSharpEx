@@ -9,10 +9,10 @@ namespace VmmSharpEx
     /// </summary>
     public sealed class LeechCore : IDisposable
     {
-        public static implicit operator IntPtr(LeechCore x) => x?.hLC ?? IntPtr.Zero;
+        public static implicit operator IntPtr(LeechCore x) => x?._h ?? IntPtr.Zero;
 
         private readonly bool _inherited;
-        private IntPtr hLC;
+        private IntPtr _h;
 
         #region Constants/Types
         //---------------------------------------------------------------------
@@ -160,7 +160,7 @@ namespace VmmSharpEx
         /// <returns></returns>
         public override string ToString()
         {
-            return hLC == IntPtr.Zero ? "LeechCore:NotValid" : "LeechCore";
+            return _h == IntPtr.Zero ? "LeechCore:NotValid" : "LeechCore";
         }
 
         /// <summary>
@@ -211,7 +211,7 @@ namespace VmmSharpEx
 
         private LeechCore(IntPtr hLC)
         {
-            this.hLC = hLC;
+            _h = hLC;
         }
 
         /// <summary>
@@ -236,7 +236,7 @@ namespace VmmSharpEx
             {
                 throw new VmmException("LeechCore: failed to create object.");
             }
-            this.hLC = hLC;
+            _h = hLC;
             _inherited = true;
         }
 
@@ -250,9 +250,12 @@ namespace VmmSharpEx
 
         private void Dispose(bool disposing)
         {
-            if (!_inherited && Interlocked.Exchange(ref hLC, IntPtr.Zero) is IntPtr h && h != IntPtr.Zero)
+            if (Interlocked.Exchange(ref _h, IntPtr.Zero) is IntPtr h && h != IntPtr.Zero)
             {
-                Lci.LcClose(h);
+                if (!_inherited)
+                {
+                    Lci.LcClose(h);
+                }
             }
         }
 
@@ -283,7 +286,7 @@ namespace VmmSharpEx
             result = default;
             fixed (void* pb = &result)
             {
-                return Lci.LcRead(hLC, pa, cb, (byte*)pb);
+                return Lci.LcRead(_h, pa, cb, (byte*)pb);
             }
         }
 
@@ -301,7 +304,7 @@ namespace VmmSharpEx
             T[] data = new T[count];
             fixed (T* pb = data)
             {
-                bool result = Lci.LcRead(hLC, pa, cb, (byte*)pb);
+                bool result = Lci.LcRead(_h, pa, cb, (byte*)pb);
                 return result ? data : null;
             }
         }
@@ -319,7 +322,7 @@ namespace VmmSharpEx
             uint cb = (uint)(sizeof(T) * span.Length);
             fixed (T* pb = span)
             {
-                return Lci.LcRead(hLC, pa, cb, (byte*)pb);
+                return Lci.LcRead(_h, pa, cb, (byte*)pb);
             }
         }
 
@@ -336,7 +339,7 @@ namespace VmmSharpEx
             uint cb = (uint)(sizeof(T) * span.Length);
             fixed (T* pb = span)
             {
-                return Lci.LcWrite(hLC, pa, cb, (byte*)pb);
+                return Lci.LcWrite(_h, pa, cb, (byte*)pb);
             }
         }
 
@@ -360,7 +363,7 @@ namespace VmmSharpEx
         /// <returns>True if read successful, otherwise False.</returns>
         public unsafe bool Read(ulong pa, void* pb, uint cb)
         {
-            if (!Lci.LcRead(hLC, pa, cb, (byte*)pb))
+            if (!Lci.LcRead(_h, pa, cb, (byte*)pb))
                 return false;
             return true;
         }
@@ -385,7 +388,7 @@ namespace VmmSharpEx
                 Marshal.WriteInt64(pMEM_qwA, (long)(pas[i] & ~(ulong)0xfff));
             }
             MemScatter[] MEMs = new MemScatter[pas.Length];
-            Lci.LcReadScatter(hLC, (uint)MEMs.Length, pppMEMs);
+            Lci.LcReadScatter(_h, (uint)MEMs.Length, pppMEMs);
             for (i = 0; i < MEMs.Length; i++)
             {
                 pMEM = Marshal.ReadIntPtr(new IntPtr(vappMEMs + i * 8));
@@ -417,7 +420,7 @@ namespace VmmSharpEx
                 pMEM->qwA = pas[i] & ~(ulong)0xfff;
             }
             var results = new Dictionary<ulong, SCATTER_PAGE>(pas.Length);
-            Lci.LcReadScatter(hLC, (uint)pas.Length, pppMEMs);
+            Lci.LcReadScatter(_h, (uint)pas.Length, pppMEMs);
             for (int i = 0; i < pas.Length; i++)
             {
                 var pMEM = ppMEMs[i];
@@ -427,7 +430,7 @@ namespace VmmSharpEx
             return new SCATTER_HANDLE(results, pppMEMs);
         }
 
-        [StructLayout(LayoutKind.Explicit, Pack = 8, Size = 24)]
+        [StructLayout(LayoutKind.Explicit, Size = 24)]
         internal struct TdMEM_SCATTER
         {
             [FieldOffset(4)]
@@ -526,7 +529,7 @@ namespace VmmSharpEx
             where T : unmanaged, allows ref struct
         {
             uint cb = (uint)sizeof(T);
-            return Lci.LcWrite(hLC, pa, cb, (byte*)&value);
+            return Lci.LcWrite(_h, pa, cb, (byte*)&value);
         }
 
         /// <summary>
@@ -542,7 +545,7 @@ namespace VmmSharpEx
             uint cb = (uint)sizeof(T) * (uint)data.Length;
             fixed (T* pb = data)
             {
-                return Lci.LcWrite(hLC, pa, cb, (byte*)pb);
+                return Lci.LcWrite(_h, pa, cb, (byte*)pb);
             }
         }
 
@@ -566,7 +569,7 @@ namespace VmmSharpEx
         /// <returns>True if write successful, otherwise False. The write is best-effort and may fail. It's recommended to verify the write with a subsequent read.</returns>
         public unsafe bool Write(ulong pa, void* pb, uint cb)
         {
-            return Lci.LcWrite(hLC, pa, cb, (byte*)pb);
+            return Lci.LcWrite(_h, pa, cb, (byte*)pb);
         }
 
         /// <summary>
@@ -600,7 +603,7 @@ namespace VmmSharpEx
                 Marshal.WriteInt64(pMEM_qwA, (long)(MEMs[i].qwA & ~(ulong)0xfff));
                 Marshal.Copy(MEMs[i].pb, 0, pMEM_pb, MEMs[i].pb.Length);
             }
-            Lci.LcWriteScatter(hLC, (uint)MEMs.Length, pppMEMs);
+            Lci.LcWriteScatter(_h, (uint)MEMs.Length, pppMEMs);
             for (i = 0; i < MEMs.Length; i++)
             {
                 pMEM = Marshal.ReadIntPtr(new IntPtr(vappMEMs + i * 8));
@@ -618,7 +621,7 @@ namespace VmmSharpEx
         /// <returns>The option value retrieved. NULL on fail.</returns>
         public ulong? GetOption(ulong fOption)
         {
-            if (!Lci.GetOption(hLC, fOption, out var pqwValue))
+            if (!Lci.GetOption(_h, fOption, out var pqwValue))
                 return null;
             return pqwValue;
         }
@@ -631,7 +634,7 @@ namespace VmmSharpEx
         /// <returns></returns>
         public bool SetOption(ulong fOption, ulong qwValue)
         {
-            return Lci.SetOption(hLC, fOption, qwValue);
+            return Lci.SetOption(_h, fOption, qwValue);
         }
 
         /// <summary>
@@ -651,13 +654,13 @@ namespace VmmSharpEx
                 DataOut = null;
                 if (DataIn == null)
                 {
-                    result = Lci.LcCommand(hLC, fOption, 0, null, out PtrDataOut, out cbDataOut);
+                    result = Lci.LcCommand(_h, fOption, 0, null, out PtrDataOut, out cbDataOut);
                 }
                 else
                 {
                     fixed (byte* pbDataIn = DataIn)
                     {
-                        result = Lci.LcCommand(hLC, fOption, (uint)DataIn.Length, pbDataIn, out PtrDataOut, out cbDataOut);
+                        result = Lci.LcCommand(_h, fOption, (uint)DataIn.Length, pbDataIn, out PtrDataOut, out cbDataOut);
                     }
                 }
                 if (!result) { return false; }
@@ -669,29 +672,6 @@ namespace VmmSharpEx
                 }
                 return true;
             }
-        }
-
-        /// <summary>
-        /// Retrieve the memory map currently in use by LeechCore.
-        /// </summary>
-        /// <returns>The memory map (or null on failure).</returns>
-        public string GetMemMap()
-        {
-            if (this.ExecuteCommand(LeechCore.LC_CMD_MEMMAP_GET, null, out var bMemMap) && (bMemMap.Length > 0))
-            {
-                return System.Text.Encoding.UTF8.GetString(bMemMap);
-            }
-            return null;
-        }
-
-        /// <summary>
-        /// Set the memory map for LeechCore to use.
-        /// </summary>
-        /// <param name="sMemMap">The memory map to set.</param>
-        /// <returns></returns>
-        public bool SetMemMap(string sMemMap)
-        {
-            return this.ExecuteCommand(LeechCore.LC_CMD_MEMMAP_SET, System.Text.Encoding.UTF8.GetBytes(sMemMap), out _);
         }
     }
 }

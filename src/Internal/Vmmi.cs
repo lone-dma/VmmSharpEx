@@ -2,45 +2,38 @@
 using System.Runtime.InteropServices;
 using System.Text;
 
-using System.Diagnostics.CodeAnalysis;
-
 namespace VmmSharpEx.Internal
 {
     internal static partial class Vmmi
     {
-        #region .NET 4.8 workarounds: UnmanagedType.LPUTF8Str
+        #region Types/Constants
 
-        internal const UnmanagedType VmmString              = UnmanagedType.LPUTF8Str;
-        internal const string VMMDLL_VfsListX               = "VMMDLL_VfsListU";
-        internal const string VMMDLL_VfsReadX               = "VMMDLL_VfsReadU";
-        internal const string VMMDLL_VfsWriteX              = "VMMDLL_VfsWriteU";
+        internal const string VMMDLL_VfsListX = "VMMDLL_VfsListU";
+        internal const string VMMDLL_VfsReadX = "VMMDLL_VfsReadU";
+        internal const string VMMDLL_VfsWriteX = "VMMDLL_VfsWriteU";
         internal const string VMMDLL_ProcessGetProcAddressX = "VMMDLL_ProcessGetProcAddressU";
-        internal const string VMMDLL_ProcessGetModuleBaseX  = "VMMDLL_ProcessGetModuleBaseU";
+        internal const string VMMDLL_ProcessGetModuleBaseX = "VMMDLL_ProcessGetModuleBaseU";
         internal const string VMMDLL_ProcessGetDirectoriesX = "VMMDLL_ProcessGetDirectoriesU";
-        internal const string VMMDLL_ProcessGetSectionsX    = "VMMDLL_ProcessGetSectionsU";
-        internal const string VMMDLL_Map_GetPteX            = "VMMDLL_Map_GetPteU";
-        internal const string VMMDLL_Map_GetVadX            = "VMMDLL_Map_GetVadU";
-        internal const string VMMDLL_Map_GetModuleX         = "VMMDLL_Map_GetModuleU";
+        internal const string VMMDLL_ProcessGetSectionsX = "VMMDLL_ProcessGetSectionsU";
+        internal const string VMMDLL_Map_GetPteX = "VMMDLL_Map_GetPteU";
+        internal const string VMMDLL_Map_GetVadX = "VMMDLL_Map_GetVadU";
+        internal const string VMMDLL_Map_GetModuleX = "VMMDLL_Map_GetModuleU";
         internal const string VMMDLL_Map_GetModuleFromNameX = "VMMDLL_Map_GetModuleFromNameU";
         internal const string VMMDLL_Map_GetUnloadedModuleX = "VMMDLL_Map_GetUnloadedModuleU";
-        internal const string VMMDLL_Map_GetEATX            = "VMMDLL_Map_GetEATU";
-        internal const string VMMDLL_Map_GetIATX            = "VMMDLL_Map_GetIATU";
-        internal const string VMMDLL_Map_GetHandleX         = "VMMDLL_Map_GetHandleU";
-        internal const string VMMDLL_Map_GetNetX            = "VMMDLL_Map_GetNetU";
-        internal const string VMMDLL_Map_GetKDeviceX        = "VMMDLL_Map_GetKDeviceU";
-        internal const string VMMDLL_Map_GetKDriverX        = "VMMDLL_Map_GetKDriverU";
-        internal const string VMMDLL_Map_GetKObjectX        = "VMMDLL_Map_GetKObjectU";
+        internal const string VMMDLL_Map_GetEATX = "VMMDLL_Map_GetEATU";
+        internal const string VMMDLL_Map_GetIATX = "VMMDLL_Map_GetIATU";
+        internal const string VMMDLL_Map_GetHandleX = "VMMDLL_Map_GetHandleU";
+        internal const string VMMDLL_Map_GetNetX = "VMMDLL_Map_GetNetU";
+        internal const string VMMDLL_Map_GetKDeviceX = "VMMDLL_Map_GetKDeviceU";
+        internal const string VMMDLL_Map_GetKDriverX = "VMMDLL_Map_GetKDriverU";
+        internal const string VMMDLL_Map_GetKObjectX = "VMMDLL_Map_GetKObjectU";
         internal const string VMMDLL_Map_GetThread_CallstackX = "VMMDLL_Map_GetThread_CallstackU";
-        internal const string VMMDLL_Map_GetUsersX          = "VMMDLL_Map_GetUsersU";
-        internal const string VMMDLL_Map_GetVMX             = "VMMDLL_Map_GetVMU";
-        internal const string VMMDLL_Map_GetServicesX       = "VMMDLL_Map_GetServicesU";
-        internal const string VMMDLL_WinReg_EnumKeyExX      = "VMMDLL_WinReg_EnumKeyExU";
-        internal const string VMMDLL_WinReg_EnumValueX      = "VMMDLL_WinReg_EnumValueU";
-        internal const string VMMDLL_WinReg_QueryValueExX   = "VMMDLL_WinReg_QueryValueExU";
-
-        #endregion
-
-        #region Types/Constants
+        internal const string VMMDLL_Map_GetUsersX = "VMMDLL_Map_GetUsersU";
+        internal const string VMMDLL_Map_GetVMX = "VMMDLL_Map_GetVMU";
+        internal const string VMMDLL_Map_GetServicesX = "VMMDLL_Map_GetServicesU";
+        internal const string VMMDLL_WinReg_EnumKeyExX = "VMMDLL_WinReg_EnumKeyExU";
+        internal const string VMMDLL_WinReg_EnumValueX = "VMMDLL_WinReg_EnumValueU";
+        internal const string VMMDLL_WinReg_QueryValueExX = "VMMDLL_WinReg_QueryValueExU";
 
         internal const ulong MAX_PATH = 260;
         internal const uint VMMDLL_MAP_PTE_VERSION = 2;
@@ -131,7 +124,7 @@ namespace VmmSharpEx.Internal
             internal ulong fPage;
             internal bool fWoW64;
             internal uint _FutureUse1;
-            [MarshalAs(VmmString)] internal string uszText;
+            [MarshalAs(UnmanagedType.LPUTF8Str)] internal string uszText;
             internal uint _Reserved1;
             internal uint cSoftware;
         }
@@ -181,7 +174,7 @@ namespace VmmSharpEx.Internal
             internal uint cbPrototypePte;
             internal ulong vaPrototypePte;
             internal ulong vaSubsection;
-            [MarshalAs(VmmString)] internal string uszText;
+            [MarshalAs(UnmanagedType.LPUTF8Str)] internal string uszText;
             internal uint _FutureUse1;
             internal uint _Reserved1;
             internal ulong vaFileObject;
@@ -232,7 +225,7 @@ namespace VmmSharpEx.Internal
             internal ulong vaBase;
             internal uint cbImageSize;
             internal bool fWow64;
-            [MarshalAs(VmmString)] internal string uszText;
+            [MarshalAs(UnmanagedType.LPUTF8Str)] internal string uszText;
             internal uint _FutureUse1;
             internal uint dwCheckSum;
             internal uint dwTimeDateStamp;
@@ -255,21 +248,21 @@ namespace VmmSharpEx.Internal
             internal uint dwAge;
             internal uint _Reserved;
             [MarshalAs(UnmanagedType.ByValArray, SizeConst = 16)] internal byte[] Guid;
-            [MarshalAs(VmmString)] internal string uszGuid;
-            [MarshalAs(VmmString)] internal string uszPdbFilename;
+            [MarshalAs(UnmanagedType.LPUTF8Str)] internal string uszGuid;
+            [MarshalAs(UnmanagedType.LPUTF8Str)] internal string uszPdbFilename;
         }
 
         [System.Runtime.InteropServices.StructLayoutAttribute(System.Runtime.InteropServices.LayoutKind.Sequential)]
         internal struct VMMDLL_MAP_MODULEENTRY_VERSIONINFO
         {
-            [MarshalAs(VmmString)] internal string uszCompanyName;
-            [MarshalAs(VmmString)] internal string uszFileDescription;
-            [MarshalAs(VmmString)] internal string uszFileVersion;
-            [MarshalAs(VmmString)] internal string uszInternalName;
-            [MarshalAs(VmmString)] internal string uszLegalCopyright;
-            [MarshalAs(VmmString)] internal string uszFileOriginalFilename;
-            [MarshalAs(VmmString)] internal string uszProductName;
-            [MarshalAs(VmmString)] internal string uszProductVersion;
+            [MarshalAs(UnmanagedType.LPUTF8Str)] internal string uszCompanyName;
+            [MarshalAs(UnmanagedType.LPUTF8Str)] internal string uszFileDescription;
+            [MarshalAs(UnmanagedType.LPUTF8Str)] internal string uszFileVersion;
+            [MarshalAs(UnmanagedType.LPUTF8Str)] internal string uszInternalName;
+            [MarshalAs(UnmanagedType.LPUTF8Str)] internal string uszLegalCopyright;
+            [MarshalAs(UnmanagedType.LPUTF8Str)] internal string uszFileOriginalFilename;
+            [MarshalAs(UnmanagedType.LPUTF8Str)] internal string uszProductName;
+            [MarshalAs(UnmanagedType.LPUTF8Str)] internal string uszProductVersion;
         }
 
         [System.Runtime.InteropServices.StructLayoutAttribute(System.Runtime.InteropServices.LayoutKind.Sequential)]
@@ -279,10 +272,10 @@ namespace VmmSharpEx.Internal
             internal ulong vaEntry;
             internal uint cbImageSize;
             internal bool fWow64;
-            [MarshalAs(VmmString)] internal string uszText;
+            [MarshalAs(UnmanagedType.LPUTF8Str)] internal string uszText;
             internal uint _Reserved3;
             internal uint _Reserved4;
-            [MarshalAs(VmmString)] internal string uszFullName;
+            [MarshalAs(UnmanagedType.LPUTF8Str)] internal string uszFullName;
             internal uint tp;
             internal uint cbFileSizeRaw;
             internal uint cSection;
@@ -302,8 +295,8 @@ namespace VmmSharpEx.Internal
             internal uint oFunctionsArray;
             internal uint oNamesArray;
             internal uint _FutureUse1;
-            [MarshalAs(VmmString)] internal string uszFunction;
-            [MarshalAs(VmmString)] internal string uszForwardedFunction;
+            [MarshalAs(UnmanagedType.LPUTF8Str)] internal string uszFunction;
+            [MarshalAs(UnmanagedType.LPUTF8Str)] internal string uszForwardedFunction;
         }
 
         internal struct VMMDLL_MAP_EAT
@@ -326,10 +319,10 @@ namespace VmmSharpEx.Internal
         internal struct VMMDLL_MAP_IATENTRY
         {
             internal ulong vaFunction;
-            [MarshalAs(VmmString)] internal string uszFunction;
+            [MarshalAs(UnmanagedType.LPUTF8Str)] internal string uszFunction;
             internal uint _FutureUse1;
             internal uint _FutureUse2;
-            [MarshalAs(VmmString)] internal string uszModule;
+            [MarshalAs(UnmanagedType.LPUTF8Str)] internal string uszModule;
             internal bool f32;
             internal ushort wHint;
             internal ushort _Reserved1;
@@ -447,8 +440,8 @@ namespace VmmSharpEx.Internal
             internal ulong vaBaseSP;
             internal uint _FutureUse1;
             internal uint cbDisplacement;
-            [MarshalAs(VmmString)] internal string uszModule;
-            [MarshalAs(VmmString)] internal string uszFunction;
+            [MarshalAs(UnmanagedType.LPUTF8Str)] internal string uszModule;
+            [MarshalAs(UnmanagedType.LPUTF8Str)] internal string uszFunction;
         }
 
         [System.Runtime.InteropServices.StructLayoutAttribute(System.Runtime.InteropServices.LayoutKind.Sequential)]
@@ -459,7 +452,7 @@ namespace VmmSharpEx.Internal
             internal uint dwPID;
             internal uint dwTID;
             internal uint cbText;
-            [MarshalAs(VmmString)] internal string uszText;
+            [MarshalAs(UnmanagedType.LPUTF8Str)] internal string uszText;
             internal IntPtr pbMultiText;
             internal uint cbMultiText;
             internal uint cMap;
@@ -475,12 +468,12 @@ namespace VmmSharpEx.Internal
             internal ulong qwPointerCount;
             internal ulong vaObjectCreateInfo;
             internal ulong vaSecurityDescriptor;
-            [MarshalAs(VmmString)] internal string uszText;
+            [MarshalAs(UnmanagedType.LPUTF8Str)] internal string uszText;
             internal uint _FutureUse2;
             internal uint dwPID;
             internal uint dwPoolTag;
             [MarshalAs(UnmanagedType.ByValArray, SizeConst = 7)] internal uint[] _FutureUse;
-            [MarshalAs(VmmString)] internal string uszType;
+            [MarshalAs(UnmanagedType.LPUTF8Str)] internal string uszType;
         }
 
         [System.Runtime.InteropServices.StructLayoutAttribute(System.Runtime.InteropServices.LayoutKind.Sequential)]
@@ -505,19 +498,19 @@ namespace VmmSharpEx.Internal
             internal ushort src__Reserved1;
             internal ushort src_port;
             [MarshalAs(UnmanagedType.ByValArray, SizeConst = 16)] internal byte[] src_pbAddr;
-            [MarshalAs(VmmString)] internal string src_uszText;
+            [MarshalAs(UnmanagedType.LPUTF8Str)] internal string src_uszText;
             // dst
             internal bool dst_fValid;
             internal ushort dst__Reserved1;
             internal ushort dst_port;
             [MarshalAs(UnmanagedType.ByValArray, SizeConst = 16)] internal byte[] dst_pbAddr;
-            [MarshalAs(VmmString)] internal string dst_uszText;
+            [MarshalAs(UnmanagedType.LPUTF8Str)] internal string dst_uszText;
             //
             internal ulong vaObj;
             internal ulong ftTime;
             internal uint dwPoolTag;
             internal uint _FutureUse4;
-            [MarshalAs(VmmString)] internal string uszText;
+            [MarshalAs(UnmanagedType.LPUTF8Str)] internal string uszText;
             [MarshalAs(UnmanagedType.ByValArray, SizeConst = 4)] internal uint[] _FutureUse2;
         }
 
@@ -553,11 +546,11 @@ namespace VmmSharpEx.Internal
             internal ulong va;
             internal uint iDepth;
             internal uint dwDeviceType;
-            [MarshalAs(VmmString)] internal string uszDeviceType;
+            [MarshalAs(UnmanagedType.LPUTF8Str)] internal string uszDeviceType;
             internal ulong vaDriverObject;
             internal ulong vaAttachedDevice;
             internal ulong vaFileSystemDevice;
-            [MarshalAs(VmmString)] internal string uszVolumeInfo;
+            [MarshalAs(UnmanagedType.LPUTF8Str)] internal string uszVolumeInfo;
         }
 
         [System.Runtime.InteropServices.StructLayoutAttribute(System.Runtime.InteropServices.LayoutKind.Sequential)]
@@ -577,9 +570,9 @@ namespace VmmSharpEx.Internal
             internal ulong vaDriverStart;
             internal ulong cbDriverSize;
             internal ulong vaDeviceObject;
-            [MarshalAs(VmmString)] internal string uszName;
-            [MarshalAs(VmmString)] internal string uszPath;
-            [MarshalAs(VmmString)] internal string uszServiceKeyName;
+            [MarshalAs(UnmanagedType.LPUTF8Str)] internal string uszName;
+            [MarshalAs(UnmanagedType.LPUTF8Str)] internal string uszPath;
+            [MarshalAs(UnmanagedType.LPUTF8Str)] internal string uszServiceKeyName;
             [MarshalAs(UnmanagedType.ByValArray, SizeConst = 28)] internal ulong[] MajorFunction;
         }
 
@@ -601,8 +594,8 @@ namespace VmmSharpEx.Internal
             internal uint _Filler;
             internal uint cvaChild;
             internal IntPtr pvaChild;
-            [MarshalAs(VmmString)] internal string uszName;
-            [MarshalAs(VmmString)] internal string uszType;
+            [MarshalAs(UnmanagedType.LPUTF8Str)] internal string uszName;
+            [MarshalAs(UnmanagedType.LPUTF8Str)] internal string uszType;
         }
 
         [System.Runtime.InteropServices.StructLayoutAttribute(System.Runtime.InteropServices.LayoutKind.Sequential)]
@@ -647,9 +640,9 @@ namespace VmmSharpEx.Internal
         internal struct VMMDLL_MAP_USERENTRY
         {
             [MarshalAs(UnmanagedType.ByValArray, SizeConst = 2)] internal uint[] _FutureUse1;
-            [MarshalAs(VmmString)] internal string uszText;
+            [MarshalAs(UnmanagedType.LPUTF8Str)] internal string uszText;
             internal ulong vaRegHive;
-            [MarshalAs(VmmString)] internal string uszSID;
+            [MarshalAs(UnmanagedType.LPUTF8Str)] internal string uszSID;
             [MarshalAs(UnmanagedType.ByValArray, SizeConst = 2)] internal uint[] _FutureUse2;
         }
 
@@ -667,7 +660,7 @@ namespace VmmSharpEx.Internal
         internal struct VMMDLL_MAP_VMENTRY
         {
             internal ulong hVM;
-            [MarshalAs(VmmString)] internal string uszName;
+            [MarshalAs(UnmanagedType.LPUTF8Str)] internal string uszName;
             internal ulong gpaMax;
             internal uint tp;
             internal bool fActive;
@@ -705,12 +698,12 @@ namespace VmmSharpEx.Internal
             internal uint dwCheckPoint;
             internal uint dwWaitHint;
             // SERVICE_STATUS END
-            [MarshalAs(VmmString)] internal string uszServiceName;
-            [MarshalAs(VmmString)] internal string uszDisplayName;
-            [MarshalAs(VmmString)] internal string uszPath;
-            [MarshalAs(VmmString)] internal string uszUserTp;
-            [MarshalAs(VmmString)] internal string uszUserAcct;
-            [MarshalAs(VmmString)] internal string uszImagePath;
+            [MarshalAs(UnmanagedType.LPUTF8Str)] internal string uszServiceName;
+            [MarshalAs(UnmanagedType.LPUTF8Str)] internal string uszDisplayName;
+            [MarshalAs(UnmanagedType.LPUTF8Str)] internal string uszPath;
+            [MarshalAs(UnmanagedType.LPUTF8Str)] internal string uszUserTp;
+            [MarshalAs(UnmanagedType.LPUTF8Str)] internal string uszUserAcct;
+            [MarshalAs(UnmanagedType.LPUTF8Str)] internal string uszImagePath;
             internal uint dwPID;
             internal uint _FutureUse1;
             internal ulong _FutureUse2;
@@ -803,8 +796,6 @@ namespace VmmSharpEx.Internal
             internal IntPtr pfnFilterOptCB;
         }
 
-#pragma warning disable CS0169
-
         internal const uint VMMYARA_RULE_MATCH_VERSION = 0xfedc0005;
         internal const int VMMYARA_RULE_MATCH_TAG_MAX = 27;
         internal const int VMMYARA_RULE_MATCH_META_MAX = 32;
@@ -849,7 +840,7 @@ namespace VmmSharpEx.Internal
         {
             internal uint dwVersion;            // VMMYARA_RULE_MATCH_VERSION
             internal uint flags;
-            [MarshalAs(VmmString)] internal string szRuleIdentifier;
+            [MarshalAs(UnmanagedType.LPUTF8Str)] internal string szRuleIdentifier;
             internal uint cTags;
             [MarshalAs(UnmanagedType.ByValArray, SizeConst = VMMYARA_RULE_MATCH_TAG_MAX)] internal IntPtr[] szTags;
             internal uint cMeta;
@@ -860,18 +851,16 @@ namespace VmmSharpEx.Internal
 
         internal struct VMMYARA_RULE_MATCH_META
         {
-            [MarshalAs(VmmString)] internal string szIdentifier;
-            [MarshalAs(VmmString)] internal string szString;
+            [MarshalAs(UnmanagedType.LPUTF8Str)] internal string szIdentifier;
+            [MarshalAs(UnmanagedType.LPUTF8Str)] internal string szString;
         }
 
         internal struct VMMYARA_RULE_MATCH_STRINGS
         {
-            [MarshalAs(VmmString)] internal string szString;
+            [MarshalAs(UnmanagedType.LPUTF8Str)] internal string szString;
             internal uint cMatch;
             [MarshalAs(UnmanagedType.ByValArray, SizeConst = VMMYARA_RULE_MATCH_OFFSET_MAX)] internal ulong[] cbMatchOffset;
         }
-
-#pragma warning restore CS0169
 
         #endregion
 
@@ -881,7 +870,7 @@ namespace VmmSharpEx.Internal
         internal static partial IntPtr VMMDLL_InitializeEx(
             int argc,
             [MarshalAs(UnmanagedType.LPArray, ArraySubType = UnmanagedType.LPStr)]
-            string[] argv,
+            [In] string[] argv,
             out IntPtr ppLcErrorInfo);
 
         [LibraryImport("vmm.dll", EntryPoint = "VMMDLL_CloseAll")]
@@ -1391,7 +1380,7 @@ namespace VmmSharpEx.Internal
         // MEMORY SEARCH FUNCTIONALITY BELOW:
 
 #pragma warning disable SYSLIB1054
-        [RequiresDynamicCode("This P/Invoke was not able to be converted to LibraryImport")]
+
         [DllImport("vmm.dll", EntryPoint = "VMMDLL_MemSearch")]
         internal static extern unsafe bool VMMDLL_MemSearch(
             IntPtr hVMM,
@@ -1400,7 +1389,6 @@ namespace VmmSharpEx.Internal
             out IntPtr ppva,
             out uint pcva);
 
-        [RequiresDynamicCode("This P/Invoke was not able to be converted to LibraryImport")]
         [DllImport("vmm.dll", EntryPoint = "VMMDLL_MemSearch")]
         internal static extern unsafe bool VMMDLL_MemSearch2(
             IntPtr hVMM,
@@ -1409,7 +1397,6 @@ namespace VmmSharpEx.Internal
             IntPtr ppva,
             IntPtr pcva);
 
-        [RequiresDynamicCode("This P/Invoke was not able to be converted to LibraryImport")]
         [DllImport("vmm.dll", EntryPoint = "VMMDLL_YaraSearch")]
         internal static extern unsafe bool VMMDLL_YaraSearch(
             IntPtr hVMM,
@@ -1418,7 +1405,6 @@ namespace VmmSharpEx.Internal
             IntPtr ppva,
             IntPtr pcva);
 
-        [RequiresDynamicCode("This P/Invoke was not able to be converted to LibraryImport")]
         [DllImport("vmm.dll", EntryPoint = "VMMDLL_YaraSearch")]
         internal static extern unsafe bool VMMDLL_YaraSearch2(
             IntPtr hVMM,
@@ -1426,6 +1412,7 @@ namespace VmmSharpEx.Internal
             IntPtr pYaraConfig,
             IntPtr ppva,
             IntPtr pcva);
+
 #pragma warning restore SYSLIB1054
 
         [LibraryImport("vmm.dll", EntryPoint = "VMMDLL_UtilFillHexAscii")]
@@ -1454,8 +1441,8 @@ namespace VmmSharpEx.Internal
         {
             int i;
             long vappMEMs, vapMEM;
-            IntPtr pMEM, pMEM_qwA, pppMEMs;
-            if (!Lci.LcAllocScatter1((uint)qwA.Length, out pppMEMs))
+            IntPtr pMEM, pMEM_qwA;
+            if (!Lci.LcAllocScatter1((uint)qwA.Length, out var pppMEMs))
                 throw new VmmException("LcAllocScatter1 FAIL");
             vappMEMs = pppMEMs.ToInt64();
             for (i = 0; i < qwA.Length; i++)

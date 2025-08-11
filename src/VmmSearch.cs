@@ -10,15 +10,15 @@ namespace VmmSharpEx
     {
         #region Base Functionality
 
-        private readonly Vmm _hVmm;
-        private readonly uint _PID;
+        private readonly Vmm _vmm;
+        private readonly uint _pid;
+        private readonly List<Vmmi.VMMDLL_MEM_SEARCH_CONTEXT_SEARCHENTRY> _terms;
 
-        internal SearchResult _result;
-        internal Vmmi.VMMDLL_MEM_SEARCH_CONTEXT _native;
-        internal Thread _thread;
-        internal List<Vmmi.VMMDLL_MEM_SEARCH_CONTEXT_SEARCHENTRY> _terms;
+        private SearchResult _result;
+        private Vmmi.VMMDLL_MEM_SEARCH_CONTEXT _native;
+        private Thread _thread;
 
-        IntPtr _ptrNative;
+        private IntPtr _ptrNative;
 
         public bool Disposed => _ptrNative == IntPtr.Zero;
 
@@ -27,23 +27,27 @@ namespace VmmSharpEx
             ;
         }
 
-        internal VmmSearch(Vmm hVmm, uint pid, ulong addr_min = 0, ulong addr_max = UInt64.MaxValue, uint cMaxResult = 0, uint readFlags = 0)
+        public VmmSearch(Vmm vmm, uint pid, ulong addr_min = 0, ulong addr_max = UInt64.MaxValue, uint cMaxResult = 0, uint readFlags = 0)
         {
             if(cMaxResult == 0) { cMaxResult = 0x10000; }
-            _hVmm = hVmm;
-            _PID = pid;
-            _result = new SearchResult();
-            _result.addrMin = addr_min;
-            _result.addrMax = addr_max;
-            _result.result = new List<SearchResultEntry>();
+            _vmm = vmm;
+            _pid = pid;
+            _result = new SearchResult
+            {
+                addrMin = addr_min,
+                addrMax = addr_max,
+                result = new List<SearchResultEntry>()
+            };
             _terms = new List<Vmmi.VMMDLL_MEM_SEARCH_CONTEXT_SEARCHENTRY>();
-            _native = new Vmmi.VMMDLL_MEM_SEARCH_CONTEXT();
-            _native.dwVersion = Vmmi.VMMDLL_MEM_SEARCH_VERSION;
-            _native.vaMin = addr_min;
-            _native.vaMax = addr_max;
-            _native.cMaxResult = cMaxResult;
-            _native.ReadFlags = readFlags;
-            _native.pfnResultOptCB = SearchResultCallback;
+            _native = new Vmmi.VMMDLL_MEM_SEARCH_CONTEXT
+            {
+                dwVersion = Vmmi.VMMDLL_MEM_SEARCH_VERSION,
+                vaMin = addr_min,
+                vaMax = addr_max,
+                cMaxResult = cMaxResult,
+                ReadFlags = readFlags,
+                pfnResultOptCB = SearchResultCallback
+            };
             _ptrNative = Marshal.AllocHGlobal(Marshal.SizeOf(_native));
             Marshal.StructureToPtr(_native, _ptrNative, false);
         }
@@ -56,10 +60,7 @@ namespace VmmSharpEx
             return "VmmSearch";
         }
 
-        ~VmmSearch()
-        {
-            Dispose(disposing: false);
-        }
+        ~VmmSearch() => Dispose(disposing: false);
 
         public void Dispose()
         {
@@ -120,13 +121,15 @@ namespace VmmSharpEx
         /// <returns></returns>
         public unsafe uint AddSearch(byte[] search, byte[] skipmask = null, uint align = 1)
         {
-            if (Disposed) { throw new ObjectDisposedException("Object disposed."); }
+            ObjectDisposedException.ThrowIf(Disposed, "Object disposed.");
             if (_result.isStarted) { return uint.MaxValue; }
             if (search.Length == 0 || search.Length > 32) { return uint.MaxValue; }
             if (skipmask != null && skipmask.Length != search.Length) { return uint.MaxValue; }
-            Vmmi.VMMDLL_MEM_SEARCH_CONTEXT_SEARCHENTRY e = new Vmmi.VMMDLL_MEM_SEARCH_CONTEXT_SEARCHENTRY();
-            e.cbAlign = align;
-            e.cb = (uint)search.Length;
+            var e = new Vmmi.VMMDLL_MEM_SEARCH_CONTEXT_SEARCHENTRY
+            {
+                cbAlign = align,
+                cb = (uint)search.Length
+            };
             fixed (byte* pbSearch = search)
             {
                 Buffer.MemoryCopy(pbSearch, e.pb, 32, search.Length);
@@ -149,7 +152,7 @@ namespace VmmSharpEx
             _native.cSearch = (uint)_terms.Count;
             _native.search = hndTerms.AddrOfPinnedObject();
             Marshal.StructureToPtr(_native, _ptrNative, false);
-            bool fResult = Vmmi.VMMDLL_MemSearch2(_hVmm, _PID, _ptrNative, IntPtr.Zero, IntPtr.Zero);
+            bool fResult = Vmmi.VMMDLL_MemSearch2(_vmm, _pid, _ptrNative, IntPtr.Zero, IntPtr.Zero);
             hndTerms.Free();
             _result.isCompletedSuccess = fResult && !_native.fAbortRequested;
             _result.isCompleted = true;
@@ -159,7 +162,7 @@ namespace VmmSharpEx
         /// </summary>
         public void Start()
         {
-            if (Disposed) { throw new ObjectDisposedException("Object disposed."); }
+            ObjectDisposedException.ThrowIf(Disposed, "Object disposed.");
             if (_result.isStarted) { return; }
             if (_terms.Count == 0) { return; }
             _result.isStarted = true;
@@ -172,7 +175,7 @@ namespace VmmSharpEx
         /// </summary>
         public void Abort()
         {
-            if (Disposed) { throw new ObjectDisposedException("Object disposed."); }
+            ObjectDisposedException.ThrowIf(Disposed, "Object disposed.");
             if (!_result.isStarted) { return; }
             _native.fAbortRequested = true;
             _thread.Join();
@@ -184,7 +187,7 @@ namespace VmmSharpEx
         /// <returns></returns>
         public SearchResult Poll()
         {
-            if (Disposed) { throw new ObjectDisposedException("Object disposed."); }
+            ObjectDisposedException.ThrowIf(Disposed, "Object disposed.");
             if (!_result.isStarted) { Start(); }
             _result.addrCurrent = (ulong)Marshal.ReadInt64(_ptrNative, Marshal.OffsetOf<Vmmi.VMMDLL_MEM_SEARCH_CONTEXT>("vaCurrent").ToInt32());
             _result.addrMin = (ulong)Marshal.ReadInt64(_ptrNative, Marshal.OffsetOf<Vmmi.VMMDLL_MEM_SEARCH_CONTEXT>("vaMin").ToInt32());
@@ -199,7 +202,7 @@ namespace VmmSharpEx
         /// <returns></returns>
         public SearchResult Result()
         {
-            if (Disposed) { throw new ObjectDisposedException("Object disposed."); }
+            ObjectDisposedException.ThrowIf(Disposed, "Object disposed.");
             if (!_result.isStarted) { Start(); }
             if (_result.isStarted) { _thread.Join(); }
             return Poll();
@@ -207,9 +210,11 @@ namespace VmmSharpEx
 
         private bool SearchResultCallback(Vmmi.VMMDLL_MEM_SEARCH_CONTEXT ctx, ulong va, uint iSearch)
         {
-            SearchResultEntry e = new SearchResultEntry();
-            e.address = va;
-            e.search_term_id = iSearch;
+            var e = new SearchResultEntry
+            {
+                address = va,
+                search_term_id = iSearch
+            };
             _result.result.Add(e);
             return true;
         }

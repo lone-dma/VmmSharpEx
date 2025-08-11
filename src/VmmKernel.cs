@@ -34,23 +34,33 @@
 
         #region Specific Functionality
 
+        private VmmProcess _process;
         /// <summary>
         /// The system process (PID 4).
         /// </summary>
         /// <returns>The system process (PID 4).</returns>
-        public VmmProcess Process => new VmmProcess(_hVmm, 4);
+        public VmmProcess Process => _process ??= new VmmProcess(_hVmm, 4);
 
         /// <summary>
         /// Build number of the current kernel / system.
         /// </summary>
         /// <returns>The build number of the kernel on success, 0 on fail.</returns>
-        public uint Build => (uint)_hVmm.GetConfig(Vmm.CONFIG_OPT_WIN_VERSION_BUILD);
+        public uint Build
+        {
+            get
+            {
+                if (_hVmm.GetConfig(Vmm.CONFIG_OPT_WIN_VERSION_BUILD) is not ulong build)
+                    return 0;
+                return (uint)build;
+            }
+        }
 
+        private VmmPdb _pdb;
         /// <summary>
         /// Retrieve the VmmPdb object for the kernel "nt" debug symbols.
         /// </summary>
         /// <returns></returns>
-        public VmmPdb Pdb => new VmmPdb(_hVmm, "nt");
+        public VmmPdb Pdb => _pdb ??= new VmmPdb(_hVmm, "nt");
 
         #endregion
     }

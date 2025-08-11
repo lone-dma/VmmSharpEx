@@ -13,11 +13,11 @@ namespace VmmSharpEx
 
         private readonly Vmm _hVmm;
         private readonly uint _PID;
+        private readonly List<string> _terms;
 
-        internal YaraResult _result;
-        internal Vmmi.VMMDLL_YARA_CONFIG _native;
-        internal Thread _thread;
-        internal List<string> _terms;
+        private YaraResult _result;
+        private Vmmi.VMMDLL_YARA_CONFIG _native;
+        private Thread _thread;
 
         private IntPtr _ptrNative;
 
@@ -28,27 +28,31 @@ namespace VmmSharpEx
             ;
         }
 
-        internal VmmYara(Vmm hVmm, uint pid, string[] yara_rules, ulong addr_min = 0, ulong addr_max = UInt64.MaxValue, uint cMaxResult = 0, uint readFlags = 0)
+        public VmmYara(Vmm hVmm, uint pid, string[] yara_rules, ulong addr_min = 0, ulong addr_max = UInt64.MaxValue, uint cMaxResult = 0, uint readFlags = 0)
         {
             if (cMaxResult == 0) { cMaxResult = 0x10000; }
             _hVmm = hVmm;
             _PID = pid;
-            _result = new YaraResult();
-            _result.addrMin = addr_min;
-            _result.addrMax = addr_max;
-            _result.result = new List<YaraMatch>();
+            _result = new YaraResult
+            {
+                addrMin = addr_min,
+                addrMax = addr_max,
+                result = new List<YaraMatch>()
+            };
             _terms = new List<string>(yara_rules);
             _ptrNative = Marshal.AllocHGlobal(Marshal.SizeOf(_native));
             unsafe
             {
-                _native = new Vmmi.VMMDLL_YARA_CONFIG();
-                _native.dwVersion = Vmmi.VMMDLL_YARA_CONFIG_VERSION;
-                _native.vaMin = addr_min;
-                _native.vaMax = addr_max;
-                _native.cMaxResult = cMaxResult;
-                _native.ReadFlags = readFlags;
-                _native.pfnScanMemoryCB = YaraResultCallback;
-                _native.pvUserPtrOpt = _ptrNative;
+                _native = new Vmmi.VMMDLL_YARA_CONFIG
+                {
+                    dwVersion = Vmmi.VMMDLL_YARA_CONFIG_VERSION,
+                    vaMin = addr_min,
+                    vaMax = addr_max,
+                    cMaxResult = cMaxResult,
+                    ReadFlags = readFlags,
+                    pfnScanMemoryCB = YaraResultCallback,
+                    pvUserPtrOpt = _ptrNative
+                };
             }
             Marshal.StructureToPtr(_native, _ptrNative, false);
         }
@@ -151,7 +155,7 @@ namespace VmmSharpEx
         /// </summary>
         public void Start()
         {
-            if (Disposed) { throw new ObjectDisposedException("Object disposed."); }
+            ObjectDisposedException.ThrowIf(Disposed, "Object disposed.");
             if (_result.isStarted) { return; }
             if (_terms.Count == 0) { return; }
             _result.isStarted = true;
@@ -164,7 +168,7 @@ namespace VmmSharpEx
         /// </summary>
         public void Abort()
         {
-            if (Disposed) { throw new ObjectDisposedException("Object disposed."); }
+            ObjectDisposedException.ThrowIf(Disposed, "Object disposed.");
             if (!_result.isStarted) { return; }
             _native.fAbortRequested = true;
             _thread.Join();
@@ -176,7 +180,7 @@ namespace VmmSharpEx
         /// <returns></returns>
         public YaraResult Poll()
         {
-            if (Disposed) { throw new ObjectDisposedException("Object disposed."); }
+            ObjectDisposedException.ThrowIf(Disposed, "Object disposed.");
             if (!_result.isStarted) { Start(); }
             _result.addrCurrent = (ulong)Marshal.ReadInt64(_ptrNative, Marshal.OffsetOf<Vmmi.VMMDLL_YARA_CONFIG>("vaCurrent").ToInt32());
             _result.addrMin = (ulong)Marshal.ReadInt64(_ptrNative, Marshal.OffsetOf<Vmmi.VMMDLL_YARA_CONFIG>("vaMin").ToInt32());
@@ -191,7 +195,7 @@ namespace VmmSharpEx
         /// <returns></returns>
         public YaraResult Result()
         {
-            if (Disposed) { throw new ObjectDisposedException("Object disposed."); }
+            ObjectDisposedException.ThrowIf(Disposed, "Object disposed.");
             if (!_result.isStarted) { Start(); }
             if (_result.isStarted) { _thread.Join(); }
             return Poll();
@@ -200,7 +204,7 @@ namespace VmmSharpEx
         private unsafe bool YaraResultCallback(IntPtr ctx, Vmmi.VMMYARA_RULE_MATCH pRuleMatch, byte* pbBuffer, ulong cbBuffer)
         {
             if(pRuleMatch.dwVersion != Vmmi.VMMYARA_RULE_MATCH_VERSION) { return false; }
-            YaraMatch match = new YaraMatch();
+            var match = new YaraMatch();
             ulong addrBase = (ulong)Marshal.ReadInt64(ctx, Marshal.OffsetOf<Vmmi.VMMDLL_YARA_CONFIG>("vaCurrent").ToInt32());
             match.sRuleIdentifier = pRuleMatch.szRuleIdentifier;
             // tags:

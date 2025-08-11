@@ -13,7 +13,7 @@ namespace VmmSharpEx
         #region Base Functionality
 
         private readonly uint pid;
-        private IntPtr hS = IntPtr.Zero;
+        private IntPtr _h;
 
         private VmmScatter()
         {
@@ -22,7 +22,7 @@ namespace VmmSharpEx
 
         internal VmmScatter(IntPtr hS, uint pid)
         {
-            this.hS = hS;
+            this._h = hS;
             this.pid = pid;
         }
 
@@ -39,7 +39,7 @@ namespace VmmSharpEx
 
         private void Dispose(bool disposing)
         {
-            if (Interlocked.Exchange(ref hS, IntPtr.Zero) is IntPtr h && h != IntPtr.Zero)
+            if (Interlocked.Exchange(ref _h, IntPtr.Zero) is IntPtr h && h != IntPtr.Zero)
             {
                 Vmmi.VMMDLL_Scatter_CloseHandle(h);
             }
@@ -50,7 +50,7 @@ namespace VmmSharpEx
         /// </summary>
         public override string ToString()
         {
-            if (hS == IntPtr.Zero)
+            if (_h == IntPtr.Zero)
             {
                 return "VmmScatterMemory:NotValid";
             }
@@ -84,7 +84,7 @@ namespace VmmSharpEx
         /// <returns>true/false.</returns>
         public bool Prepare(ulong qwA, uint cb)
         {
-            return Vmmi.VMMDLL_Scatter_Prepare(hS, qwA, cb);
+            return Vmmi.VMMDLL_Scatter_Prepare(_h, qwA, cb);
         }
 
         /// <summary>
@@ -110,7 +110,7 @@ namespace VmmSharpEx
             uint cb = (uint)sizeof(T) * (uint)data.Length;
             fixed (T* pb = data)
             {
-                return Vmmi.VMMDLL_Scatter_PrepareWrite(hS, qwA, (byte*)pb, cb);
+                return Vmmi.VMMDLL_Scatter_PrepareWrite(_h, qwA, (byte*)pb, cb);
             }
         }
 
@@ -126,7 +126,7 @@ namespace VmmSharpEx
         {
             uint cb = (uint)sizeof(T);
             byte* pb = (byte*)&value;
-            return Vmmi.VMMDLL_Scatter_PrepareWrite(hS, qwA, pb, cb);
+            return Vmmi.VMMDLL_Scatter_PrepareWrite(_h, qwA, pb, cb);
         }
 
         /// <summary>
@@ -135,7 +135,7 @@ namespace VmmSharpEx
         /// <returns>true/false.</returns>
         public bool Execute()
         {
-            return Vmmi.VMMDLL_Scatter_Execute(hS);
+            return Vmmi.VMMDLL_Scatter_Execute(_h);
         }
 
         /// <summary>
@@ -163,7 +163,7 @@ namespace VmmSharpEx
             result = default;
             fixed (T* pb = &result)
             {
-                if (!Vmmi.VMMDLL_Scatter_Read(hS, qwA, cb, (byte*)pb, out cbRead))
+                if (!Vmmi.VMMDLL_Scatter_Read(_h, qwA, cb, (byte*)pb, out cbRead))
                     return false;
             }
             if (cbRead != cb)
@@ -186,7 +186,7 @@ namespace VmmSharpEx
             T[] data = new T[count];
             fixed (T* pb = data)
             {
-                if (!Vmmi.VMMDLL_Scatter_Read(hS, qwA, cb, (byte*)pb, out cbRead))
+                if (!Vmmi.VMMDLL_Scatter_Read(_h, qwA, cb, (byte*)pb, out cbRead))
                 {
                     return null;
                 }
@@ -229,7 +229,7 @@ namespace VmmSharpEx
         /// <returns>true/false.</returns>
         public bool Clear(uint flags)
         {
-            return Vmmi.VMMDLL_Scatter_Clear(hS, pid, flags);
+            return Vmmi.VMMDLL_Scatter_Clear(_h, pid, flags);
         }
 
 #endregion

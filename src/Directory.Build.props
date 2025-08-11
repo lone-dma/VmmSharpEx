@@ -4,7 +4,10 @@
 	<NoWarn>$(NoWarn);IDE0290</NoWarn>
 	<NoWarn>$(NoWarn);IDE0301</NoWarn>
 	<NoWarn>$(NoWarn);IDE0305</NoWarn>
+	<NoWarn>$(NoWarn);IDE0306</NoWarn>
 	<NoWarn>$(NoWarn);IDE0028</NoWarn>
 	<NoWarn>$(NoWarn);IDE0300</NoWarn>
+	<NoWarn>$(NoWarn);IDE0057</NoWarn>
+	<NoWarn>$(NoWarn);IDE0079</NoWarn>
   </PropertyGroup>
 </Project>

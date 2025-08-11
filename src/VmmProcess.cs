@@ -12,96 +12,26 @@ namespace VmmSharpEx
     {
         #region Base Functionality
 
-        private readonly Vmm _hVmm;
+        private readonly Vmm _vmm;
 
         /// <summary>
         /// Process ID for this Process.
         /// </summary>
         public uint PID { get; }
 
-        private ProcessInfo? _info;
-
-        /// <summary>
-        /// Process information for this process. Returns NULL if unable to lookup.
-        /// Cached from first access, to get new information call GetInfo().
-        /// </summary>
-        public ProcessInfo? Info
-        {
-            get
-            {
-                if (_info is ProcessInfo result)
-                    return result;
-                else
-                {
-                    var info = this.GetInfo(out bool success);
-                    if (success)
-                        return _info = info;
-                    return null;
-                }
-            }
-        }
-
-        /// <summary>
-        /// True if this is a valid process, otherwise False.
-        /// </summary>
-        public bool IsValid
-        {
-            get
-            {
-                if (this.Info is ProcessInfo info)
-                    return info.fValid;
-                return false;
-            }
-        }
-
-        /// <summary>
-        /// Name of this process.
-        /// Returns NULL if unable to parse.
-        /// </summary>
-        public string Name
-        {
-            get
-            {
-                if (this.Info is ProcessInfo info)
-                    return info.sName;
-                return null;
-            }
-        }
-
-
         private VmmProcess() { }
 
         /// <summary>
-        /// Create a new VmmProcess object from a process name.
-        /// Performs validation to ensure the process exists.
-        /// </summary>
-        /// <param name="hVmm">Vmm instance.</param>
-        /// <param name="name">Name of process.</param>
-        /// <exception cref="VmmException"></exception>
-        internal VmmProcess(Vmm hVmm, string name)
-        {
-            if (hVmm is null)
-                throw new ArgumentNullException(nameof(hVmm));
-            if (string.IsNullOrWhiteSpace(name))
-                throw new ArgumentNullException(nameof(name));
-            if (!Vmmi.VMMDLL_PidGetFromName(hVmm, name, out uint pid))
-                throw new VmmException("Failed to get PID from process name: " + name);
-            PID = pid;
-            _hVmm = hVmm;
-        }
-
-        /// <summary>
         /// Create a new VmmProcess object from a PID.
-        /// WARNING: No validation is performed to ensure the process exists. Please check the IsValid property.
+        /// WARNING: No validation is performed to ensure the process exists.
         /// </summary>
         /// <param name="hVmm">Vmm instance.</param>
         /// <param name="pid">Process ID to wrap.</param>
-        internal VmmProcess(Vmm hVmm, uint pid)
+        internal VmmProcess(Vmm vmm, uint pid)
         {
-            if (hVmm is null)
-                throw new ArgumentNullException(nameof(hVmm));
+            ArgumentNullException.ThrowIfNull(vmm, nameof(vmm));
             PID = pid;
-            _hVmm = hVmm;
+            _vmm = vmm;
         }
 
         /// <summary>
@@ -124,7 +54,7 @@ namespace VmmSharpEx
         /// <returns>Array of MEM_SCATTER structures.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public LeechCore.MemScatter[] MemReadScatter(uint flags, params ulong[] va) =>
-            Vmmi.MemReadScatter(_hVmm, this.PID, flags, va);
+            Vmmi.MemReadScatter(_vmm, this.PID, flags, va);
 
         /// <summary>
         /// Perform a scatter read of multiple page-sized physical memory ranges.
@@ -136,7 +66,7 @@ namespace VmmSharpEx
         /// <exception cref="VmmException"></exception>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe LeechCore.SCATTER_HANDLE MemReadScatter2(uint flags, params ulong[] va) =>
-        Vmmi.MemReadScatter2(_hVmm, this.PID, flags, va);
+        Vmmi.MemReadScatter2(_vmm, this.PID, flags, va);
 
         /// <summary>
         /// Initialize a Scatter Memory Read handle used to read multiple virtual memory regions in a single call.
@@ -145,7 +75,7 @@ namespace VmmSharpEx
         /// <returns>A VmmScatterMemory handle.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public VmmScatter Scatter_Initialize(uint flags = 0) =>
-            Vmmi.Scatter_Initialize(_hVmm, this.PID, flags);
+            Vmmi.Scatter_Initialize(_vmm, this.PID, flags);
 
         /// <summary>
         /// Read Memory from a Virtual Address into a managed byte-array.
@@ -156,7 +86,7 @@ namespace VmmSharpEx
         /// <returns>Managed byte array containing number of bytes read.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe byte[] MemRead(ulong va, uint cb, uint flags = 0) =>
-            Vmmi.MemReadArray<byte>(_hVmm, this.PID, va, cb, flags);
+            Vmmi.MemReadArray<byte>(_vmm, this.PID, va, cb, flags);
 
         /// <summary>
         /// Read Memory from a Virtual Address into unmanaged memory.
@@ -169,7 +99,7 @@ namespace VmmSharpEx
         /// <returns>True if successful, otherwise False. Be sure to check cbRead count.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe bool MemRead(ulong va, IntPtr pb, uint cb, out uint cbRead, uint flags = 0) =>
-            Vmmi.MemRead(_hVmm, this.PID, va, pb.ToPointer(), cb, out cbRead, flags);
+            Vmmi.MemRead(_vmm, this.PID, va, pb.ToPointer(), cb, out cbRead, flags);
 
         /// <summary>
         /// Read Memory from a Virtual Address into unmanaged memory.
@@ -182,7 +112,7 @@ namespace VmmSharpEx
         /// <returns>True if successful, otherwise False. Be sure to check cbRead count.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe bool MemRead(ulong va, void* pb, uint cb, out uint cbRead, uint flags = 0) =>
-            Vmmi.MemRead(_hVmm, this.PID, va, pb, cb, out cbRead, flags);
+            Vmmi.MemRead(_vmm, this.PID, va, pb, cb, out cbRead, flags);
 
 
         /// <summary>
@@ -196,7 +126,7 @@ namespace VmmSharpEx
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe bool MemReadValue<T>(ulong va, out T result, uint flags = 0)
             where T : unmanaged, allows ref struct =>
-            Vmmi.MemReadValue<T>(_hVmm, this.PID, va, out result, flags);
+            Vmmi.MemReadValue<T>(_vmm, this.PID, va, out result, flags);
 
         /// <summary>
         /// Read Memory from a Virtual Address into an Array of Type <typeparamref name="T"/>.
@@ -209,7 +139,7 @@ namespace VmmSharpEx
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe T[] MemReadArray<T>(ulong va, uint count, uint flags = 0)
             where T : unmanaged =>
-            Vmmi.MemReadArray<T>(_hVmm, this.PID, va, count, flags);
+            Vmmi.MemReadArray<T>(_vmm, this.PID, va, count, flags);
 
         /// <summary>
         /// Read memory into a Span of <typeparamref name="T"/>.
@@ -224,7 +154,7 @@ namespace VmmSharpEx
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe bool MemReadSpan<T>(ulong va, Span<T> span, out uint cbRead, uint flags)
             where T : unmanaged =>
-            Vmmi.MemReadSpan(_hVmm, this.PID, va, span, out cbRead, flags);
+            Vmmi.MemReadSpan(_vmm, this.PID, va, span, out cbRead, flags);
 
         /// <summary>
         /// Write memory from a Span of <typeparamref name="T"/> to a specified memory address.
@@ -236,7 +166,7 @@ namespace VmmSharpEx
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe bool MemWriteSpan<T>(ulong va, Span<T> span)
             where T : unmanaged =>
-            Vmmi.MemWriteSpan(_hVmm, this.PID, va, span);
+            Vmmi.MemWriteSpan(_vmm, this.PID, va, span);
 
         /// <summary>
         /// Read Memory from a Virtual Address into a Managed String.
@@ -250,7 +180,7 @@ namespace VmmSharpEx
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe string MemReadString(Encoding encoding, ulong va, uint cb,
             uint flags = 0, bool terminateOnNullChar = true) =>
-            Vmmi.MemReadString(_hVmm, encoding, this.PID, va, cb, flags, terminateOnNullChar);
+            Vmmi.MemReadString(_vmm, encoding, this.PID, va, cb, flags, terminateOnNullChar);
 
         /// <summary>
         /// Prefetch pages into the MemProcFS internal cache.
@@ -259,7 +189,7 @@ namespace VmmSharpEx
         /// <returns></returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe bool MemPrefetchPages(ulong[] va) =>
-            Vmmi.MemPrefetchPages(_hVmm, this.PID, va);
+            Vmmi.MemPrefetchPages(_vmm, this.PID, va);
 
         /// <summary>
         /// Write Memory from a managed byte-array to a given Virtual Address.
@@ -269,7 +199,7 @@ namespace VmmSharpEx
         /// <returns>True if write successful, otherwise False.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe bool MemWrite(ulong va, byte[] data) =>
-            Vmmi.MemWriteArray<byte>(_hVmm, this.PID, va, data);
+            Vmmi.MemWriteArray<byte>(_vmm, this.PID, va, data);
 
         /// <summary>
         /// Write Memory from unmanaged memory to a given Virtual Address.
@@ -280,7 +210,7 @@ namespace VmmSharpEx
         /// <returns>True if write successful, otherwise False.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe bool MemWrite(ulong va, IntPtr pb, uint cb) =>
-            Vmmi.MemWrite(_hVmm, this.PID, va, pb.ToPointer(), cb);
+            Vmmi.MemWrite(_vmm, this.PID, va, pb.ToPointer(), cb);
 
         /// <summary>
         /// Write Memory from unmanaged memory to a given Virtual Address.
@@ -291,7 +221,7 @@ namespace VmmSharpEx
         /// <returns>True if write successful, otherwise False.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe bool MemWrite(ulong va, void* pb, uint cb) =>
-            Vmmi.MemWrite(_hVmm, this.PID, va, pb, cb);
+            Vmmi.MemWrite(_vmm, this.PID, va, pb, cb);
 
         /// <summary>
         /// Write Memory from a struct value <typeparamref name="T"/> to a given Virtual Address.
@@ -304,7 +234,7 @@ namespace VmmSharpEx
         public unsafe bool MemWriteValue<T>(ulong va, T value)
             where T : unmanaged, allows ref struct
             =>
-            Vmmi.MemWriteValue(_hVmm, this.PID, va, value);
+            Vmmi.MemWriteValue(_vmm, this.PID, va, value);
 
         /// <summary>
         /// Write Memory from a managed <typeparamref name="T"/> Array to a given Virtual Address.
@@ -317,7 +247,7 @@ namespace VmmSharpEx
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe bool MemWriteArray<T>(ulong va, T[] data)
             where T : unmanaged =>
-            Vmmi.MemWriteArray(_hVmm, this.PID, va, data);
+            Vmmi.MemWriteArray(_vmm, this.PID, va, data);
 
         /// <summary>
         /// Translate a virtual address to a physical address.
@@ -327,8 +257,7 @@ namespace VmmSharpEx
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public ulong MemVirt2Phys(ulong va)
         {
-            ulong pa = 0;
-            Vmmi.MemVirt2Phys(_hVmm, this.PID, va, out pa);
+            Vmmi.MemVirt2Phys(_vmm, this.PID, va, out var pa);
             return pa;
         }
 #endregion
@@ -343,9 +272,8 @@ namespace VmmSharpEx
         {
             int cbMAP = System.Runtime.InteropServices.Marshal.SizeOf<Vmmi.VMMDLL_MAP_PTE>();
             int cbENTRY = System.Runtime.InteropServices.Marshal.SizeOf<Vmmi.VMMDLL_MAP_PTEENTRY>();
-            IntPtr pMap = IntPtr.Zero;
-            PteEntry[] m = new PteEntry[0];
-            if (!Vmmi.VMMDLL_Map_GetPte(_hVmm, this.PID, fIdentifyModules, out pMap)) { goto fail; }
+            PteEntry[] m = Array.Empty<PteEntry>();
+            if (!Vmmi.VMMDLL_Map_GetPte(_vmm, this.PID, fIdentifyModules, out var pMap)) { goto fail; }
             Vmmi.VMMDLL_MAP_PTE nM = Marshal.PtrToStructure<Vmmi.VMMDLL_MAP_PTE>(pMap);
             if (nM.dwVersion != Vmmi.VMMDLL_MAP_PTE_VERSION) { goto fail; }
             m = new PteEntry[nM.cMap];
@@ -362,9 +290,9 @@ namespace VmmSharpEx
                 e.sText = n.uszText;
                 e.cSoftware = n.cSoftware;
                 e.fR = true;
-                e.fW = (0 != (e.fPage & 0x0000000000000002)) ? true : false;
-                e.fS = (0 != (e.fPage & 0x0000000000000004)) ? false : true;
-                e.fX = (0 != (e.fPage & 0x8000000000000000)) ? false : true;
+                e.fW = (0 != (e.fPage & 0x0000000000000002));
+                e.fS = 0 == (e.fPage & 0x0000000000000004);
+                e.fX = 0 == (e.fPage & 0x8000000000000000);
                 m[i] = e;
             }
         fail:
@@ -381,9 +309,8 @@ namespace VmmSharpEx
         {
             int cbMAP = System.Runtime.InteropServices.Marshal.SizeOf<Vmmi.VMMDLL_MAP_VAD>();
             int cbENTRY = System.Runtime.InteropServices.Marshal.SizeOf<Vmmi.VMMDLL_MAP_VADENTRY>();
-            IntPtr pMap = IntPtr.Zero;
-            VadEntry[] m = new VadEntry[0];
-            if (!Vmmi.VMMDLL_Map_GetVad(_hVmm, this.PID, fIdentifyModules, out pMap)) { goto fail; }
+            VadEntry[] m = Array.Empty<VadEntry>();
+            if (!Vmmi.VMMDLL_Map_GetVad(_vmm, this.PID, fIdentifyModules, out var pMap)) { goto fail; }
             Vmmi.VMMDLL_MAP_VAD nM = Marshal.PtrToStructure<Vmmi.VMMDLL_MAP_VAD>(pMap);
             if (nM.dwVersion != Vmmi.VMMDLL_MAP_VAD_VERSION) { goto fail; }
             m = new VadEntry[nM.cMap];
@@ -434,9 +361,8 @@ namespace VmmSharpEx
         {
             int cbMAP = System.Runtime.InteropServices.Marshal.SizeOf<Vmmi.VMMDLL_MAP_VADEX>();
             int cbENTRY = System.Runtime.InteropServices.Marshal.SizeOf<Vmmi.VMMDLL_MAP_VADEXENTRY>();
-            IntPtr pMap = IntPtr.Zero;
-            VadExEntry[] m = new VadExEntry[0];
-            if (!Vmmi.VMMDLL_Map_GetVadEx(_hVmm, this.PID, oPages, cPages, out pMap)) { goto fail; }
+            VadExEntry[] m = Array.Empty<VadExEntry>();
+            if (!Vmmi.VMMDLL_Map_GetVadEx(_vmm, this.PID, oPages, cPages, out var pMap)) { goto fail; }
             Vmmi.VMMDLL_MAP_VADEX nM = Marshal.PtrToStructure<Vmmi.VMMDLL_MAP_VADEX>(pMap);
             if (nM.dwVersion != Vmmi.VMMDLL_MAP_VADEX_VERSION) { goto fail; }
             m = new VadExEntry[nM.cMap];
@@ -470,10 +396,9 @@ namespace VmmSharpEx
         {
             int cbMAP = System.Runtime.InteropServices.Marshal.SizeOf<Vmmi.VMMDLL_MAP_MODULE>();
             int cbENTRY = System.Runtime.InteropServices.Marshal.SizeOf<Vmmi.VMMDLL_MAP_MODULEENTRY>();
-            IntPtr pMap = IntPtr.Zero;
-            ModuleEntry[] m = new ModuleEntry[0];
+            ModuleEntry[] m = Array.Empty<ModuleEntry>();
             uint flags = fExtendedInfo ? (uint)0xff : 0;
-            if (!Vmmi.VMMDLL_Map_GetModule(_hVmm, this.PID, out pMap, flags)) { goto fail; }
+            if (!Vmmi.VMMDLL_Map_GetModule(_vmm, this.PID, out var pMap, flags)) { goto fail; }
             Vmmi.VMMDLL_MAP_MODULE nM = Marshal.PtrToStructure<Vmmi.VMMDLL_MAP_MODULE>(pMap);
             if (nM.dwVersion != Vmmi.VMMDLL_MAP_MODULE_VERSION) { goto fail; }
             m = new ModuleEntry[nM.cMap];
@@ -553,9 +478,8 @@ namespace VmmSharpEx
         /// <returns></returns>
         public unsafe ModuleEntry MapModuleFromName(string module)
         {
-            IntPtr pMap = IntPtr.Zero;
-            ModuleEntry e = new ModuleEntry();
-            if (!Vmmi.VMMDLL_Map_GetModuleFromName(_hVmm, this.PID, module, out pMap, 0)) { goto fail; }
+            var e = new ModuleEntry();
+            if (!Vmmi.VMMDLL_Map_GetModuleFromName(_vmm, this.PID, module, out var pMap, 0)) { goto fail; }
             Vmmi.VMMDLL_MAP_MODULEENTRY nM = Marshal.PtrToStructure<Vmmi.VMMDLL_MAP_MODULEENTRY>(pMap);
             e.fValid = true;
             e.vaBase = nM.vaBase;
@@ -582,9 +506,8 @@ namespace VmmSharpEx
         {
             int cbMAP = System.Runtime.InteropServices.Marshal.SizeOf<Vmmi.VMMDLL_MAP_UNLOADEDMODULE>();
             int cbENTRY = System.Runtime.InteropServices.Marshal.SizeOf<Vmmi.VMMDLL_MAP_UNLOADEDMODULEENTRY>();
-            IntPtr pMap = IntPtr.Zero;
-            UnloadedModuleEntry[] m = new UnloadedModuleEntry[0];
-            if (!Vmmi.VMMDLL_Map_GetUnloadedModule(_hVmm, this.PID, out pMap)) { goto fail; }
+            UnloadedModuleEntry[] m = Array.Empty<UnloadedModuleEntry>();
+            if (!Vmmi.VMMDLL_Map_GetUnloadedModule(_vmm, this.PID, out var pMap)) { goto fail; }
             Vmmi.VMMDLL_MAP_UNLOADEDMODULE nM = Marshal.PtrToStructure<Vmmi.VMMDLL_MAP_UNLOADEDMODULE>(pMap);
             if (nM.dwVersion != Vmmi.VMMDLL_MAP_UNLOADEDMODULE_VERSION) { goto fail; }
             m = new UnloadedModuleEntry[nM.cMap];
@@ -627,9 +550,8 @@ namespace VmmSharpEx
             info = new EATInfo();
             int cbMAP = System.Runtime.InteropServices.Marshal.SizeOf<Vmmi.VMMDLL_MAP_EAT>();
             int cbENTRY = System.Runtime.InteropServices.Marshal.SizeOf<Vmmi.VMMDLL_MAP_EATENTRY>();
-            IntPtr pMap = IntPtr.Zero;
-            EATEntry[] m = new EATEntry[0];
-            if (!Vmmi.VMMDLL_Map_GetEAT(_hVmm, this.PID, module, out pMap)) { goto fail; }
+            EATEntry[] m = Array.Empty<EATEntry>();
+            if (!Vmmi.VMMDLL_Map_GetEAT(_vmm, this.PID, module, out var pMap)) { goto fail; }
             Vmmi.VMMDLL_MAP_EAT nM = Marshal.PtrToStructure<Vmmi.VMMDLL_MAP_EAT>(pMap);
             if (nM.dwVersion != Vmmi.VMMDLL_MAP_EAT_VERSION) { goto fail; }
             m = new EATEntry[nM.cMap];
@@ -667,9 +589,8 @@ namespace VmmSharpEx
         {
             int cbMAP = System.Runtime.InteropServices.Marshal.SizeOf<Vmmi.VMMDLL_MAP_IAT>();
             int cbENTRY = System.Runtime.InteropServices.Marshal.SizeOf<Vmmi.VMMDLL_MAP_IATENTRY>();
-            IntPtr pMap = IntPtr.Zero;
-            IATEntry[] m = new IATEntry[0];
-            if (!Vmmi.VMMDLL_Map_GetIAT(_hVmm, this.PID, module, out pMap)) { goto fail; }
+            IATEntry[] m = Array.Empty<IATEntry>();
+            if (!Vmmi.VMMDLL_Map_GetIAT(_vmm, this.PID, module, out var pMap)) { goto fail; }
             Vmmi.VMMDLL_MAP_IAT nM = Marshal.PtrToStructure<Vmmi.VMMDLL_MAP_IAT>(pMap);
             if (nM.dwVersion != Vmmi.VMMDLL_MAP_IAT_VERSION) { goto fail; }
             m = new IATEntry[nM.cMap];
@@ -700,14 +621,13 @@ namespace VmmSharpEx
         /// <returns></returns>
         public unsafe HeapMap MapHeap()
         {
-            IntPtr pMap = IntPtr.Zero;
             int cbMAP = System.Runtime.InteropServices.Marshal.SizeOf<Vmmi.VMMDLL_MAP_HEAP>();
             int cbENTRY = System.Runtime.InteropServices.Marshal.SizeOf<Vmmi.VMMDLL_MAP_HEAPENTRY>();
             int cbSEGENTRY = System.Runtime.InteropServices.Marshal.SizeOf<Vmmi.VMMDLL_MAP_HEAPSEGMENTENTRY>();
             HeapMap Heap;
-            Heap.heaps = new HeapEntry[0];
-            Heap.segments = new HeapSegmentEntry[0];
-            if (!Vmmi.VMMDLL_Map_GetHeap(_hVmm, this.PID, out pMap)) { goto fail; }
+            Heap.heaps = Array.Empty<HeapEntry>();
+            Heap.segments = Array.Empty<HeapSegmentEntry>();
+            if (!Vmmi.VMMDLL_Map_GetHeap(_vmm, this.PID, out var pMap)) { goto fail; }
             Vmmi.VMMDLL_MAP_HEAP nM = Marshal.PtrToStructure<Vmmi.VMMDLL_MAP_HEAP>(pMap);
             if (nM.dwVersion != Vmmi.VMMDLL_MAP_HEAP_VERSION) { goto fail; }
             Heap.heaps = new HeapEntry[nM.cMap];
@@ -740,15 +660,14 @@ namespace VmmSharpEx
         /// <returns></returns>
         public unsafe HeapAllocEntry[] MapHeapAlloc(ulong vaHeapOrHeapNum)
         {
-            IntPtr pHeapAllocMap = IntPtr.Zero;
             int cbMAP = System.Runtime.InteropServices.Marshal.SizeOf<Vmmi.VMMDLL_MAP_HEAPALLOC>();
             int cbENTRY = System.Runtime.InteropServices.Marshal.SizeOf<Vmmi.VMMDLL_MAP_HEAPALLOCENTRY>();
-            if (!Vmmi.VMMDLL_Map_GetHeapAlloc(_hVmm, this.PID, vaHeapOrHeapNum, out pHeapAllocMap)) { return new HeapAllocEntry[0]; }
+            if (!Vmmi.VMMDLL_Map_GetHeapAlloc(_vmm, this.PID, vaHeapOrHeapNum, out var pHeapAllocMap)) { return Array.Empty<HeapAllocEntry>(); }
             Vmmi.VMMDLL_MAP_HEAPALLOC nM = Marshal.PtrToStructure<Vmmi.VMMDLL_MAP_HEAPALLOC>(pHeapAllocMap);
             if (nM.dwVersion != Vmmi.VMMDLL_MAP_HEAPALLOC_VERSION)
             {
                 Vmmi.VMMDLL_MemFree((byte*)pHeapAllocMap.ToPointer());
-                return new HeapAllocEntry[0];
+                return Array.Empty<HeapAllocEntry>();
             }
             HeapAllocEntry[] m = new HeapAllocEntry[nM.cMap];
             for (int i = 0; i < nM.cMap; i++)
@@ -770,9 +689,8 @@ namespace VmmSharpEx
         {
             int cbMAP = System.Runtime.InteropServices.Marshal.SizeOf<Vmmi.VMMDLL_MAP_THREAD>();
             int cbENTRY = System.Runtime.InteropServices.Marshal.SizeOf<Vmmi.VMMDLL_MAP_THREADENTRY>();
-            IntPtr pMap = IntPtr.Zero;
-            ThreadEntry[] m = new ThreadEntry[0];
-            if (!Vmmi.VMMDLL_Map_GetThread(_hVmm, this.PID, out pMap)) { goto fail; }
+            ThreadEntry[] m = Array.Empty<ThreadEntry>();
+            if (!Vmmi.VMMDLL_Map_GetThread(_vmm, this.PID, out var pMap)) { goto fail; }
             Vmmi.VMMDLL_MAP_THREAD nM = Marshal.PtrToStructure<Vmmi.VMMDLL_MAP_THREAD>(pMap);
             if (nM.dwVersion != Vmmi.VMMDLL_MAP_THREAD_VERSION) { goto fail; }
             m = new ThreadEntry[nM.cMap];
@@ -823,9 +741,8 @@ namespace VmmSharpEx
         {
             int cbMAP = System.Runtime.InteropServices.Marshal.SizeOf<Vmmi.VMMDLL_MAP_THREAD_CALLSTACK>();
             int cbENTRY = System.Runtime.InteropServices.Marshal.SizeOf<Vmmi.VMMDLL_MAP_THREAD_CALLSTACKENTRY>();
-            IntPtr pMap = IntPtr.Zero;
-            ThreadCallstackEntry[] m = new ThreadCallstackEntry[0];
-            if (!Vmmi.VMMDLL_Map_GetThread_Callstack(_hVmm, this.PID, tid, flags, out pMap)) { goto fail; }
+            ThreadCallstackEntry[] m = Array.Empty<ThreadCallstackEntry>();
+            if (!Vmmi.VMMDLL_Map_GetThread_Callstack(_vmm, this.PID, tid, flags, out var pMap)) { goto fail; }
             Vmmi.VMMDLL_MAP_THREAD_CALLSTACK nM = Marshal.PtrToStructure<Vmmi.VMMDLL_MAP_THREAD_CALLSTACK>(pMap);
             if (nM.dwVersion != Vmmi.VMMDLL_MAP_THREAD_CALLSTACK_VERSION) { goto fail; }
             m = new ThreadCallstackEntry[nM.cMap];
@@ -858,9 +775,8 @@ namespace VmmSharpEx
         {
             int cbMAP = System.Runtime.InteropServices.Marshal.SizeOf<Vmmi.VMMDLL_MAP_HANDLE>();
             int cbENTRY = System.Runtime.InteropServices.Marshal.SizeOf<Vmmi.VMMDLL_MAP_HANDLEENTRY>();
-            IntPtr pMap = IntPtr.Zero;
-            HandleEntry[] m = new HandleEntry[0];
-            if (!Vmmi.VMMDLL_Map_GetHandle(_hVmm, this.PID, out pMap)) { goto fail; }
+            HandleEntry[] m = Array.Empty<HandleEntry>();
+            if (!Vmmi.VMMDLL_Map_GetHandle(_vmm, this.PID, out var pMap)) { goto fail; }
             Vmmi.VMMDLL_MAP_HANDLE nM = Marshal.PtrToStructure<Vmmi.VMMDLL_MAP_HANDLE>(pMap);
             if (nM.dwVersion != Vmmi.VMMDLL_MAP_HANDLE_VERSION) { goto fail; }
             m = new HandleEntry[nM.cMap];
@@ -921,7 +837,7 @@ namespace VmmSharpEx
         /// <returns></returns>
         public unsafe string GetInformationString(uint fOptionString)
         {
-            byte* pb = Vmmi.VMMDLL_ProcessGetInformationString(_hVmm, this.PID, fOptionString);
+            byte* pb = Vmmi.VMMDLL_ProcessGetInformationString(_vmm, this.PID, fOptionString);
             if (pb == null) { return ""; }
             string s = Marshal.PtrToStringAnsi((System.IntPtr)pb);
             Vmmi.VMMDLL_MemFree(pb);
@@ -940,8 +856,8 @@ namespace VmmSharpEx
             uint cbENTRY = (uint)System.Runtime.InteropServices.Marshal.SizeOf<Vmmi.VMMDLL_IMAGE_DATA_DIRECTORY>();
             fixed (byte* pb = new byte[16 * cbENTRY])
             {
-                result = Vmmi.VMMDLL_ProcessGetDirectories(_hVmm, this.PID, sModule, pb);
-                if (!result) { return new IMAGE_DATA_DIRECTORY[0]; }
+                result = Vmmi.VMMDLL_ProcessGetDirectories(_vmm, this.PID, sModule, pb);
+                if (!result) { return Array.Empty<IMAGE_DATA_DIRECTORY>(); }
                 IMAGE_DATA_DIRECTORY[] m = new IMAGE_DATA_DIRECTORY[16];
                 for (int i = 0; i < 16; i++)
                 {
@@ -964,14 +880,13 @@ namespace VmmSharpEx
         public unsafe IMAGE_SECTION_HEADER[] MapModuleSection(string sModule)
         {
             bool result;
-            uint cData;
             uint cbENTRY = (uint)System.Runtime.InteropServices.Marshal.SizeOf<Vmmi.VMMDLL_IMAGE_SECTION_HEADER>();
-            result = Vmmi.VMMDLL_ProcessGetSections(_hVmm, this.PID, sModule, null, 0, out cData);
-            if (!result || (cData == 0)) { return new IMAGE_SECTION_HEADER[0]; }
+            result = Vmmi.VMMDLL_ProcessGetSections(_vmm, this.PID, sModule, null, 0, out var cData);
+            if (!result || (cData == 0)) { return Array.Empty<IMAGE_SECTION_HEADER>(); }
             fixed (byte* pb = new byte[cData * cbENTRY])
             {
-                result = Vmmi.VMMDLL_ProcessGetSections(_hVmm, this.PID, sModule, pb, cData, out cData);
-                if (!result || (cData == 0)) { return new IMAGE_SECTION_HEADER[0]; }
+                result = Vmmi.VMMDLL_ProcessGetSections(_vmm, this.PID, sModule, pb, cData, out cData);
+                if (!result || (cData == 0)) { return Array.Empty<IMAGE_SECTION_HEADER>(); }
                 IMAGE_SECTION_HEADER[] m = new IMAGE_SECTION_HEADER[cData];
                 for (int i = 0; i < cData; i++)
                 {
@@ -1001,7 +916,7 @@ namespace VmmSharpEx
         /// <returns></returns>
         public ulong GetProcAddress(string wszModuleName, string szFunctionName)
         {
-            return Vmmi.VMMDLL_ProcessGetProcAddress(_hVmm, this.PID, wszModuleName, szFunctionName);
+            return Vmmi.VMMDLL_ProcessGetProcAddress(_vmm, this.PID, wszModuleName, szFunctionName);
         }
 
         /// <summary>
@@ -1011,34 +926,29 @@ namespace VmmSharpEx
         /// <returns></returns>
         public ulong GetModuleBase(string wszModuleName)
         {
-            return Vmmi.VMMDLL_ProcessGetModuleBase(_hVmm, this.PID, wszModuleName);
+            return Vmmi.VMMDLL_ProcessGetModuleBase(_vmm, this.PID, wszModuleName);
         }
 
         /// <summary>
         /// Get process information.
         /// </summary>
-        /// <returns>ProcessInformation on success. Null on fail.</returns>
-        public unsafe ProcessInfo GetInfo()
-        {
-            return GetInfo(out _);
-        }
-
-        /// <summary>
-        /// Get process information.
-        /// </summary>
-        /// <param name="result"></param>
-        /// <returns>ProcessInformation on success. Null on fail.</returns>
-        public unsafe ProcessInfo GetInfo(out bool result)
+        /// <returns>ProcessInformation on success. NULL on fail.</returns>
+        public unsafe ProcessInfo? GetInfo()
         {
             ulong cbENTRY = (ulong)System.Runtime.InteropServices.Marshal.SizeOf<Vmmi.VMMDLL_PROCESS_INFORMATION>();
             fixed (byte* pb = new byte[cbENTRY])
             {
                 Marshal.WriteInt64(new IntPtr(pb + 0), unchecked((long)Vmmi.VMMDLL_PROCESS_INFORMATION_MAGIC));
                 Marshal.WriteInt16(new IntPtr(pb + 8), unchecked((short)Vmmi.VMMDLL_PROCESS_INFORMATION_VERSION));
-                result = Vmmi.VMMDLL_ProcessGetInformation(_hVmm, this.PID, pb, ref cbENTRY);
-                if (!result) { return new ProcessInfo(); }
+                if (!Vmmi.VMMDLL_ProcessGetInformation(_vmm, this.PID, pb, ref cbENTRY))
+                {
+                    return null;
+                }
                 Vmmi.VMMDLL_PROCESS_INFORMATION n = Marshal.PtrToStructure<Vmmi.VMMDLL_PROCESS_INFORMATION>((System.IntPtr)pb);
-                if (n.wVersion != Vmmi.VMMDLL_PROCESS_INFORMATION_VERSION) { return new ProcessInfo(); }
+                if (n.wVersion != Vmmi.VMMDLL_PROCESS_INFORMATION_VERSION)
+                {
+                    return null;
+                }
                 ProcessInfo e;
                 e.fValid = true;
                 e.tpMemoryModel = n.tpMemoryModel;
@@ -1068,9 +978,9 @@ namespace VmmSharpEx
         /// </summary>
         /// <param name="vaModuleBase"></param>
         /// <returns></returns>
-        public VmmPdb Pdb(ulong vaModuleBase)
+        public VmmPdb GetPdb(ulong vaModuleBase)
         {
-            return new VmmPdb(_hVmm, this.PID, vaModuleBase);
+            return new VmmPdb(_vmm, this.PID, vaModuleBase);
         }
 
         /// <summary>
@@ -1078,59 +988,16 @@ namespace VmmSharpEx
         /// </summary>
         /// <param name="sModule"></param>
         /// <returns></returns>
-        public VmmPdb Pdb(string sModule)
+        public VmmPdb GetPdb(string sModule)
         {
             ModuleEntry eModule = MapModuleFromName(sModule);
             if(eModule.fValid == false)
             {
                 throw new VmmException("Module not found.");
             }
-            return Pdb(eModule.vaBase);
+            return GetPdb(eModule.vaBase);
         }
         #endregion
-
-        #region Search functionality (virtual process memory)
-        /// <summary>
-        /// Instantiate a new VmmSearch object to be used to search memory using binary rules.
-        /// </summary>
-        /// <param name="addr_min"></param>
-        /// <param name="addr_max"></param>
-        /// <param name="cMaxResult"></param>
-        /// <param name="readFlags"></param>
-        /// <returns></returns>
-        public VmmSearch Search(ulong addr_min = 0, ulong addr_max = UInt64.MaxValue, uint cMaxResult = 0, uint readFlags = 0)
-        {
-            return new VmmSearch(_hVmm, PID, addr_min, addr_max, cMaxResult, readFlags);
-        }
-
-        /// <summary>
-        /// Instantiate a new VmmYara object to be used to search memory using multiple yara rules.
-        /// </summary>
-        /// <param name="addr_min"></param>
-        /// <param name="addr_max"></param>
-        /// <param name="cMaxResult"></param>
-        /// <param name="readFlags"></param>
-        /// <returns></returns>
-        public VmmYara SearchYara(string[] yara_rules, ulong addr_min = 0, ulong addr_max = UInt64.MaxValue, uint cMaxResult = 0, uint readFlags = 0)
-        {
-            return new VmmYara(_hVmm, PID, yara_rules, addr_min, addr_max, cMaxResult, readFlags);
-        }
-
-        /// <summary>
-        /// Instantiate a new VmmYara object to be used to search memory using a single yara rule.
-        /// </summary>
-        /// <param name="yara_rule"></param>
-        /// <param name="addr_min"></param>
-        /// <param name="addr_max"></param>
-        /// <param name="cMaxResult"></param>
-        /// <param name="readFlags"></param>
-        /// <returns></returns>
-        public VmmYara SearchYara(string yara_rule, ulong addr_min = 0, ulong addr_max = UInt64.MaxValue, uint cMaxResult = 0, uint readFlags = 0)
-        {
-            string[] yara_rules = new string[1] { yara_rule };
-            return new VmmYara(_hVmm, PID, yara_rules, addr_min, addr_max, cMaxResult, readFlags);
-        }
-        #endregion // Search functionality (virtual process memory)
 
         #region Types
 

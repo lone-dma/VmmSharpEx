@@ -28,15 +28,16 @@ namespace VmmSharpEx.Internal
             [MarshalAs(UnmanagedType.ByValArray, SizeConst = 12)] internal ulong[] vStack;
         }
 
-#pragma warning disable SYSLIB1054
-        [RequiresDynamicCode("This P/Invoke was not able to be converted to LibraryImport")]
+#pragma warning disable SYSLIB1054 // Use 'LibraryImportAttribute' instead of 'DllImportAttribute' to generate P/Invoke marshalling code at compile time
+
         [DllImport("leechcore.dll", EntryPoint = "LcCreate")]
         public static extern IntPtr LcCreate(ref LeechCore.LCConfig pLcCreateConfig);
 
-        [RequiresDynamicCode("This P/Invoke was not able to be converted to LibraryImport")]
         [DllImport("leechcore.dll", EntryPoint = "LcCreateEx")]
         public static extern IntPtr LcCreateEx(ref LeechCore.LCConfig pLcCreateConfig, out IntPtr ppLcCreateErrorInfo);
-#pragma warning restore SYSLIB1054
+
+#pragma warning restore SYSLIB1054 // Use 'LibraryImportAttribute' instead of 'DllImportAttribute' to generate P/Invoke marshalling code at compile time
+
 
         [LibraryImport("leechcore.dll", EntryPoint = "LcClose")]
         internal static partial void LcClose(IntPtr hLC);
