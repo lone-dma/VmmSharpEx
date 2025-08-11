@@ -1,5 +1,6 @@
 ﻿using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Security.Cryptography;
 using System.Text;
 using VmmSharpEx.Internal;
 
@@ -55,18 +56,39 @@ namespace VmmSharpEx
         /// <param name="va">Array of page-aligned Memory Addresses.</param>
         /// <returns>SCATTER_HANDLE</returns>
         /// <exception cref="VmmException"></exception>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe LeechCore.SCATTER_HANDLE MemReadScatter(uint flags, params ulong[] va) =>
-        Vmmi.MemReadScatter(_vmm, this.PID, flags, va);
+        public unsafe LeechCore.SCATTER_HANDLE MemReadScatter(uint flags, params ulong[] va)
+        {
+            if (!Lci.LcAllocScatter1((uint)va.Length, out IntPtr pppMEMs))
+                throw new VmmException("LcAllocScatter1 FAIL");
+            var ppMEMs = (LeechCore.TdMEM_SCATTER**)pppMEMs.ToPointer();
+            for (int i = 0; i < va.Length; i++)
+            {
+                var pMEM = ppMEMs[i];
+                pMEM->qwA = va[i] & ~(ulong)0xfff;
+            }
+            var results = new Dictionary<ulong, LeechCore.SCATTER_PAGE>(va.Length);
+            _ = Vmmi.VMMDLL_MemReadScatter(_vmm, this.PID, pppMEMs, (uint)va.Length, flags);
+            for (int i = 0; i < va.Length; i++)
+            {
+                var pMEM = ppMEMs[i];
+                if (pMEM->f != 0)
+                    results[pMEM->qwA] = new LeechCore.SCATTER_PAGE(pMEM->pb);
+            }
+            return new LeechCore.SCATTER_HANDLE(results, pppMEMs);
+        }
 
         /// <summary>
         /// Initialize a Scatter Memory Read handle used to read multiple virtual memory regions in a single call.
         /// </summary>
         /// <param name="flags">Vmm Flags.</param>
         /// <returns>A VmmScatterMemory handle.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public VmmScatter Scatter_Initialize(uint flags = 0) =>
-            Vmmi.Scatter_Initialize(_vmm, this.PID, flags);
+        public VmmScatter Scatter_Initialize(uint flags = 0)
+        {
+            var hS = Vmmi.VMMDLL_Scatter_Initialize(_vmm, this.PID, flags);
+            if (hS == IntPtr.Zero)
+                return null;
+            return new VmmScatter(hS, this.PID);
+        }
 
         /// <summary>
         /// Read Memory from a Virtual Address into a managed byte-array.
@@ -77,7 +99,7 @@ namespace VmmSharpEx
         /// <returns>Managed byte array containing number of bytes read.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe byte[] MemRead(ulong va, uint cb, uint flags = 0) =>
-            Vmmi.MemReadArray<byte>(_vmm, this.PID, va, cb, flags);
+            MemReadArray<byte>(va, cb, flags);
 
         /// <summary>
         /// Read Memory from a Virtual Address into unmanaged memory.
@@ -90,7 +112,7 @@ namespace VmmSharpEx
         /// <returns>True if successful, otherwise False. Be sure to check cbRead count.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe bool MemRead(ulong va, IntPtr pb, uint cb, out uint cbRead, uint flags = 0) =>
-            Vmmi.MemRead(_vmm, this.PID, va, pb.ToPointer(), cb, out cbRead, flags);
+            MemRead(va, pb.ToPointer(), cb, out cbRead, flags);
 
         /// <summary>
         /// Read Memory from a Virtual Address into unmanaged memory.
@@ -102,9 +124,10 @@ namespace VmmSharpEx
         /// <param name="flags">VMM Flags.</param>
         /// <returns>True if successful, otherwise False. Be sure to check cbRead count.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe bool MemRead(ulong va, void* pb, uint cb, out uint cbRead, uint flags = 0) =>
-            Vmmi.MemRead(_vmm, this.PID, va, pb, cb, out cbRead, flags);
-
+        public unsafe bool MemRead(ulong va, void* pb, uint cb, out uint cbRead, uint flags = 0)
+        {
+            return Vmmi.VMMDLL_MemReadEx(_vmm, this.PID, va, (byte*)pb, cb, out cbRead, flags);
+        }
 
         /// <summary>
         /// Read Memory from a Virtual Address into a ref struct of Type <typeparamref name="T"/>.
@@ -114,10 +137,17 @@ namespace VmmSharpEx
         /// <param name="result">Memory read result.</param>
         /// <param name="flags">VMM Flags.</param>
         /// <returns>TRUE if successful, otherwise FALSE.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe bool MemReadValue<T>(ulong va, out T result, uint flags = 0)
-            where T : unmanaged, allows ref struct =>
-            Vmmi.MemReadValue<T>(_vmm, this.PID, va, out result, flags);
+            where T : unmanaged, allows ref struct
+        {
+            uint cb = (uint)sizeof(T);
+            result = default;
+            fixed (void* pb = &result)
+            {
+                return Vmmi.VMMDLL_MemReadEx(_vmm, this.PID, va, (byte*)pb, cb, out uint cbRead, flags) &&
+                    cbRead == cb;
+            }
+        }
 
         /// <summary>
         /// Read Memory from a Virtual Address into an Array of Type <typeparamref name="T"/>.
@@ -127,10 +157,26 @@ namespace VmmSharpEx
         /// <param name="count">Number of elements to read.</param>
         /// <param name="flags">VMM Flags.</param>
         /// <returns>Managed <typeparamref name="T"/> array containing number of elements read.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe T[] MemReadArray<T>(ulong va, uint count, uint flags = 0)
-            where T : unmanaged =>
-            Vmmi.MemReadArray<T>(_vmm, this.PID, va, count, flags);
+            where T : unmanaged
+        {
+            uint cb = (uint)sizeof(T) * count;
+            uint cbRead;
+            T[] data = new T[count];
+            fixed (T* pb = data)
+            {
+                if (!Vmmi.VMMDLL_MemReadEx(_vmm, this.PID, va, (byte*)pb, cb, out cbRead, flags))
+                {
+                    return null;
+                }
+            }
+            if (cbRead != cb)
+            {
+                int partialCount = (int)cbRead / sizeof(T);
+                Array.Resize<T>(ref data, partialCount);
+            }
+            return data;
+        }
 
         /// <summary>
         /// Read memory into a Span of <typeparamref name="T"/>.
@@ -142,10 +188,15 @@ namespace VmmSharpEx
         /// <param name="flags">Read flags.</param>
         /// <returns>True if successful, otherwise False.
         /// Please be sure to also check the cbRead out value.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe bool MemReadSpan<T>(ulong va, Span<T> span, out uint cbRead, uint flags)
-            where T : unmanaged =>
-            Vmmi.MemReadSpan(_vmm, this.PID, va, span, out cbRead, flags);
+            where T : unmanaged
+        {
+            uint cb = (uint)(sizeof(T) * span.Length);
+            fixed (T* pb = span)
+            {
+                return Vmmi.VMMDLL_MemReadEx(_vmm, this.PID, va, (byte*)pb, cb, out cbRead, flags);
+            }
+        }
 
         /// <summary>
         /// Write memory from a Span of <typeparamref name="T"/> to a specified memory address.
@@ -154,10 +205,15 @@ namespace VmmSharpEx
         /// <param name="va">Memory address to write to.</param>
         /// <param name="span">Span to write from.</param>
         /// <returns>True if successful, otherwise False.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe bool MemWriteSpan<T>(ulong va, Span<T> span)
-            where T : unmanaged =>
-            Vmmi.MemWriteSpan(_vmm, this.PID, va, span);
+            where T : unmanaged
+        {
+            uint cb = (uint)(sizeof(T) * span.Length);
+            fixed (T* pb = span)
+            {
+                return Vmmi.VMMDLL_MemWrite(_vmm, this.PID, va, (byte*)pb, cb);
+            }
+        }
 
         /// <summary>
         /// Read Memory from a Virtual Address into a Managed String.
@@ -168,19 +224,36 @@ namespace VmmSharpEx
         /// <param name="flags">VMM Flags.</param>
         /// <param name="terminateOnNullChar">Terminate the string at the first occurrence of the null character.</param>
         /// <returns>C# Managed System.String. Null if failed.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe string MemReadString(Encoding encoding, ulong va, uint cb,
-            uint flags = 0, bool terminateOnNullChar = true) =>
-            Vmmi.MemReadString(_vmm, encoding, this.PID, va, cb, flags, terminateOnNullChar);
+            uint flags = 0, bool terminateOnNullChar = true)
+        {
+            byte[] buffer = MemRead(va, cb, flags);
+            if (buffer is null)
+                return null;
+            var result = encoding.GetString(buffer);
+            if (terminateOnNullChar)
+            {
+                int nullIndex = result.IndexOf('\0');
+                if (nullIndex != -1)
+                    result = result.Substring(0, nullIndex);
+            }
+            return result;
+        }
 
         /// <summary>
         /// Prefetch pages into the MemProcFS internal cache.
         /// </summary>
         /// <param name="va">An array of the virtual addresses to prefetch.</param>
         /// <returns></returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe bool MemPrefetchPages(ulong[] va) =>
-            Vmmi.MemPrefetchPages(_vmm, this.PID, va);
+        public unsafe bool MemPrefetchPages(ulong[] va)
+        {
+            byte[] data = new byte[va.Length * sizeof(ulong)];
+            System.Buffer.BlockCopy(va, 0, data, 0, data.Length);
+            fixed (byte* pb = data)
+            {
+                return Vmmi.VMMDLL_MemPrefetchPages(_vmm, this.PID, pb, (uint)va.Length);
+            }
+        }
 
         /// <summary>
         /// Write Memory from a managed byte-array to a given Virtual Address.
@@ -190,7 +263,7 @@ namespace VmmSharpEx
         /// <returns>True if write successful, otherwise False.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe bool MemWrite(ulong va, byte[] data) =>
-            Vmmi.MemWriteArray<byte>(_vmm, this.PID, va, data);
+            MemWriteArray<byte>(va, data);
 
         /// <summary>
         /// Write Memory from unmanaged memory to a given Virtual Address.
@@ -201,7 +274,7 @@ namespace VmmSharpEx
         /// <returns>True if write successful, otherwise False.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe bool MemWrite(ulong va, IntPtr pb, uint cb) =>
-            Vmmi.MemWrite(_vmm, this.PID, va, pb.ToPointer(), cb);
+            MemWrite(va, pb.ToPointer(), cb);
 
         /// <summary>
         /// Write Memory from unmanaged memory to a given Virtual Address.
@@ -211,8 +284,10 @@ namespace VmmSharpEx
         /// <param name="cb">Count of bytes to write.</param>
         /// <returns>True if write successful, otherwise False.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe bool MemWrite(ulong va, void* pb, uint cb) =>
-            Vmmi.MemWrite(_vmm, this.PID, va, pb, cb);
+        public unsafe bool MemWrite(ulong va, void* pb, uint cb)
+        {
+            return Vmmi.VMMDLL_MemWrite(_vmm, this.PID, va, (byte*)pb, cb);
+        }
 
         /// <summary>
         /// Write Memory from a struct value <typeparamref name="T"/> to a given Virtual Address.
@@ -221,11 +296,12 @@ namespace VmmSharpEx
         /// <param name="va">Virtual Address to write to.</param>
         /// <param name="value"><typeparamref name="T"/> Value to write.</param>
         /// <returns>True if write successful, otherwise False.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe bool MemWriteValue<T>(ulong va, T value)
             where T : unmanaged, allows ref struct
-            =>
-            Vmmi.MemWriteValue(_vmm, this.PID, va, value);
+        {
+            uint cb = (uint)sizeof(T);
+            return Vmmi.VMMDLL_MemWrite(_vmm, this.PID, va, (byte*)&value, cb);
+        }
 
         /// <summary>
         /// Write Memory from a managed <typeparamref name="T"/> Array to a given Virtual Address.
@@ -234,10 +310,15 @@ namespace VmmSharpEx
         /// <param name="va">Virtual Address to write to.</param>
         /// <param name="data">Managed <typeparamref name="T"/> array to write.</param>
         /// <returns>True if write successful, otherwise False.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe bool MemWriteArray<T>(ulong va, T[] data)
-            where T : unmanaged =>
-            Vmmi.MemWriteArray(_vmm, this.PID, va, data);
+            where T : unmanaged
+        {
+            uint cb = (uint)sizeof(T) * (uint)data.Length;
+            fixed (T* pb = data)
+            {
+                return Vmmi.VMMDLL_MemWrite(_vmm, this.PID, va, (byte*)pb, cb);
+            }
+        }
 
         /// <summary>
         /// Translate a virtual address to a physical address.
@@ -247,7 +328,7 @@ namespace VmmSharpEx
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public ulong MemVirt2Phys(ulong va)
         {
-            Vmmi.MemVirt2Phys(_vmm, this.PID, va, out var pa);
+            Vmmi.VMMDLL_MemVirt2Phys(_vmm, this.PID, va, out var pa);
             return pa;
         }
 #endregion

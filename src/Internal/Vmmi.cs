@@ -1,6 +1,4 @@
-﻿using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
-using System.Text;
+﻿using System.Runtime.InteropServices;
 
 namespace VmmSharpEx.Internal
 {
@@ -864,7 +862,7 @@ namespace VmmSharpEx.Internal
 
         #endregion
 
-        #region Base functionality
+        #region Imports
 
         [LibraryImport("vmm.dll", EntryPoint = "VMMDLL_InitializeEx")]
         internal static partial IntPtr VMMDLL_InitializeEx(
@@ -1434,163 +1432,5 @@ namespace VmmSharpEx.Internal
             [MarshalAs(UnmanagedType.LPUTF8Str)] string uszTextToLog);
 
         #endregion
-
-        #region Memory read/write helper functionality
-
-        internal static unsafe LeechCore.SCATTER_HANDLE MemReadScatter(IntPtr hVMM, uint pid, uint flags, params ulong[] qwA)
-        {
-            if (!Lci.LcAllocScatter1((uint)qwA.Length, out IntPtr pppMEMs))
-                throw new VmmException("LcAllocScatter1 FAIL");
-            var ppMEMs = (LeechCore.TdMEM_SCATTER**)pppMEMs.ToPointer();
-            for (int i = 0; i < qwA.Length; i++)
-            {
-                var pMEM = ppMEMs[i];
-                pMEM->qwA = qwA[i] & ~(ulong)0xfff;
-            }
-            var results = new Dictionary<ulong, LeechCore.SCATTER_PAGE>(qwA.Length);
-            _ = Vmmi.VMMDLL_MemReadScatter(hVMM, pid, pppMEMs, (uint)qwA.Length, flags);
-            for (int i = 0; i < qwA.Length; i++)
-            {
-                var pMEM = ppMEMs[i];
-                if (pMEM->f != 0)
-                    results[pMEM->qwA] = new LeechCore.SCATTER_PAGE(pMEM->pb);
-            }
-            return new LeechCore.SCATTER_HANDLE(results, pppMEMs);
-        }
-
-        internal static VmmScatter Scatter_Initialize(IntPtr hVMM, uint pid, uint flags)
-        {
-            IntPtr hS = Vmmi.VMMDLL_Scatter_Initialize(hVMM, pid, flags);
-            if (hS.ToInt64() == 0) { return null; }
-            return new VmmScatter(hS, pid);
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal static unsafe byte[] MemRead(IntPtr hVMM, uint pid, ulong qwA, uint cb, uint flags = 0) =>
-            MemReadArray<byte>(hVMM, pid, qwA, cb, flags);
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal static unsafe bool MemRead(IntPtr hVMM, uint pid, ulong qwA, IntPtr pb, uint cb, out uint cbRead, uint flags = 0) =>
-            MemRead(hVMM, pid, qwA, pb.ToPointer(), cb, out cbRead, flags);
-
-        internal static unsafe bool MemRead(IntPtr hVMM, uint pid, ulong qwA, void* pb, uint cb, out uint cbRead, uint flags = 0)
-        {
-            return Vmmi.VMMDLL_MemReadEx(hVMM, pid, qwA, (byte*)pb, cb, out cbRead, flags);
-        }
-
-        internal static unsafe bool MemReadValue<T>(IntPtr hVMM, uint pid, ulong qwA, out T result, uint flags = 0)
-            where T : unmanaged, allows ref struct
-        {
-            uint cb = (uint)sizeof(T);
-            result = default;
-            fixed (void* pb = &result)
-            {
-                return Vmmi.VMMDLL_MemReadEx(hVMM, pid, qwA, (byte*)pb, cb, out uint cbRead, flags) &&
-                    cbRead == cb;
-            }
-        }
-
-        internal static unsafe T[] MemReadArray<T>(IntPtr hVMM, uint pid, ulong qwA, uint count, uint flags = 0)
-            where T : unmanaged
-        {
-            uint cb = (uint)sizeof(T) * count;
-            uint cbRead;
-            T[] data = new T[count];
-            fixed (T* pb = data)
-            {
-                if (!Vmmi.VMMDLL_MemReadEx(hVMM, pid, qwA, (byte*)pb, cb, out cbRead, flags))
-                {
-                    return null;
-                }
-            }
-            if (cbRead != cb)
-            {
-                int partialCount = (int)cbRead / sizeof(T);
-                Array.Resize<T>(ref data, partialCount);
-            }
-            return data;
-        }
-
-        internal static unsafe bool MemReadSpan<T>(IntPtr hVMM, uint pid, ulong addr, Span<T> span, out uint cbRead, uint flags)
-            where T : unmanaged
-        {
-            uint cb = (uint)(sizeof(T) * span.Length);
-            fixed (T* pb = span)
-            {
-                return Vmmi.VMMDLL_MemReadEx(hVMM, pid, addr, (byte*)pb, cb, out cbRead, flags);
-            }
-        }
-
-        internal static unsafe bool MemWriteSpan<T>(IntPtr hVMM, uint pid, ulong addr, Span<T> span)
-            where T : unmanaged
-        {
-            uint cb = (uint)(sizeof(T) * span.Length);
-            fixed (T* pb = span)
-            {
-                return Vmmi.VMMDLL_MemWrite(hVMM, pid, addr, (byte*)pb, cb);
-            }
-        }
-
-        internal static unsafe string MemReadString(IntPtr hVMM, Encoding encoding, uint pid, ulong qwA, uint cb,
-            uint flags = 0, bool terminateOnNullChar = true)
-        {
-            byte[] buffer = MemRead(hVMM, pid, qwA, cb, flags);
-            if (buffer is null)
-                return null;
-            var result = encoding.GetString(buffer);
-            if (terminateOnNullChar)
-            {
-                int nullIndex = result.IndexOf('\0');
-                if (nullIndex != -1)
-                    result = result.Substring(0, nullIndex);
-            }
-            return result;
-        }
-
-        internal static unsafe bool MemPrefetchPages(IntPtr hVMM, uint pid, ulong[] qwA)
-        {
-            byte[] data = new byte[qwA.Length * sizeof(ulong)];
-            System.Buffer.BlockCopy(qwA, 0, data, 0, data.Length);
-            fixed (byte* pb = data)
-            {
-                return Vmmi.VMMDLL_MemPrefetchPages(hVMM, pid, pb, (uint)qwA.Length);
-            }
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal static unsafe bool MemWrite(IntPtr hVMM, uint pid, ulong qwA, byte[] data) =>
-            MemWriteArray<byte>(hVMM, pid, qwA, data);
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal static unsafe bool MemWrite(IntPtr hVMM, uint pid, ulong qwA, IntPtr pb, uint cb) =>
-            MemWrite(hVMM, pid, qwA, pb.ToPointer(), cb);
-
-        internal static unsafe bool MemWrite(IntPtr hVMM, uint pid, ulong qwA, void* pb, uint cb) =>
-            Vmmi.VMMDLL_MemWrite(hVMM, pid, qwA, (byte*)pb, cb);
-
-        internal static unsafe bool MemWriteValue<T>(IntPtr hVMM, uint pid, ulong qwA, T value)
-            where T : unmanaged, allows ref struct
-        {
-            uint cb = (uint)sizeof(T);
-            return Vmmi.VMMDLL_MemWrite(hVMM, pid, qwA, (byte*)&value, cb);
-        }
-
-        internal static unsafe bool MemWriteArray<T>(IntPtr hVMM, uint pid, ulong qwA, T[] data)
-            where T : unmanaged
-        {
-            uint cb = (uint)sizeof(T) * (uint)data.Length;
-            fixed (T* pb = data)
-            {
-                return Vmmi.VMMDLL_MemWrite(hVMM, pid, qwA, (byte*)pb, cb);
-            }
-        }
-
-        internal static bool MemVirt2Phys(IntPtr hVMM, uint pid, ulong qwVA, out ulong pqwPA)
-        {
-            return Vmmi.VMMDLL_MemVirt2Phys(hVMM, pid, qwVA, out pqwPA);
-        }
-
-#endregion
-
     }
 }
