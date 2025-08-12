@@ -26,7 +26,8 @@
 			  PackagePath="build\" />
 		<None Include="..\native\**\*"
 		      Pack="true"
-			  PackagePath="build\" />
+			  PackagePath="build\"
+			  Visible="false"/>
 	</ItemGroup>
 
 	<PropertyGroup>
