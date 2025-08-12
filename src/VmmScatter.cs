@@ -11,6 +11,7 @@ namespace VmmSharpEx
     {
         #region Base Functionality
 
+        private readonly Vmm _vmm;
         private readonly uint _pid;
         private IntPtr _h;
 
@@ -19,8 +20,9 @@ namespace VmmSharpEx
             ;
         }
 
-        internal VmmScatter(IntPtr hS, uint pid)
+        internal VmmScatter(Vmm vmm, IntPtr hS, uint pid)
         {
+            _vmm = vmm;
             _h = hS;
             _pid = pid;
         }
@@ -122,6 +124,7 @@ namespace VmmSharpEx
         public unsafe bool PrepareWriteArray<T>(ulong qwA, T[] data)
             where T : unmanaged
         {
+            _vmm.ThrowIfMemWritesDisabled();
             uint cb = (uint)sizeof(T) * (uint)data.Length;
             fixed (T* pb = data)
             {
@@ -139,6 +142,7 @@ namespace VmmSharpEx
         public unsafe bool PrepareWriteSpan<T>(ulong qwA, Span<T> data)
             where T : unmanaged
         {
+            _vmm.ThrowIfMemWritesDisabled();
             uint cb = (uint)sizeof(T) * (uint)data.Length;
             fixed (T* pb = data)
             {
@@ -156,6 +160,7 @@ namespace VmmSharpEx
         public unsafe bool PrepareWriteValue<T>(ulong qwA, T value)
             where T : unmanaged, allows ref struct
         {
+            _vmm.ThrowIfMemWritesDisabled();
             uint cb = (uint)sizeof(T);
             return Vmmi.VMMDLL_Scatter_PrepareWrite(_h, qwA, (byte*)&value, cb);
         }

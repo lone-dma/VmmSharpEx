@@ -87,7 +87,7 @@ namespace VmmSharpEx
             var hS = Vmmi.VMMDLL_Scatter_Initialize(_vmm, this.PID, flags);
             if (hS == IntPtr.Zero)
                 return null;
-            return new VmmScatter(hS, this.PID);
+            return new VmmScatter(_vmm, hS, this.PID);
         }
 
         /// <summary>
@@ -208,6 +208,7 @@ namespace VmmSharpEx
         public unsafe bool MemWriteSpan<T>(ulong va, Span<T> span)
             where T : unmanaged
         {
+            _vmm.ThrowIfMemWritesDisabled();
             uint cb = (uint)(sizeof(T) * span.Length);
             fixed (T* pb = span)
             {
@@ -286,6 +287,7 @@ namespace VmmSharpEx
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe bool MemWrite(ulong va, void* pb, uint cb)
         {
+            _vmm.ThrowIfMemWritesDisabled();
             return Vmmi.VMMDLL_MemWrite(_vmm, this.PID, va, (byte*)pb, cb);
         }
 
@@ -299,6 +301,7 @@ namespace VmmSharpEx
         public unsafe bool MemWriteValue<T>(ulong va, T value)
             where T : unmanaged, allows ref struct
         {
+            _vmm.ThrowIfMemWritesDisabled();
             uint cb = (uint)sizeof(T);
             return Vmmi.VMMDLL_MemWrite(_vmm, this.PID, va, (byte*)&value, cb);
         }
@@ -313,6 +316,7 @@ namespace VmmSharpEx
         public unsafe bool MemWriteArray<T>(ulong va, T[] data)
             where T : unmanaged
         {
+            _vmm.ThrowIfMemWritesDisabled();
             uint cb = (uint)sizeof(T) * (uint)data.Length;
             fixed (T* pb = data)
             {

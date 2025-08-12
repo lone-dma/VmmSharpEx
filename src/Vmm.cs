@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
 using VmmSharpEx.Internal;
@@ -20,6 +21,13 @@ namespace VmmSharpEx
         /// Underlying LeechCore handle.
         /// </summary>
         public LeechCore LeechCore { get; }
+
+        /// <summary>
+        /// Set to FALSE if you would like to disable all Memory Writing in this High Level API.
+        /// Attempts to Write Memory will throw a VmmException.
+        /// This setting is immutable after initialization.
+        /// </summary>
+        public bool EnableMemoryWriting { get; init; } = true;
 
         /// <summary>
         /// ToString() override.
@@ -448,6 +456,7 @@ namespace VmmSharpEx
         /// <returns>The NTSTATUS value of the operation (success = 0).</returns>
         public unsafe uint VfsWrite(string fileName, byte[] data, ulong offset = 0)
         {
+            ThrowIfMemWritesDisabled();
             uint cbRead = 0;
             fixed (byte* pb = data)
             {
@@ -631,6 +640,7 @@ namespace VmmSharpEx
         /// <returns></returns>
         public unsafe bool RegHiveWrite(ulong vaCMHIVE, uint ra, byte[] data)
         {
+            ThrowIfMemWritesDisabled();
             fixed (byte* pb = data)
             {
                 return Vmmi.VMMDLL_WinReg_HiveWrite(_h, vaCMHIVE, ra, pb, (uint)data.Length);
@@ -1290,6 +1300,17 @@ namespace VmmSharpEx
         /// </summary>
         /// <returns>The VmmKernel object.</returns>
         public VmmKernel Kernel => _kernel ??= new VmmKernel(this);
+
+        /// <summary>
+        /// Throw an exception if memory writing is disabled.
+        /// </summary>
+        /// <exception cref="VmmException">Memory writing is disabled.</exception>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void ThrowIfMemWritesDisabled()
+        {
+            if (!EnableMemoryWriting)
+                throw new VmmException("Memory Writing is Disabled! This operation may not proceed.");
+        }
 
         #endregion // Utility functionality
 
