@@ -337,7 +337,7 @@ namespace VmmSharpEx
         public unsafe bool WriteSpan<T>(ulong pa, Span<T> span)
             where T : unmanaged
         {
-            _parent.ThrowIfMemWritesDisabled();
+            _parent?.ThrowIfMemWritesDisabled();
             uint cb = (uint)(sizeof(T) * span.Length);
             fixed (T* pb = span)
             {
@@ -496,7 +496,7 @@ namespace VmmSharpEx
         public unsafe bool WriteValue<T>(ulong pa, T value)
             where T : unmanaged, allows ref struct
         {
-            _parent.ThrowIfMemWritesDisabled();
+            _parent?.ThrowIfMemWritesDisabled();
             uint cb = (uint)sizeof(T);
             return Lci.LcWrite(_h, pa, cb, (byte*)&value);
         }
@@ -511,7 +511,7 @@ namespace VmmSharpEx
         public unsafe bool WriteArray<T>(ulong pa, T[] data)
             where T : unmanaged
         {
-            _parent.ThrowIfMemWritesDisabled();
+            _parent?.ThrowIfMemWritesDisabled();
             uint cb = (uint)sizeof(T) * (uint)data.Length;
             fixed (T* pb = data)
             {
@@ -539,7 +539,7 @@ namespace VmmSharpEx
         /// <returns>True if write successful, otherwise False. The write is best-effort and may fail. It's recommended to verify the write with a subsequent read.</returns>
         public unsafe bool Write(ulong pa, void* pb, uint cb)
         {
-            _parent.ThrowIfMemWritesDisabled();
+            _parent?.ThrowIfMemWritesDisabled();
             return Lci.LcWrite(_h, pa, cb, (byte*)pb);
         }
 
@@ -550,7 +550,7 @@ namespace VmmSharpEx
         [Obsolete("Use VmmScatter to Write Memory, this may be removed in the future.")]
         public void WriteScatter(ref MemScatter[] MEMs)
         {
-            _parent.ThrowIfMemWritesDisabled();
+            _parent?.ThrowIfMemWritesDisabled();
             int i;
             long vappMEMs, vapMEM;
             IntPtr pMEM, pMEM_f, pMEM_qwA, pMEM_pb;
