@@ -1306,7 +1306,7 @@ namespace VmmSharpEx
         /// </summary>
         /// <exception cref="VmmException">Memory writing is disabled.</exception>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void ThrowIfMemWritesDisabled()
+        internal void ThrowIfMemWritesDisabled()
         {
             if (!EnableMemoryWriting)
                 throw new VmmException("Memory Writing is Disabled! This operation may not proceed.");
