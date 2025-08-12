@@ -21,19 +21,16 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<!-- Pack the targets file -->
 		<None Include="VmmSharpEx.targets"
 			  Pack="true"
 			  PackagePath="build\" />
-		<!-- Pack the native files -->
-		<None Include="..\native\**\*">
-			<Pack>true</Pack>
-			<PackagePath>native\</PackagePath>
-		</None>
+		<None Include="..\native\**\*"
+		      Pack="true"
+			  PackagePath="build\" />
 	</ItemGroup>
 
 	<PropertyGroup>
-		<Version>1.2.5</Version>
+		<Version>1.2.6</Version>
 		<RepositoryUrl>https://github.com/boggle4539/VmmSharpEx</RepositoryUrl>
 		<RepositoryType>git</RepositoryType>
 		<PackageLicenseFile>LICENSE</PackageLicenseFile>

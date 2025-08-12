@@ -1,20 +1,8 @@
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-
 	<ItemGroup>
-		<_MyLibNativeFiles Include="$(MSBuildThisFileDirectory)..\native\**\*" />
+		<None Include="$(MSBuildThisFileDirectory)**\*.dll">
+			<Visible>false</Visible>
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</None>
 	</ItemGroup>
-
-	<Target Name="CopyNative_AfterBuild" AfterTargets="Build">
-		<Copy SourceFiles="@(_MyLibNativeFiles)"
-			  DestinationFolder="$(OutDir)"
-			  SkipUnchangedFiles="true" />
-	</Target>
-
-	<!-- Runs during publish -->
-	<Target Name="CopyNative_AfterPublish" AfterTargets="Publish">
-		<Copy SourceFiles="@(_MyLibNativeFiles)"
-			  DestinationFolder="$(PublishDir)"
-			  SkipUnchangedFiles="true" />
-	</Target>
-
 </Project>
