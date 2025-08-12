@@ -419,7 +419,7 @@ namespace VmmSharpEx
         /// </summary>
         public sealed class SCATTER_HANDLE : IDisposable
         {
-            private IntPtr _ppMems;
+            private IntPtr _mems;
 
             /// <summary>
             /// Scatter Read Results. Only successful reads are contained in this Dictionary. If a read failed, it will not be present.
@@ -428,10 +428,10 @@ namespace VmmSharpEx
             /// </summary>
             public IReadOnlyDictionary<ulong, SCATTER_PAGE> Results { get; }
 
-            public SCATTER_HANDLE(Dictionary<ulong, SCATTER_PAGE> results, IntPtr ppMEMs)
+            public SCATTER_HANDLE(Dictionary<ulong, SCATTER_PAGE> results, IntPtr mems)
             {
                 Results = results;
-                _ppMems = ppMEMs;
+                _mems = mems;
             }
 
             #region IDisposable
@@ -447,7 +447,7 @@ namespace VmmSharpEx
 
             private void Dispose(bool disposing)
             {
-                if (Interlocked.Exchange(ref _ppMems, IntPtr.Zero) is IntPtr h && h != IntPtr.Zero)
+                if (Interlocked.Exchange(ref _mems, IntPtr.Zero) is IntPtr h && h != IntPtr.Zero)
                 {
                     Lci.LcMemFree(h);
                 }
