@@ -22,12 +22,22 @@ namespace VmmSharpEx
         /// </summary>
         public LeechCore LeechCore { get; }
 
+        private bool _enableMemoryWriting = true;
         /// <summary>
         /// Set to FALSE if you would like to disable all Memory Writing in this High Level API.
         /// Attempts to Write Memory will throw a VmmException.
         /// This setting is immutable after initialization.
         /// </summary>
-        public bool EnableMemoryWriting { get; init; } = true;
+        public bool EnableMemoryWriting
+        {
+            get => _enableMemoryWriting;
+            init
+            {
+                _enableMemoryWriting = value;
+                if (!_enableMemoryWriting)
+                    this.Log("Memory Writing Disabled!");
+            }
+        }
 
         /// <summary>
         /// ToString() override.
@@ -89,8 +99,6 @@ namespace VmmSharpEx
             _h = Vmm.Create(out configErrorInfo, args);
             this.LeechCore = new LeechCore(this);
             this.Log("VmmSharpEx Initialized.");
-            if (!EnableMemoryWriting)
-                this.Log("Memory Writing Disabled!");
         }
 
         /// <summary>
