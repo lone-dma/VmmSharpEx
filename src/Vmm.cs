@@ -22,7 +22,7 @@ namespace VmmSharpEx
         /// </summary>
         public LeechCore LeechCore { get; }
 
-        private bool _enableMemoryWriting = true;
+        private readonly bool _enableMemoryWriting = true;
         /// <summary>
         /// Set to FALSE if you would like to disable all Memory Writing in this High Level API.
         /// Attempts to Write Memory will throw a VmmException.
