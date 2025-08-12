@@ -6,41 +6,38 @@
 		<TargetFramework>net9.0-windows</TargetFramework>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>warnings</Nullable>
-		<AssemblyTitle>MemProcFS : C# API</AssemblyTitle>
-		<Company>Ulf Frisk</Company>
-		<Product>VmmSharpEx</Product>
-		<Copyright>Copyright © Ulf Frisk 2024</Copyright>
 		<Platforms>x64</Platforms>
 		<AllowUnsafeBlocks>True</AllowUnsafeBlocks>
 	</PropertyGroup>
 
-	<ItemGroup>
-		<None Include="..\LICENSE" Pack="true" PackagePath="" Visible="false"/>
-		<None Include="..\logo.png" Pack="true" PackagePath="" Visible="false"/>
+	<ItemGroup Label="NuGet Pack">
+		<None Include="VmmSharpEx.targets" Pack="true" PackagePath="build\" />
+		<None Include="..\native\**\*" Pack="true" PackagePath="build\" Visible="false" />
+		<None Include="..\LICENSE" Pack="true" PackagePath="" Visible="false" />
+		<None Include="..\logo.png" Pack="true" PackagePath="" Visible="false" />
 		<None Include="..\README.md" Pack="true" PackagePath="" />
 	</ItemGroup>
 
-	<ItemGroup>
-		<None Include="VmmSharpEx.targets"
-			  Pack="true"
-			  PackagePath="build\" />
-		<None Include="..\native\**\*"
-		      Pack="true"
-			  PackagePath="build\"
-			  Visible="false"/>
-	</ItemGroup>
-
-	<PropertyGroup>
-		<!-- Auto Versioning :) -->
+	<PropertyGroup Label="NuGet Properties">
+		<!-- Main Assembly Info -->
+		<PackageId>VmmSharpEx</PackageId>
+		<Product>VmmSharpEx</Product>
+		<AssemblyTitle>MemProcFS : C# API (Custom)</AssemblyTitle>
+		<Author>Unseen</Author>
+		<Copyright>©2025 AGPL-3.0</Copyright>
+		<Description>Custom Vmmsharp fork targeting bleeding edge .NET Core for Windows x64</Description>
+		<!-- Auto Versioning -->
 		<Version>2.0.$([System.Convert]::ToInt32($([System.DateTime]::UtcNow.Subtract($([System.DateTime]::Parse('2000-01-01'))).TotalDays))).$([System.DateTime]::UtcNow.TimeOfDay.TotalMinutes.ToString("0"))</Version>
+		<AssemblyVersion>$(Version)</AssemblyVersion>
+		<FileVersion>$(Version)</FileVersion>
+		<!-- Properties -->
 		<RepositoryUrl>https://github.com/boggle4539/VmmSharpEx</RepositoryUrl>
 		<RepositoryType>git</RepositoryType>
 		<PackageLicenseFile>LICENSE</PackageLicenseFile>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
-		<PackageId>VmmSharpEx</PackageId>
-		<IncludeContentInPack>true</IncludeContentInPack>
-		<Description>Custom Vmmsharp fork targeting bleeding edge .NET Core for Windows x64</Description>
 		<PackageIcon>logo.png</PackageIcon>
+		<!-- Config -->
+		<IncludeContentInPack>true</IncludeContentInPack>
 		<GenerateDocumentationFile>true</GenerateDocumentationFile>
 		<IncludeSymbols>false</IncludeSymbols>
 	</PropertyGroup>
