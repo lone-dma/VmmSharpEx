@@ -88,6 +88,9 @@ namespace VmmSharpEx
         {
             _h = Vmm.Create(out configErrorInfo, args);
             this.LeechCore = new LeechCore(this);
+            this.Log("VmmSharpEx Initialized.");
+            if (!EnableMemoryWriting)
+                this.Log("Memory Writing Disabled!");
         }
 
         /// <summary>
