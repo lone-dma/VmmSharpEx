@@ -381,7 +381,7 @@ namespace VmmSharpEx
         {
             if (!Lci.LcAllocScatter1((uint)pas.Length, out IntPtr pppMEMs))
                 throw new VmmException("LcAllocScatter1 FAIL");
-            var ppMEMs = (TdMEM_SCATTER**)pppMEMs.ToPointer();
+            var ppMEMs = (MEM_SCATTER_INTERNAL**)pppMEMs.ToPointer();
             for (int i = 0; i < pas.Length; i++)
             {
                 var pMEM = ppMEMs[i];
@@ -398,16 +398,19 @@ namespace VmmSharpEx
             return new SCATTER_HANDLE(results, pppMEMs);
         }
 
-        [StructLayout(LayoutKind.Explicit, Size = 24)]
-        internal struct TdMEM_SCATTER
+        /// <summary>
+        /// From tdMEM_SCATTER in Leechcore.h
+        /// </summary>
+        [StructLayout(LayoutKind.Sequential, Pack = 8)]
+        internal unsafe struct MEM_SCATTER_INTERNAL
         {
-            [FieldOffset(4)]
-            public readonly int f;
-            [FieldOffset(8)]
-            public ulong qwA;
-            [FieldOffset(16)]
-            public readonly IntPtr pb;
-            // Trimmed Rest
+            private readonly uint version;    // DWORD
+            public int f;                     // BOOL (TRUE=1, FALSE=0)
+            public ulong qwA;                 // QWORD
+            public readonly IntPtr pb;        // PBYTE
+            private readonly uint cb;         // DWORD
+            private readonly uint iStack;     // DWORD
+            private fixed ulong vStack[12];   // internal stack
         }
 
         /// <summary>
@@ -547,42 +550,28 @@ namespace VmmSharpEx
         /// Write multiple page-sized physical memory ranges. The write is best-effort and may fail. It's recommended to verify the writes with subsequent reads.
         /// </summary>
         /// <param name="MEMs">MEMs containing the memory addresses and data to write.</param>
-        [Obsolete("Use VmmScatter to Write Memory, this may be removed in the future.")]
-        public void WriteScatter(ref MemScatter[] MEMs)
+        public unsafe void WriteScatter(ref MemScatter[] MEMs)
         {
             _parent?.ThrowIfMemWritesDisabled();
-            int i;
-            long vappMEMs, vapMEM;
-            IntPtr pMEM, pMEM_f, pMEM_qwA, pMEM_pb;
-            for (i = 0; i < MEMs.Length; i++)
-            {
-                if ((MEMs[i].pb == null) || (MEMs[i].pb.Length != 0x1000))
-                {
-                    return;
-                }
-            }
             if (!Lci.LcAllocScatter1((uint)MEMs.Length, out var pppMEMs))
+                throw new VmmException("LcAllocScatter1 FAIL");
+            var ppMEMs = (MEM_SCATTER_INTERNAL**)pppMEMs.ToPointer();
+            for (int i = 0; i < MEMs.Length; i++)
             {
-                return;
-            }
-            vappMEMs = pppMEMs.ToInt64();
-            for (i = 0; i < MEMs.Length; i++)
-            {
-                vapMEM = Marshal.ReadIntPtr(new IntPtr(vappMEMs + i * 8)).ToInt64();
-                pMEM_f = new IntPtr(vapMEM + 4);
-                pMEM_qwA = new IntPtr(vapMEM + 8);
-                pMEM_pb = Marshal.ReadIntPtr(new IntPtr(vapMEM + 16));
-                Marshal.WriteInt32(pMEM_f, MEMs[i].f ? 1 : 0);
-                Marshal.WriteInt64(pMEM_qwA, (long)(MEMs[i].qwA & ~(ulong)0xfff));
-                Marshal.Copy(MEMs[i].pb, 0, pMEM_pb, MEMs[i].pb.Length);
+                var entry = MEMs[i];
+                ArgumentOutOfRangeException.ThrowIfNotEqual(entry.pb.Length, 0x1000, nameof(entry.pb));
+                var pMEM = ppMEMs[i];
+                var pMEM_pb = new Span<byte>(pMEM->pb.ToPointer(), 0x1000);
+                pMEM->f = entry.f ? 1 : 0;
+                pMEM->qwA = entry.qwA & ~(ulong)0xfff;
+                entry.pb.CopyTo(pMEM_pb);
             }
             Lci.LcWriteScatter(_h, (uint)MEMs.Length, pppMEMs);
-            for (i = 0; i < MEMs.Length; i++)
+            for (int i = 0; i < MEMs.Length; i++)
             {
-                pMEM = Marshal.ReadIntPtr(new IntPtr(vappMEMs + i * 8));
-                Lci.LC_MEM_SCATTER n = Marshal.PtrToStructure<Lci.LC_MEM_SCATTER>(pMEM);
-                MEMs[i].f = n.f;
-                MEMs[i].qwA = n.qwA;
+                var pMEM = ppMEMs[i];
+                MEMs[i].f = pMEM->f != 0;
+                MEMs[i].qwA = pMEM->qwA;
             }
             Lci.LcMemFree(pppMEMs);
         }
