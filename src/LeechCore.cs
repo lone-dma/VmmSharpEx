@@ -555,26 +555,32 @@ namespace VmmSharpEx
             _parent?.ThrowIfMemWritesDisabled();
             if (!Lci.LcAllocScatter1((uint)MEMs.Length, out var pppMEMs))
                 throw new VmmException("LcAllocScatter1 FAIL");
-            var ppMEMs = (MEM_SCATTER_INTERNAL**)pppMEMs.ToPointer();
-            for (int i = 0; i < MEMs.Length; i++)
+            try
             {
-                var entry = MEMs[i];
-                ArgumentNullException.ThrowIfNull(entry.pb, nameof(entry.pb));
-                ArgumentOutOfRangeException.ThrowIfNotEqual(entry.pb.Length, 0x1000, nameof(entry.pb));
-                var pMEM = ppMEMs[i];
-                var pMEM_pb = new Span<byte>(pMEM->pb.ToPointer(), 0x1000);
-                pMEM->f = entry.f ? 1 : 0;
-                pMEM->qwA = entry.qwA & ~(ulong)0xfff;
-                entry.pb.CopyTo(pMEM_pb);
+                var ppMEMs = (MEM_SCATTER_INTERNAL**)pppMEMs.ToPointer();
+                for (int i = 0; i < MEMs.Length; i++)
+                {
+                    var entry = MEMs[i];
+                    ArgumentNullException.ThrowIfNull(entry.pb, nameof(entry.pb));
+                    ArgumentOutOfRangeException.ThrowIfNotEqual(entry.pb.Length, 0x1000, nameof(entry.pb));
+                    var pMEM = ppMEMs[i];
+                    var pMEM_pb = new Span<byte>(pMEM->pb.ToPointer(), 0x1000);
+                    pMEM->f = entry.f ? 1 : 0;
+                    pMEM->qwA = entry.qwA & ~(ulong)0xfff;
+                    entry.pb.CopyTo(pMEM_pb);
+                }
+                Lci.LcWriteScatter(_h, (uint)MEMs.Length, pppMEMs);
+                for (int i = 0; i < MEMs.Length; i++)
+                {
+                    var pMEM = ppMEMs[i];
+                    MEMs[i].f = pMEM->f != 0;
+                    MEMs[i].qwA = pMEM->qwA;
+                }
             }
-            Lci.LcWriteScatter(_h, (uint)MEMs.Length, pppMEMs);
-            for (int i = 0; i < MEMs.Length; i++)
+            finally
             {
-                var pMEM = ppMEMs[i];
-                MEMs[i].f = pMEM->f != 0;
-                MEMs[i].qwA = pMEM->qwA;
+                Lci.LcMemFree(pppMEMs);
             }
-            Lci.LcMemFree(pppMEMs);
         }
 
         /// <summary>

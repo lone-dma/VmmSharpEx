@@ -31,7 +31,7 @@
 	</ItemGroup>
 
 	<PropertyGroup>
-		<Version>1.2.8</Version>
+		<Version>1.2.81</Version>
 		<RepositoryUrl>https://github.com/boggle4539/VmmSharpEx</RepositoryUrl>
 		<RepositoryType>git</RepositoryType>
 		<PackageLicenseFile>LICENSE</PackageLicenseFile>
