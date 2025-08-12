@@ -559,6 +559,7 @@ namespace VmmSharpEx
             for (int i = 0; i < MEMs.Length; i++)
             {
                 var entry = MEMs[i];
+                ArgumentNullException.ThrowIfNull(entry.pb, nameof(entry.pb));
                 ArgumentOutOfRangeException.ThrowIfNotEqual(entry.pb.Length, 0x1000, nameof(entry.pb));
                 var pMEM = ppMEMs[i];
                 var pMEM_pb = new Span<byte>(pMEM->pb.ToPointer(), 0x1000);
