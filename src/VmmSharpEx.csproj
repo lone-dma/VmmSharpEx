@@ -39,7 +39,6 @@
 		<PackageReadmeFile>README.md</PackageReadmeFile>
 		<PackageId>VmmSharpEx</PackageId>
 		<IncludeContentInPack>true</IncludeContentInPack>
-		<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
 		<Description>Custom Vmmsharp fork targeting bleeding edge .NET Core for Windows x64</Description>
 		<PackageIcon>logo.png</PackageIcon>
 		<GenerateDocumentationFile>true</GenerateDocumentationFile>
