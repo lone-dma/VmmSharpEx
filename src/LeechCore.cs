@@ -550,7 +550,7 @@ namespace VmmSharpEx
         /// Write multiple page-sized physical memory ranges. The write is best-effort and may fail. It's recommended to verify the writes with subsequent reads.
         /// </summary>
         /// <param name="MEMs">MEMs containing the memory addresses and data to write.</param>
-        public unsafe void WriteScatter(ref MemScatter[] MEMs)
+        public unsafe void WriteScatter(MemScatter[] MEMs)
         {
             _parent?.ThrowIfMemWritesDisabled();
             if (!Lci.LcAllocScatter1((uint)MEMs.Length, out var pppMEMs))
