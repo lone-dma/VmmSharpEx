@@ -23,9 +23,9 @@
 		<PackageId>VmmSharpEx</PackageId>
 		<Product>VmmSharpEx</Product>
 		<AssemblyTitle>MemProcFS : C# API (Custom)</AssemblyTitle>
-		<Author>Unseen</Author>
+		<Authors>Unseen</Authors>
 		<Copyright>©2025 AGPL-3.0</Copyright>
-		<Description>Custom Vmmsharp fork targeting bleeding edge .NET Core for Windows x64</Description>
+		<Description>Custom Vmmsharp fork targeting bleeding edge .NET Core for Windows x64.</Description>
 		<!-- Auto Versioning -->
 		<Version>2.0.$([System.Convert]::ToInt32($([System.DateTime]::UtcNow.Subtract($([System.DateTime]::Parse('2000-01-01'))).TotalDays))).$([System.DateTime]::UtcNow.TimeOfDay.TotalMinutes.ToString("0"))</Version>
 		<AssemblyVersion>$(Version)</AssemblyVersion>
