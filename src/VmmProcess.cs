@@ -1,6 +1,5 @@
 ﻿using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using System.Security.Cryptography;
 using System.Text;
 using VmmSharpEx.Internal;
 
@@ -81,7 +80,7 @@ namespace VmmSharpEx
         /// Initialize a Scatter Memory Read handle used to read multiple virtual memory regions in a single call.
         /// </summary>
         /// <param name="flags">Vmm Flags.</param>
-        /// <returns>A VmmScatterMemory handle.</returns>
+        /// <returns>A VmmScatterMemory handle. NULL if failed.</returns>
         public VmmScatter Scatter_Initialize(uint flags = 0)
         {
             var hS = Vmmi.VMMDLL_Scatter_Initialize(_vmm, this.PID, flags);
@@ -212,8 +211,10 @@ namespace VmmSharpEx
         public unsafe string MemReadString(Encoding encoding, ulong va, uint cb,
             uint flags = 0, bool terminateOnNullChar = true)
         {
-            byte[] buffer = MemRead(va, cb, flags);
-            if (buffer is null)
+            Span<byte> buffer = cb <= 256 ? 
+                stackalloc byte[(int)cb] : new byte[cb];
+            if (!MemReadSpan(va, buffer, out uint cbRead, flags) ||
+                cbRead != cb)
                 return null;
             var result = encoding.GetString(buffer);
             if (terminateOnNullChar)
@@ -232,11 +233,9 @@ namespace VmmSharpEx
         /// <returns></returns>
         public unsafe bool MemPrefetchPages(ulong[] va)
         {
-            byte[] data = new byte[va.Length * sizeof(ulong)];
-            System.Buffer.BlockCopy(va, 0, data, 0, data.Length);
-            fixed (byte* pb = data)
+            fixed (void* pb = va)
             {
-                return Vmmi.VMMDLL_MemPrefetchPages(_vmm, this.PID, pb, (uint)va.Length);
+                return Vmmi.VMMDLL_MemPrefetchPages(_vmm, this.PID, (byte*)pb, (uint)va.Length);
             }
         }
 
