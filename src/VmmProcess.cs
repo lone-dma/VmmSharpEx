@@ -92,6 +92,7 @@ namespace VmmSharpEx
 
         /// <summary>
         /// Read Memory from a Virtual Address into a managed byte-array.
+        /// WARNING: This incurs a heap allocation for the array. Recommend using MemReadSpan instead.
         /// </summary>
         /// <param name="va">Virtual Address to read from.</param>
         /// <param name="cb">Count of bytes to read.</param>
@@ -151,6 +152,7 @@ namespace VmmSharpEx
 
         /// <summary>
         /// Read Memory from a Virtual Address into an Array of Type <typeparamref name="T"/>.
+        /// WARNING: This incurs a heap allocation for the array. Recommend using MemReadSpan instead.
         /// </summary>
         /// <typeparam name="T">Value Type.</typeparam>
         /// <param name="va">Virtual Address to read from.</param>
@@ -195,24 +197,6 @@ namespace VmmSharpEx
             fixed (T* pb = span)
             {
                 return Vmmi.VMMDLL_MemReadEx(_vmm, this.PID, va, (byte*)pb, cb, out cbRead, flags);
-            }
-        }
-
-        /// <summary>
-        /// Write memory from a Span of <typeparamref name="T"/> to a specified memory address.
-        /// </summary>
-        /// <typeparam name="T">Value Type</typeparam>
-        /// <param name="va">Memory address to write to.</param>
-        /// <param name="span">Span to write from.</param>
-        /// <returns>True if successful, otherwise False.</returns>
-        public unsafe bool MemWriteSpan<T>(ulong va, Span<T> span)
-            where T : unmanaged
-        {
-            _vmm.ThrowIfMemWritesDisabled();
-            uint cb = (uint)(sizeof(T) * span.Length);
-            fixed (T* pb = span)
-            {
-                return Vmmi.VMMDLL_MemWrite(_vmm, this.PID, va, (byte*)pb, cb);
             }
         }
 
@@ -319,6 +303,24 @@ namespace VmmSharpEx
             _vmm.ThrowIfMemWritesDisabled();
             uint cb = (uint)sizeof(T) * (uint)data.Length;
             fixed (T* pb = data)
+            {
+                return Vmmi.VMMDLL_MemWrite(_vmm, this.PID, va, (byte*)pb, cb);
+            }
+        }
+
+        /// <summary>
+        /// Write memory from a Span of <typeparamref name="T"/> to a specified memory address.
+        /// </summary>
+        /// <typeparam name="T">Value Type</typeparam>
+        /// <param name="va">Memory address to write to.</param>
+        /// <param name="span">Span to write from.</param>
+        /// <returns>True if successful, otherwise False.</returns>
+        public unsafe bool MemWriteSpan<T>(ulong va, Span<T> span)
+            where T : unmanaged
+        {
+            _vmm.ThrowIfMemWritesDisabled();
+            uint cb = (uint)(sizeof(T) * span.Length);
+            fixed (T* pb = span)
             {
                 return Vmmi.VMMDLL_MemWrite(_vmm, this.PID, va, (byte*)pb, cb);
             }
