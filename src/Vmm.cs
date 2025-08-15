@@ -303,7 +303,6 @@ namespace VmmSharpEx
 
         #endregion
 
-
         #region VFS (Virtual File System) functionality
 
         //---------------------------------------------------------------------
@@ -477,7 +476,6 @@ namespace VmmSharpEx
 
         #endregion
 
-
         #region Process functionality
 
         //---------------------------------------------------------------------
@@ -545,7 +543,6 @@ namespace VmmSharpEx
         }
 
         #endregion
-
 
         #region Registry functionality
 
@@ -728,7 +725,6 @@ namespace VmmSharpEx
             }
         }
         #endregion // Registry functionality
-
 
         #region Map functionality
 
