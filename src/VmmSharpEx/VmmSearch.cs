@@ -7,26 +7,35 @@ namespace VmmSharpEx;
 /// <summary>
 /// VmmSearch represents a binary search in memory.
 /// </summary>
-public unsafe sealed class VmmSearch : IDisposable // ToDo: Refactor further
+public unsafe sealed class VmmSearch : IDisposable
 {
-    #region Base Functionality
-
     private readonly ConcurrentBag<Vmmi.VMMDLL_MEM_SEARCH_CONTEXT_SEARCHENTRY> _searches = new();
+    private readonly SearchResultsContainer _managed = new();
     private readonly Thread _thread;
     private readonly Vmm _vmm;
     private readonly uint _pid;
     private readonly Vmmi.SearchResultCallback _searchResultCallback; // Root the delegate to prevent it from being garbage collected.
     private readonly Vmmi.VMMDLL_MEM_SEARCH_CONTEXT* _native;
-
-    private SearchResultsContainer _managed;
+    private bool _started;
     private bool _disposed;
 
-    public bool Disposed => _disposed;
-
-    private VmmSearch()
+    /// <summary>
+    /// Get the result of the search: Blocking / wait until finish.
+    /// </summary>
+    /// <returns></returns>
+    public SearchResultsContainer Result
     {
-        ;
+        get
+        {
+            ObjectDisposedException.ThrowIf(_disposed, "Object disposed.");
+            if (!_started)
+                Start();
+            _thread.Join();
+            return Poll();
+        }
     }
+
+    private VmmSearch() { }
 
     internal VmmSearch(Vmm vmm, uint pid, ulong addr_min = 0, ulong addr_max = ulong.MaxValue, uint cMaxResult = 0, uint readFlags = 0)
     {
@@ -38,12 +47,8 @@ public unsafe sealed class VmmSearch : IDisposable // ToDo: Refactor further
         };
         _vmm = vmm;
         _pid = pid;
-        _managed = new SearchResultsContainer
-        {
-            AddrMin = addr_min,
-            AddrMax = addr_max,
-            Results = new()
-        };
+        _managed.AddrMin = addr_min;
+        _managed.AddrMax = addr_max;
         _native = (Vmmi.VMMDLL_MEM_SEARCH_CONTEXT*)NativeMemory.Alloc((nuint)sizeof(Vmmi.VMMDLL_MEM_SEARCH_CONTEXT) + 8);
         _searchResultCallback = SearchResultCallback;
         *_native = new Vmmi.VMMDLL_MEM_SEARCH_CONTEXT
@@ -77,111 +82,64 @@ public unsafe sealed class VmmSearch : IDisposable // ToDo: Refactor further
     {
         if (Interlocked.Exchange(ref _disposed, true) == false)
         {
-            _native->fAbortRequested = 1; // Abort the search if it is still running.
-            while (_thread.IsAlive)
-                Thread.SpinWait(10); // Wait for the thread to finish.
-            NativeMemory.Free(_native);
+            if (!_thread.IsAlive)
+            {
+                NativeMemory.Free(_native);
+            }
+            else // Abort the search if it is still running -> don't block though
+            {
+                _native->fAbortRequested = 1;
+                Task.Run(() =>
+                {
+                    while (_thread.IsAlive)
+                        Thread.Sleep(0);
+                    NativeMemory.Free(_native);
+                });
+            }
         }
     }
 
-    #endregion // Base Functionality
-
-    #region Specific Functionality
-
     /// <summary>
-    /// Struct with info about the search results. Find the actual results in the result field.
+    /// Add an entry to the search. Must be done before search is started, or no effect will take place.
     /// </summary>
-    public struct SearchResultsContainer
+    /// <param name="search">Search filter (max 32 bytes). Excess will be truncated.</param>
+    /// <param name="skipmask">Skip mask (max 32 bytes). Excess will be truncated.</param>
+    /// <param name="align">Alignment</param>
+    /// <returns>TRUE if added OK otherwise FALSE.</returns>
+    public unsafe void AddEntry(byte[] search, byte[] skipmask = null, uint align = 1)
     {
-        /// Indicates that the search has been started. i.e. start() or result() have been called.
-        public bool IsStarted;
-
-        /// Indicates that the search has been completed.
-        public bool IsCompleted;
-
-        /// If isCompletedSuccess is true this indicates if the search was completed successfully.
-        public bool IsCompletedSuccess;
-
-        /// Address to start searching from - default 0.
-        public ulong AddrMin;
-
-        /// Address to stop searching at - default MAXUINT64.
-        public ulong AddrMax;
-
-        /// Current address being searched in search thread.
-        public ulong AddrCurrent;
-
-        /// Number of bytes that have been procssed in search.
-        public ulong TotalReadBytes;
-
-        /// The actual results.
-        public ConcurrentBag<SearchResultEntry> Results;
-    }
-
-    /// <summary>
-    /// Struct with info about a single search result. Address, search term id.
-    /// </summary>
-    public readonly struct SearchResultEntry
-    {
-        public readonly ulong Address { get; init; }
-        public readonly ulong SearchTermId { get; init; }
-    }
-
-    /// <summary>
-    /// Add a search term to the search. Should be done before search is started.
-    /// </summary>
-    /// <param name="search"></param>
-    /// <param name="skipmask"></param>
-    /// <param name="align"></param>
-    /// <returns></returns>
-    public unsafe uint AddSearch(byte[] search, byte[] skipmask = null, uint align = 1)
-    {
-        ObjectDisposedException.ThrowIf(Disposed, "Object disposed.");
-        if (_managed.IsStarted) 
-            return uint.MaxValue;
-        if (search.Length == 0 || search.Length > 32) 
-            return uint.MaxValue;
-        if (skipmask != null && skipmask.Length != search.Length) 
-            return uint.MaxValue;
+        const int maxLength = 32;
+        ObjectDisposedException.ThrowIf(_disposed, "Object disposed.");
         var e = new Vmmi.VMMDLL_MEM_SEARCH_CONTEXT_SEARCHENTRY
         {
             cbAlign = align,
             cb = (uint)search.Length
         };
-        var pbSearch = new Span<byte>(e.pb, 32);
-        search.CopyTo(pbSearch);
-        if (skipmask is not null)
+        var pbSearch = new Span<byte>(e.pb, maxLength);
+        search.AsSpan(0, Math.Min(search.Length, maxLength)).CopyTo(pbSearch);
+        if (skipmask is not null && skipmask.Length > 0)
         {
-            var pbSkipMask = new Span<byte>(e.pbSkipMask, 32);
-            skipmask.CopyTo(pbSkipMask);
+            var pbSkipMask = new Span<byte>(e.pbSkipMask, maxLength);
+            skipmask.AsSpan(0, Math.Min(skipmask.Length, maxLength)).CopyTo(pbSkipMask);
         }
 
         _searches.Add(e);
-        return (uint)_searches.Count - 1;
-    }
-
-    private void Worker()
-    {
-        var searches = _searches.ToArray();
-        var hSearches = GCHandle.Alloc(searches, GCHandleType.Pinned);
-        _native->cSearch = (uint)searches.Length;
-        _native->search = hSearches.AddrOfPinnedObject();
-        bool fResult = Vmmi.VMMDLL_MemSearch(_vmm, _pid, _native, IntPtr.Zero, IntPtr.Zero);
-        hSearches.Free();
-        _managed.IsCompletedSuccess = fResult && _native->fAbortRequested == 0;
-        _managed.IsCompleted = true;
     }
 
     /// <summary>
+    /// Start the search. Non-blocking.
     /// </summary>
     public void Start()
     {
-        ObjectDisposedException.ThrowIf(Disposed, "Object disposed.");
-        if (_managed.IsStarted) 
+        ObjectDisposedException.ThrowIf(_disposed, "Object disposed.");
+        if (Interlocked.Exchange(ref _started, true) == true) // Ensure start is only called once.
             return;
-        if (_searches.IsEmpty) 
+        if (_searches.IsEmpty)
+        {
+            _managed.IsCompleted = true;
+            _managed.IsCompletedSuccess = false;
             return;
-        _managed.IsStarted = true;
+        }
         _thread.Start();
     }
 
@@ -190,11 +148,11 @@ public unsafe sealed class VmmSearch : IDisposable // ToDo: Refactor further
     /// </summary>
     public void Abort()
     {
-        ObjectDisposedException.ThrowIf(Disposed, "Object disposed.");
-        if (!_managed.IsStarted) 
-            return;
+        ObjectDisposedException.ThrowIf(_disposed, "Object disposed.");
+        _started = true;
         _native->fAbortRequested = 1;
-        _thread.Join();
+        if (_thread.IsAlive)
+            _thread.Join();
     }
 
     /// <summary>
@@ -203,8 +161,8 @@ public unsafe sealed class VmmSearch : IDisposable // ToDo: Refactor further
     /// <returns></returns>
     public SearchResultsContainer Poll()
     {
-        ObjectDisposedException.ThrowIf(Disposed, "Object disposed.");
-        if (!_managed.IsStarted) 
+        ObjectDisposedException.ThrowIf(_disposed, "Object disposed.");
+        if (!_started)
             Start();
         _managed.AddrCurrent = _native->vaCurrent;
         _managed.AddrMin = _native->vaMin;
@@ -213,17 +171,24 @@ public unsafe sealed class VmmSearch : IDisposable // ToDo: Refactor further
         return _managed;
     }
 
-    /// <summary>
-    /// Get the result of the search: Blocking / wait until finish.
-    /// </summary>
-    /// <returns></returns>
-    public SearchResultsContainer Result()
+    private void Worker()
     {
-        ObjectDisposedException.ThrowIf(Disposed, "Object disposed.");
-        if (!_managed.IsStarted) 
-            Start();
-        _thread.Join();
-        return Poll();
+        if (_disposed)
+            return;
+        var searches = _searches.ToArray();
+        var hSearches = GCHandle.Alloc(searches, GCHandleType.Pinned);
+        try
+        {
+            _native->cSearch = (uint)searches.Length;
+            _native->search = hSearches.AddrOfPinnedObject();
+            bool fResult = Vmmi.VMMDLL_MemSearch(_vmm, _pid, _native, IntPtr.Zero, IntPtr.Zero);
+            _managed.IsCompletedSuccess = fResult && _native->fAbortRequested == 0;
+            _managed.IsCompleted = true;
+        }
+        finally
+        {
+            hSearches.Free();
+        }
     }
 
     private bool SearchResultCallback(Vmmi.VMMDLL_MEM_SEARCH_CONTEXT ctx, ulong va, uint iSearch)
@@ -237,5 +202,53 @@ public unsafe sealed class VmmSearch : IDisposable // ToDo: Refactor further
         return true;
     }
 
-    #endregion // Specific Functionality
+    /// <summary>
+    /// Class with info about the search results. Find the actual results in the result field.
+    /// </summary>
+    public sealed class SearchResultsContainer
+    {
+        /// <summary>
+        /// Indicates that the search has been completed.
+        /// </summary>
+        public bool IsCompleted { get; set; }
+
+        /// <summary>
+        /// If isCompletedSuccess is true this indicates if the search was completed successfully.
+        /// </summary>
+        public bool IsCompletedSuccess { get; set; }
+
+        /// <summary>
+        /// Address to start searching from - default 0.
+        /// </summary>
+        public ulong AddrMin { get; set; }
+
+        /// <summary>
+        /// Address to stop searching at - default MAXUINT64.
+        /// </summary>
+        public ulong AddrMax { get; set; }
+
+        /// <summary>
+        /// Current address being searched in search thread.
+        /// </summary>
+        public ulong AddrCurrent { get; set; }
+
+        /// <summary>
+        /// Number of bytes that have been procssed in search.
+        /// </summary>
+        public ulong TotalReadBytes { get; set; }
+
+        /// <summary>
+        /// The actual results.
+        /// </summary>
+        public ConcurrentBag<SearchResultEntry> Results { get; } = new();
+    }
+
+    /// <summary>
+    /// Struct with info about a single search result. Address, search term id.
+    /// </summary>
+    public readonly struct SearchResultEntry
+    {
+        public readonly ulong Address { get; init; }
+        public readonly ulong SearchTermId { get; init; }
+    }
 }

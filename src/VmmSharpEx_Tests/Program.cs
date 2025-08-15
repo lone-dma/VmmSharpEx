@@ -18,6 +18,10 @@ namespace VmmSharpEx_Tests
             };
             _vmm = new Vmm(args);
             var proc = _vmm.CreateProcess("explorer.exe");
+            using var search = proc.CreateSearch();
+            search.AddEntry(new byte[] { 0x00, 0x00, 0x01, 0x00, 0x01 });
+            var result = search.Result;
+            Console.WriteLine($"Found {result.Results.Count} results.");
         }
     }
 }
