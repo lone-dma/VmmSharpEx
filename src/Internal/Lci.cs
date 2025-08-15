@@ -19,7 +19,7 @@ namespace VmmSharpEx.Internal
         internal struct LC_MEM_SCATTER
         {
             private readonly uint version;
-            internal int f;
+            internal int f; // BOOL
             internal ulong qwA;
             internal readonly IntPtr pb;
             private readonly uint cb;
