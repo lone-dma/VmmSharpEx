@@ -1,5 +1,6 @@
 <Project>
 	<PropertyGroup>
+		<NoWarn>$(NoWarn);IDE0160</NoWarn>
 		<NoWarn>$(NoWarn);CS1591</NoWarn>
 		<NoWarn>$(NoWarn);CS0649</NoWarn>
 		<NoWarn>$(NoWarn);IDE0290</NoWarn>
