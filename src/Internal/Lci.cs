@@ -5,23 +5,23 @@ namespace VmmSharpEx.Internal
     internal static partial class Lci
     {
         [StructLayout(LayoutKind.Sequential)]
-        internal struct LC_CONFIG_ERRORINFO
+        public struct LC_CONFIG_ERRORINFO
         {
-            internal uint dwVersion;
-            internal uint cbStruct;
-            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 16)] internal uint[] _FutureUse;
-            internal bool fUserInputRequest;
-            internal uint cwszUserText;
+            public uint dwVersion;
+            public uint cbStruct;
+            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 16)] public uint[] _FutureUse;
+            public bool fUserInputRequest;
+            public uint cwszUserText;
             // szUserText
         }
 
         [StructLayout(LayoutKind.Sequential, Pack = 8)]
-        internal struct LC_MEM_SCATTER
+        public struct LC_MEM_SCATTER
         {
             private readonly uint version;
-            internal int f; // BOOL
-            internal ulong qwA;
-            internal readonly IntPtr pb;
+            public int f; // BOOL
+            public ulong qwA;
+            public readonly IntPtr pb;
             private readonly uint cb;
             private readonly uint iStack;
             private unsafe fixed ulong vStack[12];
@@ -39,28 +39,28 @@ namespace VmmSharpEx.Internal
 
 
         [LibraryImport("leechcore.dll", EntryPoint = "LcClose")]
-        internal static partial void LcClose(IntPtr hLC);
+        public static partial void LcClose(IntPtr hLC);
 
         [LibraryImport("leechcore.dll", EntryPoint = "LcMemFree")]
-        internal static unsafe partial void LcMemFree(IntPtr pv);
+        public static unsafe partial void LcMemFree(IntPtr pv);
 
         [LibraryImport("leechcore.dll", EntryPoint = "LcAllocScatter1")]
         [return: MarshalAs(UnmanagedType.Bool)]
-        internal static unsafe partial bool LcAllocScatter1(uint cMEMs, out IntPtr pppMEMs);
+        public static unsafe partial bool LcAllocScatter1(uint cMEMs, out IntPtr pppMEMs);
 
         [LibraryImport("leechcore.dll", EntryPoint = "LcRead")]
         [return: MarshalAs(UnmanagedType.Bool)]
-        internal static unsafe partial bool LcRead(IntPtr hLC, ulong pa, uint cb, byte* pb);
+        public static unsafe partial bool LcRead(IntPtr hLC, ulong pa, uint cb, byte* pb);
 
         [LibraryImport("leechcore.dll", EntryPoint = "LcReadScatter")]
-        internal static unsafe partial void LcReadScatter(IntPtr hLC, uint cMEMs, IntPtr ppMEMs);
+        public static unsafe partial void LcReadScatter(IntPtr hLC, uint cMEMs, IntPtr ppMEMs);
 
         [LibraryImport("leechcore.dll", EntryPoint = "LcWrite")]
         [return: MarshalAs(UnmanagedType.Bool)]
-        internal static unsafe partial bool LcWrite(IntPtr hLC, ulong pa, uint cb, byte* pb);
+        public static unsafe partial bool LcWrite(IntPtr hLC, ulong pa, uint cb, byte* pb);
 
         [LibraryImport("leechcore.dll", EntryPoint = "LcWriteScatter")]
-        internal static unsafe partial void LcWriteScatter(IntPtr hLC, uint cMEMs, IntPtr ppMEMs);
+        public static unsafe partial void LcWriteScatter(IntPtr hLC, uint cMEMs, IntPtr ppMEMs);
 
         [LibraryImport("leechcore.dll", EntryPoint = "LcGetOption")]
         [return: MarshalAs(UnmanagedType.Bool)]
@@ -72,6 +72,6 @@ namespace VmmSharpEx.Internal
 
         [LibraryImport("leechcore.dll", EntryPoint = "LcCommand")]
         [return: MarshalAs(UnmanagedType.Bool)]
-        internal static unsafe partial bool LcCommand(IntPtr hLC, ulong fOption, uint cbDataIn, byte* pbDataIn, out IntPtr ppbDataOut, out uint pcbDataOut);
+        public static unsafe partial bool LcCommand(IntPtr hLC, ulong fOption, uint cbDataIn, byte* pbDataIn, out IntPtr ppbDataOut, out uint pcbDataOut);
     }
 }
