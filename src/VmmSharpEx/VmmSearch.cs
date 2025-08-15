@@ -85,14 +85,17 @@ public unsafe sealed class VmmSearch : IDisposable
             if (!_thread.IsAlive)
             {
                 NativeMemory.Free(_native);
+                _native = null;
             }
-            else // Abort the search if it is still running
+            else
             {
-                _native->fAbortRequested = 1;
-                if (_thread.Join(TimeSpan.FromSeconds(1))) // Added timeout to prevent deadlock, but should never happen.
+                Task.Run(() => // Ensure Cleanup in the background
+                {
+                    _thread.Join();
                     NativeMemory.Free(_native);
+                    _native = null;
+                });
             }
-            _native = null;
         }
     }
 
@@ -141,7 +144,7 @@ public unsafe sealed class VmmSearch : IDisposable
     }
 
     /// <summary>
-    /// Abort the search. Blocking / wait until abort is complete.
+    /// Abort the search (Non-Blocking).
     /// </summary>
     public void Abort() => Dispose();
 
