@@ -52,7 +52,7 @@ public sealed class VmmProcess
     #region Memory Read/Write
 
     /// <summary>
-    /// Perform a scatter read of multiple page-sized physical memory ranges.
+    /// Perform a scatter read of multiple page-sized virtual memory ranges.
     /// Does not copy the read memory to a managed byte buffer, but instead allows direct access to the native memory via a
     /// Span view.
     /// </summary>
