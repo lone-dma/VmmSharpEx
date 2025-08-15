@@ -7,7 +7,7 @@ using VmmSharpEx.Refresh;
 namespace VmmSharpEx;
 
 /// <summary>
-///     MemProcFS public API
+/// MemProcFS public API
 /// </summary>
 public sealed class Vmm : IDisposable
 {
@@ -21,16 +21,16 @@ public sealed class Vmm : IDisposable
     private IntPtr _h;
 
     /// <summary>
-    ///     Underlying LeechCore handle.
+    /// Underlying LeechCore handle.
     /// </summary>
     public LeechCore LeechCore { get; }
 
     private readonly bool _enableMemoryWriting = true;
 
     /// <summary>
-    ///     Set to FALSE if you would like to disable all Memory Writing in this High Level API.
-    ///     Attempts to Write Memory will throw a VmmException.
-    ///     This setting is immutable after initialization.
+    /// Set to FALSE if you would like to disable all Memory Writing in this High Level API.
+    /// Attempts to Write Memory will throw a VmmException.
+    /// This setting is immutable after initialization.
     /// </summary>
     public bool EnableMemoryWriting
     {
@@ -44,7 +44,7 @@ public sealed class Vmm : IDisposable
     }
 
     /// <summary>
-    ///     ToString() override.
+    /// ToString() override.
     /// </summary>
     /// <returns></returns>
     public override string ToString()
@@ -53,7 +53,7 @@ public sealed class Vmm : IDisposable
     }
 
     /// <summary>
-    ///     Internal initialization factory method.
+    /// Internal initialization factory method.
     /// </summary>
     private static IntPtr Create(out LeechCore.LCConfigErrorInfo configErrorInfo, params string[] args)
     {
@@ -78,15 +78,15 @@ public sealed class Vmm : IDisposable
     }
 
     /// <summary>
-    ///     Private zero-argument constructor to prevent instantiation.
+    /// Private zero-argument constructor to prevent instantiation.
     /// </summary>
     private Vmm()
     {
     }
 
     /// <summary>
-    ///     Initialize a new Vmm instance with command line arguments.
-    ///     Also retrieve the extended error information (if there is an error).
+    /// Initialize a new Vmm instance with command line arguments.
+    /// Also retrieve the extended error information (if there is an error).
     /// </summary>
     /// <param name="configErrorInfo">Error information in case of an error.</param>
     /// <param name="args">MemProcFS/Vmm command line arguments.</param>
@@ -98,7 +98,7 @@ public sealed class Vmm : IDisposable
     }
 
     /// <summary>
-    ///     Initialize a new Vmm instance with command line arguments.
+    /// Initialize a new Vmm instance with command line arguments.
     /// </summary>
     /// <param name="args">MemProcFS/Vmm command line arguments.</param>
     public Vmm(params string[] args)
@@ -107,8 +107,8 @@ public sealed class Vmm : IDisposable
     }
 
     /// <summary>
-    ///     Manually initialize plugins.
-    ///     By default plugins are not initialized during Vmm Init.
+    /// Manually initialize plugins.
+    /// By default plugins are not initialized during Vmm Init.
     /// </summary>
     public void InitializePlugins()
     {
@@ -141,7 +141,7 @@ public sealed class Vmm : IDisposable
     }
 
     /// <summary>
-    ///     Close all Vmm instances in the native layer.
+    /// Close all Vmm instances in the native layer.
     /// </summary>
     public static void CloseAll()
     {
@@ -220,7 +220,7 @@ public sealed class Vmm : IDisposable
     //---------------------------------------------------------------------
 
     /// <summary>
-    ///     Get a configuration option given by a Vmm.CONFIG_* constant.
+    /// Get a configuration option given by a Vmm.CONFIG_* constant.
     /// </summary>
     /// <param name="fOption">The a Vmm.CONFIG_* option to get.</param>
     /// <returns>The config value retrieved on success. NULL on fail.</returns>
@@ -232,7 +232,7 @@ public sealed class Vmm : IDisposable
     }
 
     /// <summary>
-    ///     Set a configuration option given by a Vmm.CONFIG_* constant.
+    /// Set a configuration option given by a Vmm.CONFIG_* constant.
     /// </summary>
     /// <param name="fOption">The Vmm.CONFIG_* option to set.</param>
     /// <param name="qwValue">The value to set.</param>
@@ -243,7 +243,7 @@ public sealed class Vmm : IDisposable
     }
 
     /// <summary>
-    ///     Perform Common Memory Map Setup.
+    /// Perform Common Memory Map Setup.
     /// </summary>
     /// <param name="strMap">Memory map result in String Format.</param>
     /// <param name="applyMap">(Optional) True if you would like to apply the Memory Map to the current Vmm/LeechCore instance.</param>
@@ -323,7 +323,7 @@ public sealed class Vmm : IDisposable
     }
 
     /// <summary>
-    ///     VFS list callback function for adding files.
+    /// VFS list callback function for adding files.
     /// </summary>
     /// <param name="ctx"></param>
     /// <param name="name"></param>
@@ -334,7 +334,7 @@ public sealed class Vmm : IDisposable
     public delegate bool VfsCallBack_AddFile(ulong ctx, [MarshalAs(UnmanagedType.LPUTF8Str)] string name, ulong cb, IntPtr pExInfo);
 
     /// <summary>
-    ///     VFS list callback function for adding directories.
+    /// VFS list callback function for adding directories.
     /// </summary>
     /// <param name="ctx"></param>
     /// <param name="name"></param>
@@ -374,7 +374,7 @@ public sealed class Vmm : IDisposable
     }
 
     /// <summary>
-    ///     VFS list files and directories in a virtual file system path using callback functions.
+    /// VFS list files and directories in a virtual file system path using callback functions.
     /// </summary>
     /// <param name="path"></param>
     /// <param name="ctx">A user-supplied context which will be passed on to the callback functions.</param>
@@ -393,7 +393,7 @@ public sealed class Vmm : IDisposable
     }
 
     /// <summary>
-    ///     VFS list files and directories in a virtual file system path.
+    /// VFS list files and directories in a virtual file system path.
     /// </summary>
     /// <param name="path"></param>
     /// <returns>A list with file and directory entries on success. An empty list on fail.</returns>
@@ -407,7 +407,7 @@ public sealed class Vmm : IDisposable
     }
 
     /// <summary>
-    ///     VFS read data from a virtual file.
+    /// VFS read data from a virtual file.
     /// </summary>
     /// <param name="fileName"></param>
     /// <param name="ntStatus">The NTSTATUS value of the operation (success = 0).</param>
@@ -429,7 +429,7 @@ public sealed class Vmm : IDisposable
     }
 
     /// <summary>
-    ///     VFS read data from a virtual file.
+    /// VFS read data from a virtual file.
     /// </summary>
     /// <param name="fileName"></param>
     /// <param name="size"></param>
@@ -441,7 +441,7 @@ public sealed class Vmm : IDisposable
     }
 
     /// <summary>
-    ///     VFS write data to a virtual file.
+    /// VFS write data to a virtual file.
     /// </summary>
     /// <param name="fileName"></param>
     /// <param name="data"></param>
@@ -466,8 +466,8 @@ public sealed class Vmm : IDisposable
     //---------------------------------------------------------------------
 
     /// <summary>
-    ///     Lookup a process by its name.
-    ///     Validation is also performed to ensure the process is valid.
+    /// Lookup a process by its name.
+    /// Validation is also performed to ensure the process is valid.
     /// </summary>
     /// <param name="sProcName">Process name to get.</param>
     /// <returns>A VmmProcess if successful, if unsuccessful null.</returns>
@@ -478,8 +478,8 @@ public sealed class Vmm : IDisposable
     }
 
     /// <summary>
-    ///     Lookup a Process by its Process ID.
-    ///     Validation is also performed to ensure the process is valid.
+    /// Lookup a Process by its Process ID.
+    /// Validation is also performed to ensure the process is valid.
     /// </summary>
     /// <param name="pid">Process ID to get.</param>
     /// <returns>A VmmProcess if successful, if unsuccessful null.</returns>
@@ -492,13 +492,13 @@ public sealed class Vmm : IDisposable
     }
 
     /// <summary>
-    ///     Returns All Processes on the Target System.
+    /// Returns All Processes on the Target System.
     /// </summary>
     public VmmProcess[] Processes =>
         PIDs.Select(pid => new VmmProcess(this, pid)).ToArray();
 
     /// <summary>
-    ///     Returns All Process IDs on the Target System.
+    /// Returns All Process IDs on the Target System.
     /// </summary>
     public unsafe uint[] PIDs
     {
@@ -558,7 +558,7 @@ public sealed class Vmm : IDisposable
     }
 
     /// <summary>
-    ///     List the registry hives.
+    /// List the registry hives.
     /// </summary>
     /// <returns></returns>
     public unsafe RegHiveEntry[] RegHiveList()
@@ -592,7 +592,7 @@ public sealed class Vmm : IDisposable
     }
 
     /// <summary>
-    ///     Read from a registry hive.
+    /// Read from a registry hive.
     /// </summary>
     /// <param name="vaCMHIVE">The virtual address of the registry hive.</param>
     /// <param name="ra">The hive registry address (ra).</param>
@@ -613,7 +613,7 @@ public sealed class Vmm : IDisposable
     }
 
     /// <summary>
-    ///     Write to a registry hive. NB! This is a very dangerous operation and is not recommended!
+    /// Write to a registry hive. NB! This is a very dangerous operation and is not recommended!
     /// </summary>
     /// <param name="vaCMHIVE">>The virtual address of the registry hive.</param>
     /// <param name="ra">The hive registry address (ra).</param>
@@ -629,7 +629,7 @@ public sealed class Vmm : IDisposable
     }
 
     /// <summary>
-    ///     Enumerate a registry key for subkeys and values.
+    /// Enumerate a registry key for subkeys and values.
     /// </summary>
     /// <param name="sKeyFullPath"></param>
     /// <returns></returns>
@@ -678,7 +678,7 @@ public sealed class Vmm : IDisposable
     }
 
     /// <summary>
-    ///     Read a registry value.
+    /// Read a registry value.
     /// </summary>
     /// <param name="sValueFullPath"></param>
     /// <param name="tp"></param>
@@ -902,7 +902,7 @@ public sealed class Vmm : IDisposable
     }
 
     /// <summary>
-    ///     Retrieve the physical memory map.
+    /// Retrieve the physical memory map.
     /// </summary>
     /// <returns>An array of MemoryEntry elements.</returns>
     public unsafe MemoryEntry[] MapMemory()
@@ -929,7 +929,7 @@ public sealed class Vmm : IDisposable
     }
 
     /// <summary>
-    ///     Retrieve the kernel devices on the system.
+    /// Retrieve the kernel devices on the system.
     /// </summary>
     /// <returns>An array of KDeviceEntry elements.</returns>
     public unsafe KDeviceEntry[] MapKDevice()
@@ -962,7 +962,7 @@ public sealed class Vmm : IDisposable
     }
 
     /// <summary>
-    ///     Retrieve the kernel drivers on the system.
+    /// Retrieve the kernel drivers on the system.
     /// </summary>
     /// <returns>An array of KDriverEntry elements.</returns>
     public unsafe KDriverEntry[] MapKDriver()
@@ -996,7 +996,7 @@ public sealed class Vmm : IDisposable
     }
 
     /// <summary>
-    ///     Retrieve the kernel named objects on the system.
+    /// Retrieve the kernel named objects on the system.
     /// </summary>
     /// <returns>An array of KObjectEntry elements.</returns>
     public unsafe KObjectEntry[] MapKObject()
@@ -1027,11 +1027,11 @@ public sealed class Vmm : IDisposable
     }
 
     /// <summary>
-    ///     Retrieve entries from the kernel pool.
+    /// Retrieve entries from the kernel pool.
     /// </summary>
     /// <param name="isBigPoolOnly">
-    ///     Set to true to only retrieve big pool allocations (= faster). Default is to retrieve all
-    ///     allocations.
+    /// Set to true to only retrieve big pool allocations (= faster). Default is to retrieve all
+    /// allocations.
     /// </param>
     /// <returns>An array of PoolEntry elements.</returns>
     public unsafe PoolEntry[] MapPool(bool isBigPoolOnly = false)
@@ -1069,7 +1069,7 @@ public sealed class Vmm : IDisposable
     }
 
     /// <summary>
-    ///     Retrieve the detected users on the system.
+    /// Retrieve the detected users on the system.
     /// </summary>
     /// <returns>An array of UserEntry elements.</returns>
     public unsafe UserEntry[] MapUser()
@@ -1097,8 +1097,8 @@ public sealed class Vmm : IDisposable
     }
 
     /// <summary>
-    ///     Retrieve the detected virtual machines on the system. This includes Hyper-V, WSL and other virtual machines running
-    ///     on top of the Windows Hypervisor Platform.
+    /// Retrieve the detected virtual machines on the system. This includes Hyper-V, WSL and other virtual machines running
+    /// on top of the Windows Hypervisor Platform.
     /// </summary>
     /// <returns>An array of VirtualMachineEntry elements.</returns>
     public unsafe VirtualMachineEntry[] MapVirtualMachine()
@@ -1135,7 +1135,7 @@ public sealed class Vmm : IDisposable
     }
 
     /// <summary>
-    ///     Retrieve the services on the system.
+    /// Retrieve the services on the system.
     /// </summary>
     /// <returns>An array of ServiceEntry elements.</returns>
     public unsafe ServiceEntry[] MapService()
@@ -1177,7 +1177,7 @@ public sealed class Vmm : IDisposable
     }
 
     /// <summary>
-    ///     Retrieve the PFN entries for the specified PFNs.
+    /// Retrieve the PFN entries for the specified PFNs.
     /// </summary>
     /// <param name="pfns">the pfn numbers of the pfns to retrieve.</param>
     /// <returns></returns>
@@ -1237,7 +1237,7 @@ public sealed class Vmm : IDisposable
     #region Utility functionality
 
     /// <summary>
-    ///     Convert a byte array to a hexdump formatted string. (static method).
+    /// Convert a byte array to a hexdump formatted string. (static method).
     /// </summary>
     /// <param name="pbData">The data to convert.</param>
     /// <param name="initialOffset">The iniital offset (default = 0).</param>
@@ -1262,7 +1262,7 @@ public sealed class Vmm : IDisposable
 
 
     /// <summary>
-    ///     Enum used to specify the log level.
+    /// Enum used to specify the log level.
     /// </summary>
     public enum LogLevel
     {
@@ -1275,7 +1275,7 @@ public sealed class Vmm : IDisposable
     }
 
     /// <summary>
-    ///     Log a string to the VMM log.
+    /// Log a string to the VMM log.
     /// </summary>
     /// <param name="message">The message to log.</param>
     /// <param name="logLevel">The log level (default INFO).</param>
@@ -1288,13 +1288,13 @@ public sealed class Vmm : IDisposable
     private VmmKernel _kernel;
 
     /// <summary>
-    ///     VmmKernel convenience object.
+    /// VmmKernel convenience object.
     /// </summary>
     /// <returns>The VmmKernel object.</returns>
     public VmmKernel Kernel => _kernel ??= new VmmKernel(this);
 
     /// <summary>
-    ///     Throw an exception if memory writing is disabled.
+    /// Throw an exception if memory writing is disabled.
     /// </summary>
     /// <exception cref="VmmException">Memory writing is disabled.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -1309,7 +1309,7 @@ public sealed class Vmm : IDisposable
     #region Custom Refresh Functionality
 
     /// <summary>
-    ///     Force a 'Full' Vmm Refresh.
+    /// Force a 'Full' Vmm Refresh.
     /// </summary>
     public void ForceFullRefresh()
     {
@@ -1318,9 +1318,9 @@ public sealed class Vmm : IDisposable
     }
 
     /// <summary>
-    ///     Registers an Auto Refresher with a specified interval.
-    ///     This is potentially useful if you initialized with -norefresh, and want to control refreshing more closely.
-    ///     Minimum interval resolution ~10-15ms.
+    /// Registers an Auto Refresher with a specified interval.
+    /// This is potentially useful if you initialized with -norefresh, and want to control refreshing more closely.
+    /// Minimum interval resolution ~10-15ms.
     /// </summary>
     /// <param name="option">Vmm Refresh Option</param>
     /// <param name="interval">Interval in which to fire a refresh operation.</param>
@@ -1330,7 +1330,7 @@ public sealed class Vmm : IDisposable
     }
 
     /// <summary>
-    ///     Unregisters an Auto Refresher.
+    /// Unregisters an Auto Refresher.
     /// </summary>
     /// <param name="option">Option to unregister.</param>
     public void UnregisterAutoRefresh(RefreshOptions option)

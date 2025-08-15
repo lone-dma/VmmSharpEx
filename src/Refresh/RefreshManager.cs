@@ -3,14 +3,14 @@
 namespace VmmSharpEx.Refresh;
 
 /// <summary>
-///     Controls the registration and management of refreshers for Vmm instances.
+/// Controls the registration and management of refreshers for Vmm instances.
 /// </summary>
 internal static class RefreshManager
 {
     private static readonly ConcurrentDictionary<Vmm, ConcurrentDictionary<RefreshOptions, VmmRefresher>> _refreshers = new();
 
     /// <summary>
-    ///     Register a refresher for the given Vmm instance and refresh option.
+    /// Register a refresher for the given Vmm instance and refresh option.
     /// </summary>
     /// <param name="instance"></param>
     /// <param name="option"></param>
@@ -26,7 +26,7 @@ internal static class RefreshManager
     }
 
     /// <summary>
-    ///     Unregister a refresher for the given Vmm instance and refresh option.
+    /// Unregister a refresher for the given Vmm instance and refresh option.
     /// </summary>
     /// <param name="instance"></param>
     /// <param name="option"></param>
@@ -36,8 +36,8 @@ internal static class RefreshManager
     }
 
     /// <summary>
-    ///     Unregister all refreshers for the given Vmm instance.
-    ///     Usually called when the parent Vmm instance is disposed or no longer needed.
+    /// Unregister all refreshers for the given Vmm instance.
+    /// Usually called when the parent Vmm instance is disposed or no longer needed.
     /// </summary>
     /// <param name="instance"></param>
     public static void UnregisterAll(Vmm instance)

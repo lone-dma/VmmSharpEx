@@ -1,7 +1,7 @@
 ﻿namespace VmmSharpEx;
 
 /// <summary>
-///     Thrown when an exception occurs within Vmmsharp (MemProcFS).
+/// Thrown when an exception occurs within Vmmsharp (MemProcFS).
 /// </summary>
 public sealed class VmmException : Exception
 {

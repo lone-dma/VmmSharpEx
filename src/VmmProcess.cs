@@ -6,7 +6,7 @@ using VmmSharpEx.Internal;
 namespace VmmSharpEx;
 
 /// <summary>
-///     VmmProcess represents a process in the system.
+/// VmmProcess represents a process in the system.
 /// </summary>
 public sealed class VmmProcess
 {
@@ -15,7 +15,7 @@ public sealed class VmmProcess
     private readonly Vmm _vmm;
 
     /// <summary>
-    ///     Process ID for this Process.
+    /// Process ID for this Process.
     /// </summary>
     public uint PID { get; }
 
@@ -24,8 +24,8 @@ public sealed class VmmProcess
     }
 
     /// <summary>
-    ///     Create a new VmmProcess object from a PID.
-    ///     WARNING: No validation is performed to ensure the process exists.
+    /// Create a new VmmProcess object from a PID.
+    /// WARNING: No validation is performed to ensure the process exists.
     /// </summary>
     /// <param name="vmm">Vmm instance.</param>
     /// <param name="pid">Process ID to wrap.</param>
@@ -37,7 +37,7 @@ public sealed class VmmProcess
     }
 
     /// <summary>
-    ///     ToString() override.
+    /// ToString() override.
     /// </summary>
     /// <returns></returns>
     public override string ToString()
@@ -50,9 +50,9 @@ public sealed class VmmProcess
     #region Memory Read/Write
 
     /// <summary>
-    ///     Perform a scatter read of multiple page-sized physical memory ranges.
-    ///     Does not copy the read memory to a managed byte buffer, but instead allows direct access to the native memory via a
-    ///     Span view.
+    /// Perform a scatter read of multiple page-sized physical memory ranges.
+    /// Does not copy the read memory to a managed byte buffer, but instead allows direct access to the native memory via a
+    /// Span view.
     /// </summary>
     /// <param name="flags">Vmm Flags.</param>
     /// <param name="va">Array of page-aligned Memory Addresses.</param>
@@ -82,7 +82,7 @@ public sealed class VmmProcess
     }
 
     /// <summary>
-    ///     Initialize a Scatter Memory Read handle used to read multiple virtual memory regions in a single call.
+    /// Initialize a Scatter Memory Read handle used to read multiple virtual memory regions in a single call.
     /// </summary>
     /// <param name="flags">Vmm Flags.</param>
     /// <returns>A VmmScatterMemory handle. NULL if failed.</returns>
@@ -95,8 +95,8 @@ public sealed class VmmProcess
     }
 
     /// <summary>
-    ///     Read Memory from a Virtual Address into a managed byte-array.
-    ///     WARNING: This incurs a heap allocation for the array. Recommend using MemReadSpan instead.
+    /// Read Memory from a Virtual Address into a managed byte-array.
+    /// WARNING: This incurs a heap allocation for the array. Recommend using MemReadSpan instead.
     /// </summary>
     /// <param name="va">Virtual Address to read from.</param>
     /// <param name="cb">Count of bytes to read.</param>
@@ -109,7 +109,7 @@ public sealed class VmmProcess
     }
 
     /// <summary>
-    ///     Read Memory from a Virtual Address into unmanaged memory.
+    /// Read Memory from a Virtual Address into unmanaged memory.
     /// </summary>
     /// <param name="va">Virtual Address to read from.</param>
     /// <param name="pb">Pointer to buffer to receive read.</param>
@@ -124,7 +124,7 @@ public sealed class VmmProcess
     }
 
     /// <summary>
-    ///     Read Memory from a Virtual Address into unmanaged memory.
+    /// Read Memory from a Virtual Address into unmanaged memory.
     /// </summary>
     /// <param name="va">Virtual Address to read from.</param>
     /// <param name="pb">Pointer to buffer to receive read.</param>
@@ -139,7 +139,7 @@ public sealed class VmmProcess
     }
 
     /// <summary>
-    ///     Read Memory from a Virtual Address into a ref struct of Type <typeparamref name="T" />.
+    /// Read Memory from a Virtual Address into a ref struct of Type <typeparamref name="T" />.
     /// </summary>
     /// <typeparam name="T">Struct/Ref Struct Type.</typeparam>
     /// <param name="va">Virtual Address to read from.</param>
@@ -159,8 +159,8 @@ public sealed class VmmProcess
     }
 
     /// <summary>
-    ///     Read Memory from a Virtual Address into an Array of Type <typeparamref name="T" />.
-    ///     WARNING: This incurs a heap allocation for the array. Recommend using MemReadSpan instead.
+    /// Read Memory from a Virtual Address into an Array of Type <typeparamref name="T" />.
+    /// WARNING: This incurs a heap allocation for the array. Recommend using MemReadSpan instead.
     /// </summary>
     /// <typeparam name="T">Value Type.</typeparam>
     /// <param name="va">Virtual Address to read from.</param>
@@ -188,7 +188,7 @@ public sealed class VmmProcess
     }
 
     /// <summary>
-    ///     Read memory into a Span of <typeparamref name="T" />.
+    /// Read memory into a Span of <typeparamref name="T" />.
     /// </summary>
     /// <typeparam name="T">Value Type</typeparam>
     /// <param name="va">Memory address to read from.</param>
@@ -196,8 +196,8 @@ public sealed class VmmProcess
     /// <param name="cbRead">Number of bytes successfully read.</param>
     /// <param name="flags">Read flags.</param>
     /// <returns>
-    ///     True if successful, otherwise False.
-    ///     Please be sure to also check the cbRead out value.
+    /// True if successful, otherwise False.
+    /// Please be sure to also check the cbRead out value.
     /// </returns>
     public unsafe bool MemReadSpan<T>(ulong va, Span<T> span, out uint cbRead, uint flags)
         where T : unmanaged
@@ -210,7 +210,7 @@ public sealed class VmmProcess
     }
 
     /// <summary>
-    ///     Read Memory from a Virtual Address into a Managed String.
+    /// Read Memory from a Virtual Address into a Managed String.
     /// </summary>
     /// <param name="encoding">String Encoding for this read.</param>
     /// <param name="va">Virtual Address to read from.</param>
@@ -237,7 +237,7 @@ public sealed class VmmProcess
     }
 
     /// <summary>
-    ///     Prefetch pages into the MemProcFS internal cache.
+    /// Prefetch pages into the MemProcFS internal cache.
     /// </summary>
     /// <param name="va">An array of the virtual addresses to prefetch.</param>
     /// <returns></returns>
@@ -250,7 +250,7 @@ public sealed class VmmProcess
     }
 
     /// <summary>
-    ///     Write Memory from a managed byte-array to a given Virtual Address.
+    /// Write Memory from a managed byte-array to a given Virtual Address.
     /// </summary>
     /// <param name="va">Virtual Address to write to.</param>
     /// <param name="data">Data to be written.</param>
@@ -262,7 +262,7 @@ public sealed class VmmProcess
     }
 
     /// <summary>
-    ///     Write Memory from unmanaged memory to a given Virtual Address.
+    /// Write Memory from unmanaged memory to a given Virtual Address.
     /// </summary>
     /// <param name="va">Virtual Address to write to.</param>
     /// <param name="pb">Pointer to buffer to write from.</param>
@@ -275,7 +275,7 @@ public sealed class VmmProcess
     }
 
     /// <summary>
-    ///     Write Memory from unmanaged memory to a given Virtual Address.
+    /// Write Memory from unmanaged memory to a given Virtual Address.
     /// </summary>
     /// <param name="va">Virtual Address to write to.</param>
     /// <param name="pb">Pointer to buffer to write from.</param>
@@ -289,7 +289,7 @@ public sealed class VmmProcess
     }
 
     /// <summary>
-    ///     Write Memory from a struct value <typeparamref name="T" /> to a given Virtual Address.
+    /// Write Memory from a struct value <typeparamref name="T" /> to a given Virtual Address.
     /// </summary>
     /// <typeparam name="T">Value Type.</typeparam>
     /// <param name="va">Virtual Address to write to.</param>
@@ -304,7 +304,7 @@ public sealed class VmmProcess
     }
 
     /// <summary>
-    ///     Write Memory from a managed <typeparamref name="T" /> Array to a given Virtual Address.
+    /// Write Memory from a managed <typeparamref name="T" /> Array to a given Virtual Address.
     /// </summary>
     /// <typeparam name="T">Value Type.</typeparam>
     /// <param name="va">Virtual Address to write to.</param>
@@ -322,7 +322,7 @@ public sealed class VmmProcess
     }
 
     /// <summary>
-    ///     Write memory from a Span of <typeparamref name="T" /> to a specified memory address.
+    /// Write memory from a Span of <typeparamref name="T" /> to a specified memory address.
     /// </summary>
     /// <typeparam name="T">Value Type</typeparam>
     /// <param name="va">Memory address to write to.</param>
@@ -340,7 +340,7 @@ public sealed class VmmProcess
     }
 
     /// <summary>
-    ///     Translate a virtual address to a physical address.
+    /// Translate a virtual address to a physical address.
     /// </summary>
     /// <param name="va">Virtual address to translate from.</param>
     /// <returns>Physical address if successful, zero on fail.</returns>
@@ -356,7 +356,7 @@ public sealed class VmmProcess
     #region Process Functionality
 
     /// <summary>
-    ///     PTE (Page Table Entry) information.
+    /// PTE (Page Table Entry) information.
     /// </summary>
     /// <param name="fIdentifyModules"></param>
     /// <returns>Array of PTEs on success. Zero-length array on fail.</returns>
@@ -394,7 +394,7 @@ public sealed class VmmProcess
     }
 
     /// <summary>
-    ///     VAD (Virtual Address Descriptor) information.
+    /// VAD (Virtual Address Descriptor) information.
     /// </summary>
     /// <param name="fIdentifyModules"></param>
     /// <returns></returns>
@@ -446,7 +446,7 @@ public sealed class VmmProcess
     }
 
     /// <summary>
-    ///     Extended VAD (Virtual Address Descriptor) information.
+    /// Extended VAD (Virtual Address Descriptor) information.
     /// </summary>
     /// <param name="oPages"></param>
     /// <param name="cPages"></param>
@@ -483,7 +483,7 @@ public sealed class VmmProcess
     }
 
     /// <summary>
-    ///     Module (loaded DLLs) information.
+    /// Module (loaded DLLs) information.
     /// </summary>
     /// <param name="fExtendedInfo"></param>
     /// <returns></returns>
@@ -570,7 +570,7 @@ public sealed class VmmProcess
     }
 
     /// <summary>
-    ///     Get a module from its name. If more than one module with the same name is loaded, the first one is returned.
+    /// Get a module from its name. If more than one module with the same name is loaded, the first one is returned.
     /// </summary>
     /// <param name="module"></param>
     /// <returns></returns>
@@ -597,7 +597,7 @@ public sealed class VmmProcess
     }
 
     /// <summary>
-    ///     Unloaded module information.
+    /// Unloaded module information.
     /// </summary>
     /// <returns></returns>
     public unsafe UnloadedModuleEntry[] MapUnloadedModule()
@@ -629,7 +629,7 @@ public sealed class VmmProcess
     }
 
     /// <summary>
-    ///     EAT (Export Address Table) information.
+    /// EAT (Export Address Table) information.
     /// </summary>
     /// <param name="module"></param>
     /// <returns></returns>
@@ -639,7 +639,7 @@ public sealed class VmmProcess
     }
 
     /// <summary>
-    ///     EAT (Export Address Table) information.
+    /// EAT (Export Address Table) information.
     /// </summary>
     /// <param name="module"></param>
     /// <param name="info"></param>
@@ -681,7 +681,7 @@ public sealed class VmmProcess
     }
 
     /// <summary>
-    ///     IAT (Import Address Table) information.
+    /// IAT (Import Address Table) information.
     /// </summary>
     /// <param name="module"></param>
     /// <returns></returns>
@@ -717,7 +717,7 @@ public sealed class VmmProcess
     }
 
     /// <summary>
-    ///     Heap information.
+    /// Heap information.
     /// </summary>
     /// <returns></returns>
     public unsafe HeapMap MapHeap()
@@ -757,7 +757,7 @@ public sealed class VmmProcess
     }
 
     /// <summary>
-    ///     Heap allocated entries information.
+    /// Heap allocated entries information.
     /// </summary>
     /// <param name="vaHeapOrHeapNum"></param>
     /// <returns></returns>
@@ -787,7 +787,7 @@ public sealed class VmmProcess
     }
 
     /// <summary>
-    ///     Thread information.
+    /// Thread information.
     /// </summary>
     /// <returns></returns>
     public unsafe ThreadEntry[] MapThread()
@@ -838,7 +838,7 @@ public sealed class VmmProcess
     }
 
     /// <summary>
-    ///     Thread callstack information.
+    /// Thread callstack information.
     /// </summary>
     /// <param name="tid">The thread id to retrieve the callstack for.</param>
     /// <param name="flags">Supported flags: 0, FLAG_NOCACHE, FLAG_FORCECACHE_READ</param>
@@ -875,7 +875,7 @@ public sealed class VmmProcess
     }
 
     /// <summary>
-    ///     Handle information.
+    /// Handle information.
     /// </summary>
     /// <returns></returns>
     public unsafe HandleEntry[] MapHandle()
@@ -912,7 +912,7 @@ public sealed class VmmProcess
     }
 
     /// <summary>
-    ///     User mode path of the process image.
+    /// User mode path of the process image.
     /// </summary>
     /// <returns></returns>
     public string GetPathUser()
@@ -921,7 +921,7 @@ public sealed class VmmProcess
     }
 
     /// <summary>
-    ///     Kernel mode path of the process image.
+    /// Kernel mode path of the process image.
     /// </summary>
     /// <returns></returns>
     public string GetPathKernel()
@@ -930,7 +930,7 @@ public sealed class VmmProcess
     }
 
     /// <summary>
-    ///     Process command line.
+    /// Process command line.
     /// </summary>
     /// <returns></returns>
     public string GetCmdline()
@@ -939,7 +939,7 @@ public sealed class VmmProcess
     }
 
     /// <summary>
-    ///     Get the string representation of an option value.
+    /// Get the string representation of an option value.
     /// </summary>
     /// <param name="fOptionString">VmmProcess.VMMDLL_PROCESS_INFORMATION_OPT_*</param>
     /// <returns></returns>
@@ -953,7 +953,7 @@ public sealed class VmmProcess
     }
 
     /// <summary>
-    ///     IMAGE_DATA_DIRECTORY information for the specified module.
+    /// IMAGE_DATA_DIRECTORY information for the specified module.
     /// </summary>
     /// <param name="sModule"></param>
     /// <returns></returns>
@@ -982,7 +982,7 @@ public sealed class VmmProcess
     }
 
     /// <summary>
-    ///     IMAGE_SECTION_HEADER information for the specified module.
+    /// IMAGE_SECTION_HEADER information for the specified module.
     /// </summary>
     /// <param name="sModule"></param>
     /// <returns></returns>
@@ -1019,7 +1019,7 @@ public sealed class VmmProcess
     }
 
     /// <summary>
-    ///     Function address of a function in a loaded module.
+    /// Function address of a function in a loaded module.
     /// </summary>
     /// <param name="wszModuleName"></param>
     /// <param name="szFunctionName"></param>
@@ -1030,7 +1030,7 @@ public sealed class VmmProcess
     }
 
     /// <summary>
-    ///     Base address of a loaded module.
+    /// Base address of a loaded module.
     /// </summary>
     /// <param name="wszModuleName"></param>
     /// <returns></returns>
@@ -1040,7 +1040,7 @@ public sealed class VmmProcess
     }
 
     /// <summary>
-    ///     Get process information.
+    /// Get process information.
     /// </summary>
     /// <returns>ProcessInformation on success. NULL on fail.</returns>
     public unsafe ProcessInfo? GetInfo()
@@ -1078,7 +1078,7 @@ public sealed class VmmProcess
     }
 
     /// <summary>
-    ///     Retrieve the PDB given a module base address.
+    /// Retrieve the PDB given a module base address.
     /// </summary>
     /// <param name="vaModuleBase"></param>
     /// <returns></returns>
@@ -1088,7 +1088,7 @@ public sealed class VmmProcess
     }
 
     /// <summary>
-    ///     Retrieve the PDB given a module name.
+    /// Retrieve the PDB given a module name.
     /// </summary>
     /// <param name="sModule"></param>
     /// <returns></returns>
@@ -1376,7 +1376,7 @@ public sealed class VmmProcess
     public const uint VMMDLL_PROCESS_INFORMATION_OPT_STRING_CMDLINE = 3;
 
     /// <summary>
-    ///     Struct corresponding to the native PE IMAGE_SECTION_HEADER.
+    /// Struct corresponding to the native PE IMAGE_SECTION_HEADER.
     /// </summary>
     public struct IMAGE_SECTION_HEADER
     {
@@ -1393,7 +1393,7 @@ public sealed class VmmProcess
     }
 
     /// <summary>
-    ///     Struct corresponding to the native PE IMAGE_DATA_DIRECTORY.
+    /// Struct corresponding to the native PE IMAGE_DATA_DIRECTORY.
     /// </summary>
     public struct IMAGE_DATA_DIRECTORY
     {

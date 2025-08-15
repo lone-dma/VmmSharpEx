@@ -4,9 +4,9 @@ using VmmSharpEx.Internal;
 namespace VmmSharpEx;
 
 /// <summary>
-///     The PDB sub-system requires that MemProcFS supporting DLLs/.SO’s for debugging and symbol server are put alongside
-///     vmm.dll.
-///     Also it’s recommended that the file info.db is put alongside vmm.dll.
+/// The PDB sub-system requires that MemProcFS supporting DLLs/.SO’s for debugging and symbol server are put alongside
+/// vmm.dll.
+/// Also it’s recommended that the file info.db is put alongside vmm.dll.
 /// </summary>
 public sealed class VmmPdb
 {
@@ -49,7 +49,7 @@ public sealed class VmmPdb
     }
 
     /// <summary>
-    ///     ToString override.
+    /// ToString override.
     /// </summary>
     public override string ToString()
     {
@@ -61,12 +61,12 @@ public sealed class VmmPdb
     #region Specific Functionality
 
     /// <summary>
-    ///     The module name of the PDB.
+    /// The module name of the PDB.
     /// </summary>
     public string Module { get; }
 
     /// <summary>
-    ///     Get the symbol name given an address or offset.
+    /// Get the symbol name given an address or offset.
     /// </summary>
     /// <param name="cbSymbolAddressOrOffset"></param>
     /// <param name="szSymbolName"></param>
@@ -77,7 +77,7 @@ public sealed class VmmPdb
     }
 
     /// <summary>
-    ///     Get the symbol name given an address or offset.
+    /// Get the symbol name given an address or offset.
     /// </summary>
     /// <param name="cbSymbolAddressOrOffset"></param>
     /// <param name="szSymbolName"></param>
@@ -100,7 +100,7 @@ public sealed class VmmPdb
     }
 
     /// <summary>
-    ///     Get the symbol address given a symbol name.
+    /// Get the symbol address given a symbol name.
     /// </summary>
     /// <param name="szSymbolName"></param>
     /// <param name="pvaSymbolAddress"></param>
@@ -111,7 +111,7 @@ public sealed class VmmPdb
     }
 
     /// <summary>
-    ///     Get the size of a type.
+    /// Get the size of a type.
     /// </summary>
     /// <param name="szTypeName"></param>
     /// <param name="pcbTypeSize"></param>
@@ -122,7 +122,7 @@ public sealed class VmmPdb
     }
 
     /// <summary>
-    ///     Get the child offset of a type.
+    /// Get the child offset of a type.
     /// </summary>
     /// <param name="szTypeName"></param>
     /// <param name="wszTypeChildName"></param>

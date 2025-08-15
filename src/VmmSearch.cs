@@ -4,7 +4,7 @@ using VmmSharpEx.Internal;
 namespace VmmSharpEx;
 
 /// <summary>
-///     VmmSearch represents a binary search in memory.
+/// VmmSearch represents a binary search in memory.
 /// </summary>
 public sealed class VmmSearch : IDisposable
 {
@@ -53,7 +53,7 @@ public sealed class VmmSearch : IDisposable
     }
 
     /// <summary>
-    ///     ToString override.
+    /// ToString override.
     /// </summary>
     public override string ToString()
     {
@@ -81,7 +81,7 @@ public sealed class VmmSearch : IDisposable
     #region Specific Functionality
 
     /// <summary>
-    ///     Struct with info about the search results. Find the actual results in the result field.
+    /// Struct with info about the search results. Find the actual results in the result field.
     /// </summary>
     public struct SearchResult
     {
@@ -111,7 +111,7 @@ public sealed class VmmSearch : IDisposable
     }
 
     /// <summary>
-    ///     Struct with info about a single search result. Address, search term id.
+    /// Struct with info about a single search result. Address, search term id.
     /// </summary>
     public struct SearchResultEntry
     {
@@ -120,7 +120,7 @@ public sealed class VmmSearch : IDisposable
     }
 
     /// <summary>
-    ///     Add a search term to the search. Should be done before search is started.
+    /// Add a search term to the search. Should be done before search is started.
     /// </summary>
     /// <param name="search"></param>
     /// <param name="skipmask"></param>
@@ -178,7 +178,7 @@ public sealed class VmmSearch : IDisposable
     }
 
     /// <summary>
-    ///     Abort the search. Blocking / wait until abort is complete.
+    /// Abort the search. Blocking / wait until abort is complete.
     /// </summary>
     public void Abort()
     {
@@ -189,7 +189,7 @@ public sealed class VmmSearch : IDisposable
     }
 
     /// <summary>
-    ///     Poll the search for results. Non-blocking.
+    /// Poll the search for results. Non-blocking.
     /// </summary>
     /// <returns></returns>
     public SearchResult Poll()
@@ -204,7 +204,7 @@ public sealed class VmmSearch : IDisposable
     }
 
     /// <summary>
-    ///     Get the result of the search: Blocking / wait until finish.
+    /// Get the result of the search: Blocking / wait until finish.
     /// </summary>
     /// <returns></returns>
     public SearchResult Result()

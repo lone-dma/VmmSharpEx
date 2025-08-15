@@ -1,10 +1,10 @@
 ﻿namespace VmmSharpEx;
 
 /// <summary>
-///     The kernel class gives easy access to:
-///     - The system process(pid 4).
-///     - Kernel build number.
-///     - Kernel debug symbols(nt).
+/// The kernel class gives easy access to:
+/// - The system process(pid 4).
+/// - Kernel build number.
+/// - Kernel debug symbols(nt).
 /// </summary>
 public sealed class VmmKernel
 {
@@ -23,7 +23,7 @@ public sealed class VmmKernel
     }
 
     /// <summary>
-    ///     ToString override.
+    /// ToString override.
     /// </summary>
     public override string ToString()
     {
@@ -37,13 +37,13 @@ public sealed class VmmKernel
     private VmmProcess _process;
 
     /// <summary>
-    ///     The system process (PID 4).
+    /// The system process (PID 4).
     /// </summary>
     /// <returns>The system process (PID 4).</returns>
     public VmmProcess Process => _process ??= new VmmProcess(_hVmm, 4);
 
     /// <summary>
-    ///     Build number of the current kernel / system.
+    /// Build number of the current kernel / system.
     /// </summary>
     /// <returns>The build number of the kernel on success, 0 on fail.</returns>
     public uint Build
@@ -59,7 +59,7 @@ public sealed class VmmKernel
     private VmmPdb _pdb;
 
     /// <summary>
-    ///     Retrieve the VmmPdb object for the kernel "nt" debug symbols.
+    /// Retrieve the VmmPdb object for the kernel "nt" debug symbols.
     /// </summary>
     /// <returns></returns>
     public VmmPdb Pdb => _pdb ??= new VmmPdb(_hVmm, "nt");

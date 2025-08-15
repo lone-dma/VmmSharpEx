@@ -5,7 +5,7 @@ using VmmSharpEx.Internal;
 namespace VmmSharpEx;
 
 /// <summary>
-///     The VmmYara class represents a Yara search in memory.
+/// The VmmYara class represents a Yara search in memory.
 /// </summary>
 public sealed class VmmYara : IDisposable
 {
@@ -59,7 +59,7 @@ public sealed class VmmYara : IDisposable
     }
 
     /// <summary>
-    ///     ToString override.
+    /// ToString override.
     /// </summary>
     public override string ToString()
     {
@@ -87,7 +87,7 @@ public sealed class VmmYara : IDisposable
     #region Specific Functionality
 
     /// <summary>
-    ///     Struct with info about the search results. Find the actual results in the result field.
+    /// Struct with info about the search results. Find the actual results in the result field.
     /// </summary>
     public struct YaraResult
     {
@@ -170,7 +170,7 @@ public sealed class VmmYara : IDisposable
     }
 
     /// <summary>
-    ///     Abort the search. Blocking / wait until abort is complete.
+    /// Abort the search. Blocking / wait until abort is complete.
     /// </summary>
     public void Abort()
     {
@@ -181,7 +181,7 @@ public sealed class VmmYara : IDisposable
     }
 
     /// <summary>
-    ///     Poll the search for results. Non-blocking.
+    /// Poll the search for results. Non-blocking.
     /// </summary>
     /// <returns></returns>
     public YaraResult Poll()
@@ -196,7 +196,7 @@ public sealed class VmmYara : IDisposable
     }
 
     /// <summary>
-    ///     Get the result of the search: Blocking / wait until finish.
+    /// Get the result of the search: Blocking / wait until finish.
     /// </summary>
     /// <returns></returns>
     public YaraResult Result()
