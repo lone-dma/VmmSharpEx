@@ -57,9 +57,6 @@ internal static partial class Vmmi
     public const uint VMMDLL_MAP_PFN_VERSION = 1;
     public const uint VMMDLL_MAP_SERVICE_VERSION = 3;
     public const uint VMMDLL_MEM_SEARCH_VERSION = 0xfe3e0003;
-    public const uint VMMDLL_YARA_CONFIG_VERSION = 0xdec30001;
-    public const uint VMMDLL_YARA_MEMORY_CALLBACK_CONTEXT_VERSION = 0xdec40002;
-    public const uint VMMDLL_YARA_CONFIG_MAX_RESULT = 0x00010000; // max 65k results.
     public const uint VMMDLL_REGISTRY_HIVE_INFORMATION_VERSION = 4;
 
     public const uint VMMDLL_VFS_FILELIST_EXINFO_VERSION = 1;
@@ -898,109 +895,28 @@ internal static partial class Vmmi
     [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
     public delegate bool SearchResultCallback(VMMDLL_MEM_SEARCH_CONTEXT ctx, ulong va, uint iSearch);
 
-    [StructLayout(LayoutKind.Sequential)]
+    [StructLayout(LayoutKind.Sequential, Pack = 8)]
     public struct VMMDLL_MEM_SEARCH_CONTEXT
     {
         public uint dwVersion;
-        public uint _Filler01;
-        public uint _Filler02;
-        public bool fAbortRequested;
+        private readonly uint _Filler01;
+        private readonly uint _Filler02;
+        public int fAbortRequested;
         public uint cMaxResult;
         public uint cSearch;
         public IntPtr search;
         public ulong vaMin;
         public ulong vaMax;
-        public ulong vaCurrent;
-        public uint _Filler2;
-        public uint cResult;
-        public ulong cbReadTotal;
-        public IntPtr pvUserPtrOpt;
-        public SearchResultCallback pfnResultOptCB;
+        public readonly ulong vaCurrent;
+        private readonly uint _Filler2;
+        private readonly uint cResult;
+        public readonly ulong cbReadTotal;
+        private readonly IntPtr pvUserPtrOpt;
+        public IntPtr pfnResultOptCB;
         public ulong ReadFlags;
-        public bool fForcePTE;
-        public bool fForceVAD;
-        public IntPtr pfnFilterOptCB;
-    }
-
-    public const uint VMMYARA_RULE_MATCH_VERSION = 0xfedc0005;
-    public const int VMMYARA_RULE_MATCH_TAG_MAX = 27;
-    public const int VMMYARA_RULE_MATCH_META_MAX = 32;
-    public const int VMMYARA_RULE_MATCH_STRING_MAX = 16;
-    public const int VMMYARA_RULE_MATCH_OFFSET_MAX = 24;
-
-    [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-    public unsafe delegate bool YaraScanMemoryCallback(IntPtr ctx, VMMYARA_RULE_MATCH pRuleMatch, byte* pbBuffer, ulong cbBuffer);
-
-    public struct VMMDLL_YARA_CONFIG
-    {
-        public uint dwVersion; // VMMDLL_YARA_CONFIG_VERSION
-        public uint _Filler00;
-        public uint _Filler01;
-        public bool fAbortRequested; // may be set by caller to abort processing prematurely.
-        public uint cMaxResult; // # max result entries. max 0x10000 entries. 0 = max entries.
-        public uint cRules; // number of rules to use - if compiled rules only 1 is allowed.
-        public IntPtr pszRules; // array of rules to use - either filenames or in-memory rules.
-        public ulong vaMin;
-        public ulong vaMax;
-        public ulong vaCurrent; // current address (may be read by caller).
-        public uint _Filler2;
-        public uint cResult; // number of search hits.
-        public ulong cbReadTotal; // total number of bytes read.
-
-        public IntPtr pvUserPtrOpt; // optional pointer set by caller (used for context passing to callbacks)
-
-        // match callback function (recommended but optional).
-        // return = continue search(TRUE), abort search(FALSE).
-        public YaraScanMemoryCallback pfnScanMemoryCB;
-
-        // non-recommended features:
-        public ulong ReadFlags; // read flags as in VMMDLL_FLAG_*
-        public bool fForcePTE; // force PTE method for virtual address reads.
-
-        public bool fForceVAD; // force VAD method for virtual address reads.
-
-        // optional filter callback function for virtual address reads:
-        // for ranges inbetween vaMin:vaMax callback with pte or vad entry.
-        // return: read from range(TRUE), do not read from range(FALSE).
-        public IntPtr pfnFilterOptCB;
-        public IntPtr pvUserPtrOpt2; // optional pointer set by caller (not used by MemProcFS).
-        public ulong _Reserved;
-    }
-
-    public struct VMMYARA_RULE_MATCH
-    {
-        public uint dwVersion; // VMMYARA_RULE_MATCH_VERSION
-        public uint flags;
-        [MarshalAs(UnmanagedType.LPUTF8Str)] public string szRuleIdentifier;
-        public uint cTags;
-
-        [MarshalAs(UnmanagedType.ByValArray, SizeConst = VMMYARA_RULE_MATCH_TAG_MAX)]
-        public IntPtr[] szTags;
-
-        public uint cMeta;
-
-        [MarshalAs(UnmanagedType.ByValArray, SizeConst = VMMYARA_RULE_MATCH_META_MAX)]
-        public VMMYARA_RULE_MATCH_META[] Meta;
-
-        public uint cStrings;
-
-        [MarshalAs(UnmanagedType.ByValArray, SizeConst = VMMYARA_RULE_MATCH_STRING_MAX)]
-        public VMMYARA_RULE_MATCH_STRINGS[] Strings;
-    }
-
-    public struct VMMYARA_RULE_MATCH_META
-    {
-        [MarshalAs(UnmanagedType.LPUTF8Str)] public string szIdentifier;
-        [MarshalAs(UnmanagedType.LPUTF8Str)] public string szString;
-    }
-
-    public struct VMMYARA_RULE_MATCH_STRINGS
-    {
-        [MarshalAs(UnmanagedType.LPUTF8Str)] public string szString;
-        public uint cMatch;
-
-        [MarshalAs(UnmanagedType.ByValArray, SizeConst = VMMYARA_RULE_MATCH_OFFSET_MAX)]
-        public ulong[] cbMatchOffset;
+        private readonly bool fForcePTE;
+        private readonly bool fForceVAD;
+        private readonly IntPtr pfnFilterOptCB;
     }
 
     #endregion
@@ -1523,34 +1439,10 @@ internal static partial class Vmmi
 #pragma warning disable SYSLIB1054
 
     [DllImport("vmm.dll", EntryPoint = "VMMDLL_MemSearch")]
-    public static extern bool VMMDLL_MemSearch(
+    public static unsafe extern bool VMMDLL_MemSearch(
         IntPtr hVMM,
         uint dwPID,
-        ref VMMDLL_MEM_SEARCH_CONTEXT ctx,
-        out IntPtr ppva,
-        out uint pcva);
-
-    [DllImport("vmm.dll", EntryPoint = "VMMDLL_MemSearch")]
-    public static extern bool VMMDLL_MemSearch2(
-        IntPtr hVMM,
-        uint dwPID,
-        IntPtr ctx,
-        IntPtr ppva,
-        IntPtr pcva);
-
-    [DllImport("vmm.dll", EntryPoint = "VMMDLL_YaraSearch")]
-    public static extern bool VMMDLL_YaraSearch(
-        IntPtr hVMM,
-        uint dwPID,
-        ref VMMDLL_YARA_CONFIG pYaraConfig,
-        IntPtr ppva,
-        IntPtr pcva);
-
-    [DllImport("vmm.dll", EntryPoint = "VMMDLL_YaraSearch")]
-    public static extern bool VMMDLL_YaraSearch2(
-        IntPtr hVMM,
-        uint dwPID,
-        IntPtr pYaraConfig,
+        void* ctx,
         IntPtr ppva,
         IntPtr pcva);
 

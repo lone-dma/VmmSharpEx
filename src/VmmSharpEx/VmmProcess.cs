@@ -1099,6 +1099,17 @@ public sealed class VmmProcess
         return GetPdb(eModule.vaBase);
     }
 
+    /// <summary>
+    /// Create a VmmSearch object for searching memory.
+    /// </summary>
+    /// <param name="addr_min"></param>
+    /// <param name="addr_max"></param>
+    /// <param name="cMaxResult"></param>
+    /// <param name="readFlags"></param>
+    /// <returns></returns>
+    public VmmSearch CreateSearch(ulong addr_min = 0, ulong addr_max = ulong.MaxValue, uint cMaxResult = 0, uint readFlags = 0)
+        => new VmmSearch(_vmm, this.PID, addr_min, addr_max, cMaxResult, readFlags);
+
     #endregion
 
     #region Types

@@ -12,10 +12,10 @@
 
 	<ItemGroup Label="NuGet Pack">
 		<None Include="VmmSharpEx.targets" Pack="true" PackagePath="build\" />
-		<None Include="..\native\**\*" Pack="true" PackagePath="build\" Visible="false" />
-		<None Include="..\LICENSE" Pack="true" PackagePath="" Visible="false" />
-		<None Include="..\logo.png" Pack="true" PackagePath="" Visible="false" />
-		<None Include="..\README.md" Pack="true" PackagePath="" />
+		<None Include="..\..\native\**\*" Pack="true" PackagePath="build\" Visible="false" CopyToOutputDirectory="PreserveNewest" />
+		<None Include="..\..\LICENSE" Pack="true" PackagePath="" Visible="false" />
+		<None Include="..\..\logo.png" Pack="true" PackagePath="" Visible="false" />
+		<None Include="..\..\README.md" Pack="true" PackagePath="" />
 	</ItemGroup>
 
 	<PropertyGroup Label="NuGet Properties">

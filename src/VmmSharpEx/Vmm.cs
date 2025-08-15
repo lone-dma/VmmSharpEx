@@ -1294,6 +1294,18 @@ public sealed class Vmm : IDisposable
     public VmmKernel Kernel => _kernel ??= new VmmKernel(this);
 
     /// <summary>
+    /// Create a VmmSearch object for searching memory.
+    /// </summary>
+    /// <param name="pid"></param>
+    /// <param name="addr_min"></param>
+    /// <param name="addr_max"></param>
+    /// <param name="cMaxResult"></param>
+    /// <param name="readFlags"></param>
+    /// <returns></returns>
+    public VmmSearch CreateSearch(uint pid, ulong addr_min = 0, ulong addr_max = ulong.MaxValue, uint cMaxResult = 0, uint readFlags = 0) 
+        => new VmmSearch(this, pid, addr_min, addr_max, cMaxResult, readFlags);
+
+    /// <summary>
     /// Throw an exception if memory writing is disabled.
     /// </summary>
     /// <exception cref="VmmException">Memory writing is disabled.</exception>
