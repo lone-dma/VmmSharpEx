@@ -597,7 +597,7 @@ public sealed class Vmm : IDisposable
     }
 
     /// <summary>
-    /// Initialize a Scatter Memory Read handle used to read multiple virtual memory regions in a single call.
+    /// Initialize a Scatter handle used to read/write multiple virtual memory regions in a single call.
     /// </summary>
     /// <param name="pid">PID to create VmmScatter over.</param>
     /// <param name="flags">Vmm Flags.</param>
