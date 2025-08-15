@@ -292,7 +292,7 @@ public sealed class Vmm : IDisposable
     public const uint FLAG_SCATTER_FORCE_PAGEREAD = 0x4000; // (not used by the C# API).
 
     /// <summary>
-    /// Perform a scatter read of multiple page-sized physical memory ranges.
+    /// Perform a scatter read of multiple page-sized virtual memory ranges.
     /// Does not copy the read memory to a managed byte buffer, but instead allows direct access to the native memory via a
     /// Span view.
     /// </summary>
