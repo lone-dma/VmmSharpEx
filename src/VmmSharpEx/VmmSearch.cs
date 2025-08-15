@@ -7,7 +7,7 @@ namespace VmmSharpEx;
 /// <summary>
 /// VmmSearch represents a binary search in memory.
 /// </summary>
-public unsafe sealed class VmmSearch : IDisposable
+public unsafe sealed class VmmSearch : IDisposable // ToDo: Refactor further
 {
     #region Base Functionality
 
