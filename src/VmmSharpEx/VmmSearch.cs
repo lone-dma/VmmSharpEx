@@ -15,7 +15,7 @@ public unsafe sealed class VmmSearch : IDisposable
     private readonly Vmm _vmm;
     private readonly uint _pid;
     private readonly Vmmi.SearchResultCallback _searchResultCallback; // Root the delegate to prevent it from being garbage collected.
-    private readonly Vmmi.VMMDLL_MEM_SEARCH_CONTEXT* _native;
+    private Vmmi.VMMDLL_MEM_SEARCH_CONTEXT* _native;
     private bool _started;
     private bool _disposed;
 
@@ -86,16 +86,13 @@ public unsafe sealed class VmmSearch : IDisposable
             {
                 NativeMemory.Free(_native);
             }
-            else // Abort the search if it is still running -> don't block though
+            else // Abort the search if it is still running
             {
                 _native->fAbortRequested = 1;
-                Task.Run(() =>
-                {
-                    while (_thread.IsAlive)
-                        Thread.Sleep(0);
+                if (_thread.Join(TimeSpan.FromSeconds(1))) // Added timeout to prevent deadlock, but should never happen.
                     NativeMemory.Free(_native);
-                });
             }
+            _native = null;
         }
     }
 
@@ -106,7 +103,7 @@ public unsafe sealed class VmmSearch : IDisposable
     /// <param name="skipmask">Skip mask (max 32 bytes). Excess will be truncated.</param>
     /// <param name="align">Alignment</param>
     /// <returns>TRUE if added OK otherwise FALSE.</returns>
-    public unsafe void AddEntry(byte[] search, byte[] skipmask = null, uint align = 1)
+    public void AddEntry(byte[] search, byte[] skipmask = null, uint align = 1)
     {
         const int maxLength = 32;
         ObjectDisposedException.ThrowIf(_disposed, "Object disposed.");
@@ -146,14 +143,7 @@ public unsafe sealed class VmmSearch : IDisposable
     /// <summary>
     /// Abort the search. Blocking / wait until abort is complete.
     /// </summary>
-    public void Abort()
-    {
-        ObjectDisposedException.ThrowIf(_disposed, "Object disposed.");
-        _started = true;
-        _native->fAbortRequested = 1;
-        if (_thread.IsAlive)
-            _thread.Join();
-    }
+    public void Abort() => Dispose();
 
     /// <summary>
     /// Poll the search for results. Non-blocking.
