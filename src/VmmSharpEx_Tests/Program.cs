@@ -17,7 +17,7 @@ namespace VmmSharpEx_Tests
                 "-waitinitialize"
             };
             _vmm = new Vmm(args);
-            var proc = _vmm.GetProcessByName("explorer.exe");
+            var proc = _vmm.CreateProcess("explorer.exe");
         }
     }
 }

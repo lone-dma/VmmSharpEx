@@ -34,13 +34,13 @@ public sealed class VmmKernel
 
     #region Specific Functionality
 
-    private VmmProcess _process;
+    private VmmProcess _systemProcess;
 
     /// <summary>
     /// The system process (PID 4).
     /// </summary>
     /// <returns>The system process (PID 4).</returns>
-    public VmmProcess Process => _process ??= new VmmProcess(_hVmm, 4);
+    public VmmProcess SystemProcess => _systemProcess ??= new VmmProcess(_hVmm, 4);
 
     /// <summary>
     /// Build number of the current kernel / system.

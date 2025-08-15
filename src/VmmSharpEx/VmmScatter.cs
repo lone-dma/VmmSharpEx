@@ -20,11 +20,19 @@ public sealed class VmmScatter : IDisposable
         ;
     }
 
-    internal VmmScatter(Vmm vmm, IntPtr hS, uint pid)
+    internal VmmScatter(Vmm vmm, uint pid, uint flags = 0)
     {
         _vmm = vmm;
-        _h = hS;
         _pid = pid;
+        _h = Create(vmm, pid, flags);
+    }
+
+    private static IntPtr Create(Vmm vmm, uint pid, uint flags = 0)
+    {
+        var hS = Vmmi.VMMDLL_Scatter_Initialize(vmm, pid, flags);
+        if (hS == IntPtr.Zero)
+            throw new VmmException("Failed to create VmmScatter handle!");
+        return hS;
     }
 
     ~VmmScatter()

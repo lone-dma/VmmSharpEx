@@ -13,10 +13,7 @@ public sealed class Vmm : IDisposable
 {
     #region Base Functionality
 
-    public static implicit operator IntPtr(Vmm x)
-    {
-        return x?._h ?? IntPtr.Zero;
-    }
+    public static implicit operator IntPtr(Vmm x) => x?._h ?? IntPtr.Zero;
 
     private IntPtr _h;
 
@@ -294,7 +291,319 @@ public sealed class Vmm : IDisposable
     public const uint FLAG_NOMEMCALLBACK = 0x2000; // (not used by the C# API).
     public const uint FLAG_SCATTER_FORCE_PAGEREAD = 0x4000; // (not used by the C# API).
 
-    // !!! For Physical Memory R/W use LeechCore Module
+    /// <summary>
+    /// Perform a scatter read of multiple page-sized physical memory ranges.
+    /// Does not copy the read memory to a managed byte buffer, but instead allows direct access to the native memory via a
+    /// Span view.
+    /// </summary>
+    /// <param name="pid">Process ID (PID) this operation will take place within.</param>
+    /// <param name="flags">Vmm Flags.</param>
+    /// <param name="va">Array of page-aligned Memory Addresses.</param>
+    /// <returns>SCATTER_HANDLE</returns>
+    /// <exception cref="VmmException"></exception>
+    public unsafe LeechCore.SCATTER_HANDLE MemReadScatter(uint pid, uint flags, params ulong[] va)
+    {
+        if (!Lci.LcAllocScatter1((uint)va.Length, out var pppMEMs))
+            throw new VmmException("LcAllocScatter1 FAIL");
+        var ppMEMs = (Lci.LC_MEM_SCATTER**)pppMEMs.ToPointer();
+        for (var i = 0; i < va.Length; i++)
+        {
+            var pMEM = ppMEMs[i];
+            pMEM->qwA = va[i] & ~(ulong)0xfff;
+        }
+
+        var results = new Dictionary<ulong, LeechCore.SCATTER_PAGE>(va.Length);
+        _ = Vmmi.VMMDLL_MemReadScatter(_h, pid, pppMEMs, (uint)va.Length, flags);
+        for (var i = 0; i < va.Length; i++)
+        {
+            var pMEM = ppMEMs[i];
+            if (pMEM->f != 0)
+                results[pMEM->qwA] = new LeechCore.SCATTER_PAGE(pMEM->pb);
+        }
+
+        return new LeechCore.SCATTER_HANDLE(results, pppMEMs);
+    }
+
+    /// <summary>
+    /// Read Memory from a Virtual Address into a managed byte-array.
+    /// WARNING: This incurs a heap allocation for the array. Recommend using MemReadSpan instead.
+    /// </summary>
+    /// <param name="pid">Process ID (PID) this operation will take place within.</param>
+    /// <param name="va">Virtual Address to read from.</param>
+    /// <param name="cb">Count of bytes to read.</param>
+    /// <param name="flags">VMM Flags.</param>
+    /// <returns>Managed byte array containing number of bytes read.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public byte[] MemRead(uint pid, ulong va, uint cb, uint flags = 0)
+    {
+        return MemReadArray<byte>(pid, va, cb, flags);
+    }
+
+    /// <summary>
+    /// Read Memory from a Virtual Address into unmanaged memory.
+    /// </summary>
+    /// <param name="pid">Process ID (PID) this operation will take place within.</param>
+    /// <param name="va">Virtual Address to read from.</param>
+    /// <param name="pb">Pointer to buffer to receive read.</param>
+    /// <param name="cb">Count of bytes to read.</param>
+    /// <param name="cbRead">Count of bytes successfully read.</param>
+    /// <param name="flags">VMM Flags.</param>
+    /// <returns>True if successful, otherwise False. Be sure to check cbRead count.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public unsafe bool MemRead(uint pid, ulong va, IntPtr pb, uint cb, out uint cbRead, uint flags = 0)
+    {
+        return MemRead(pid, va, pb.ToPointer(), cb, out cbRead, flags);
+    }
+
+    /// <summary>
+    /// Read Memory from a Virtual Address into unmanaged memory.
+    /// </summary>
+    /// <param name="pid">Process ID (PID) this operation will take place within.</param>
+    /// <param name="va">Virtual Address to read from.</param>
+    /// <param name="pb">Pointer to buffer to receive read.</param>
+    /// <param name="cb">Count of bytes to read.</param>
+    /// <param name="cbRead">Count of bytes successfully read.</param>
+    /// <param name="flags">VMM Flags.</param>
+    /// <returns>True if successful, otherwise False. Be sure to check cbRead count.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public unsafe bool MemRead(uint pid, ulong va, void* pb, uint cb, out uint cbRead, uint flags = 0)
+    {
+        return Vmmi.VMMDLL_MemReadEx(_h, pid, va, (byte*)pb, cb, out cbRead, flags);
+    }
+
+    /// <summary>
+    /// Read Memory from a Virtual Address into a ref struct of Type <typeparamref name="T" />.
+    /// </summary>
+    /// <typeparam name="T">Struct/Ref Struct Type.</typeparam>
+    /// <param name="pid">Process ID (PID) this operation will take place within.</param>
+    /// <param name="va">Virtual Address to read from.</param>
+    /// <param name="result">Memory read result.</param>
+    /// <param name="flags">VMM Flags.</param>
+    /// <returns>TRUE if successful, otherwise FALSE.</returns>
+    public unsafe bool MemReadValue<T>(uint pid, ulong va, out T result, uint flags = 0)
+        where T : unmanaged, allows ref struct
+    {
+        var cb = (uint)sizeof(T);
+        result = default;
+        fixed (void* pb = &result)
+        {
+            return Vmmi.VMMDLL_MemReadEx(_h, pid, va, (byte*)pb, cb, out var cbRead, flags) &&
+                   cbRead == cb;
+        }
+    }
+
+    /// <summary>
+    /// Read Memory from a Virtual Address into an Array of Type <typeparamref name="T" />.
+    /// WARNING: This incurs a heap allocation for the array. Recommend using MemReadSpan instead.
+    /// </summary>
+    /// <typeparam name="T">Value Type.</typeparam>
+    /// <param name="pid">Process ID (PID) this operation will take place within.</param>
+    /// <param name="va">Virtual Address to read from.</param>
+    /// <param name="count">Number of elements to read.</param>
+    /// <param name="flags">VMM Flags.</param>
+    /// <returns>Managed <typeparamref name="T" /> array containing number of elements read.</returns>
+    public unsafe T[] MemReadArray<T>(uint pid, ulong va, uint count, uint flags = 0)
+        where T : unmanaged
+    {
+        var cb = (uint)sizeof(T) * count;
+        uint cbRead;
+        var data = new T[count];
+        fixed (T* pb = data)
+        {
+            if (!Vmmi.VMMDLL_MemReadEx(_h, pid, va, (byte*)pb, cb, out cbRead, flags)) return null;
+        }
+
+        if (cbRead != cb)
+        {
+            var partialCount = (int)cbRead / sizeof(T);
+            Array.Resize(ref data, partialCount);
+        }
+
+        return data;
+    }
+
+    /// <summary>
+    /// Read memory into a Span of <typeparamref name="T" />.
+    /// </summary>
+    /// <typeparam name="T">Value Type</typeparam>
+    /// <param name="pid">Process ID (PID) this operation will take place within.</param>
+    /// <param name="va">Memory address to read from.</param>
+    /// <param name="span">Span to receive the memory read.</param>
+    /// <param name="cbRead">Number of bytes successfully read.</param>
+    /// <param name="flags">Read flags.</param>
+    /// <returns>
+    /// True if successful, otherwise False.
+    /// Please be sure to also check the cbRead out value.
+    /// </returns>
+    public unsafe bool MemReadSpan<T>(uint pid, ulong va, Span<T> span, out uint cbRead, uint flags)
+        where T : unmanaged
+    {
+        var cb = (uint)(sizeof(T) * span.Length);
+        fixed (T* pb = span)
+        {
+            return Vmmi.VMMDLL_MemReadEx(_h, pid, va, (byte*)pb, cb, out cbRead, flags);
+        }
+    }
+
+    /// <summary>
+    /// Read Memory from a Virtual Address into a Managed String.
+    /// </summary>
+    /// <param name="encoding">String Encoding for this read.</param>
+    /// <param name="pid">Process ID (PID) this operation will take place within.</param>
+    /// <param name="va">Virtual Address to read from.</param>
+    /// <param name="cb">Number of bytes to read. Keep in mind some string encodings are 2-4 bytes per character.</param>
+    /// <param name="flags">VMM Flags.</param>
+    /// <param name="terminateOnNullChar">Terminate the string at the first occurrence of the null character.</param>
+    /// <returns>C# Managed System.String. Null if failed.</returns>
+    public unsafe string MemReadString(Encoding encoding, uint pid, ulong va, uint cb,
+        uint flags = 0, bool terminateOnNullChar = true)
+    {
+        var buffer = cb <= 256 ? stackalloc byte[(int)cb] : new byte[cb];
+        if (!MemReadSpan(pid, va, buffer, out var cbRead, flags) ||
+            cbRead != cb)
+            return null;
+        var result = encoding.GetString(buffer);
+        if (terminateOnNullChar)
+        {
+            var nullIndex = result.IndexOf('\0');
+            if (nullIndex != -1)
+                result = result.Substring(0, nullIndex);
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// Prefetch pages into the MemProcFS internal cache.
+    /// </summary>
+    /// <param name="pid">Process ID (PID) this operation will take place within.</param>
+    /// <param name="va">An array of the virtual addresses to prefetch.</param>
+    /// <returns></returns>
+    public unsafe bool MemPrefetchPages(uint pid, ulong[] va)
+    {
+        fixed (void* pb = va)
+        {
+            return Vmmi.VMMDLL_MemPrefetchPages(_h, pid, (byte*)pb, (uint)va.Length);
+        }
+    }
+
+    /// <summary>
+    /// Write Memory from a managed byte-array to a given Virtual Address.
+    /// </summary>
+    /// <param name="pid">Process ID (PID) this operation will take place within.</param>
+    /// <param name="va">Virtual Address to write to.</param>
+    /// <param name="data">Data to be written.</param>
+    /// <returns>True if write successful, otherwise False.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public bool MemWrite(uint pid, ulong va, byte[] data)
+    {
+        return MemWriteArray(pid, va, data);
+    }
+
+    /// <summary>
+    /// Write Memory from unmanaged memory to a given Virtual Address.
+    /// </summary>
+    /// <param name="pid">Process ID (PID) this operation will take place within.</param>
+    /// <param name="va">Virtual Address to write to.</param>
+    /// <param name="pb">Pointer to buffer to write from.</param>
+    /// <param name="cb">Count of bytes to write.</param>
+    /// <returns>True if write successful, otherwise False.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public unsafe bool MemWrite(uint pid, ulong va, IntPtr pb, uint cb)
+    {
+        return MemWrite(pid, va, pb.ToPointer(), cb);
+    }
+
+    /// <summary>
+    /// Write Memory from unmanaged memory to a given Virtual Address.
+    /// </summary>
+    /// <param name="pid">Process ID (PID) this operation will take place within.</param>
+    /// <param name="va">Virtual Address to write to.</param>
+    /// <param name="pb">Pointer to buffer to write from.</param>
+    /// <param name="cb">Count of bytes to write.</param>
+    /// <returns>True if write successful, otherwise False.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public unsafe bool MemWrite(uint pid, ulong va, void* pb, uint cb)
+    {
+        ThrowIfMemWritesDisabled();
+        return Vmmi.VMMDLL_MemWrite(_h, pid, va, (byte*)pb, cb);
+    }
+
+    /// <summary>
+    /// Write Memory from a struct value <typeparamref name="T" /> to a given Virtual Address.
+    /// </summary>
+    /// <typeparam name="T">Value Type.</typeparam>
+    /// <param name="pid">Process ID (PID) this operation will take place within.</param>
+    /// <param name="va">Virtual Address to write to.</param>
+    /// <param name="value"><typeparamref name="T" /> Value to write.</param>
+    /// <returns>True if write successful, otherwise False.</returns>
+    public unsafe bool MemWriteValue<T>(uint pid, ulong va, T value)
+        where T : unmanaged, allows ref struct
+    {
+        ThrowIfMemWritesDisabled();
+        var cb = (uint)sizeof(T);
+        return Vmmi.VMMDLL_MemWrite(_h, pid, va, (byte*)&value, cb);
+    }
+
+    /// <summary>
+    /// Write Memory from a managed <typeparamref name="T" /> Array to a given Virtual Address.
+    /// </summary>
+    /// <typeparam name="T">Value Type.</typeparam>
+    /// <param name="pid">Process ID (PID) this operation will take place within.</param>
+    /// <param name="va">Virtual Address to write to.</param>
+    /// <param name="data">Managed <typeparamref name="T" /> array to write.</param>
+    /// <returns>True if write successful, otherwise False.</returns>
+    public unsafe bool MemWriteArray<T>(uint pid, ulong va, T[] data)
+        where T : unmanaged
+    {
+        ThrowIfMemWritesDisabled();
+        var cb = (uint)sizeof(T) * (uint)data.Length;
+        fixed (T* pb = data)
+        {
+            return Vmmi.VMMDLL_MemWrite(_h, pid, va, (byte*)pb, cb);
+        }
+    }
+
+    /// <summary>
+    /// Write memory from a Span of <typeparamref name="T" /> to a specified memory address.
+    /// </summary>
+    /// <typeparam name="T">Value Type</typeparam>
+    /// <param name="pid">Process ID (PID) this operation will take place within.</param>
+    /// <param name="va">Memory address to write to.</param>
+    /// <param name="span">Span to write from.</param>
+    /// <returns>True if successful, otherwise False.</returns>
+    public unsafe bool MemWriteSpan<T>(uint pid, ulong va, Span<T> span)
+        where T : unmanaged
+    {
+        ThrowIfMemWritesDisabled();
+        var cb = (uint)(sizeof(T) * span.Length);
+        fixed (T* pb = span)
+        {
+            return Vmmi.VMMDLL_MemWrite(_h, pid, va, (byte*)pb, cb);
+        }
+    }
+
+    /// <summary>
+    /// Translate a virtual address to a physical address.
+    /// </summary>
+    /// <param name="pid">Process ID (PID) this operation will take place within.</param>
+    /// <param name="va">Virtual address to translate from.</param>
+    /// <returns>Physical address if successful, zero on fail.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public ulong MemVirt2Phys(uint pid, ulong va)
+    {
+        Vmmi.VMMDLL_MemVirt2Phys(_h, pid, va, out var pa);
+        return pa;
+    }
+
+    /// <summary>
+    /// Initialize a Scatter Memory Read handle used to read multiple virtual memory regions in a single call.
+    /// </summary>
+    /// <param name="pid">PID to create VmmScatter over.</param>
+    /// <param name="flags">Vmm Flags.</param>
+    /// <returns>A VmmScatterMemory handle.</returns>
+    public VmmScatter CreateScatter(uint pid, uint flags = 0) =>
+        new VmmScatter(this, pid, flags);
 
     #endregion
 
@@ -466,14 +775,29 @@ public sealed class Vmm : IDisposable
     //---------------------------------------------------------------------
 
     /// <summary>
+    /// Lookup a Process ID (PID) by its process name.
+    /// NOTE: Recommend using CreateProcess instead.
+    /// </summary>
+    /// <param name="sProcName">Process name to get.</param>
+    /// <returns>PID if process is running.</returns>
+    /// <exception cref="VmmException"></exception>
+    public uint GetPidFromName(string sProcName)
+    {
+        if (!Vmmi.VMMDLL_PidGetFromName(_h, sProcName, out var pdwPID))
+            throw new VmmException("VMMDLL_PidGetFromName FAIL");
+        return pdwPID;
+    }
+
+    /// <summary>
     /// Lookup a process by its name.
     /// Validation is also performed to ensure the process is valid.
     /// </summary>
     /// <param name="sProcName">Process name to get.</param>
     /// <returns>A VmmProcess if successful, if unsuccessful null.</returns>
-    public VmmProcess GetProcessByName(string sProcName)
+    public VmmProcess CreateProcess(string sProcName)
     {
-        if (Vmmi.VMMDLL_PidGetFromName(_h, sProcName, out var pdwPID)) return new VmmProcess(this, pdwPID);
+        if (Vmmi.VMMDLL_PidGetFromName(_h, sProcName, out var pdwPID)) 
+            return CreateProcess(pdwPID);
         return null;
     }
 
@@ -483,7 +807,7 @@ public sealed class Vmm : IDisposable
     /// </summary>
     /// <param name="pid">Process ID to get.</param>
     /// <returns>A VmmProcess if successful, if unsuccessful null.</returns>
-    public VmmProcess GetProcessByPID(uint pid)
+    public VmmProcess CreateProcess(uint pid)
     {
         var process = new VmmProcess(this, pid);
         if (process.GetInfo() is VmmProcess.ProcessInfo info && info.fValid)
@@ -493,12 +817,14 @@ public sealed class Vmm : IDisposable
 
     /// <summary>
     /// Returns All Processes on the Target System.
+    /// NOTE: No validation is performed on the processes returned.
     /// </summary>
     public VmmProcess[] Processes =>
         PIDs.Select(pid => new VmmProcess(this, pid)).ToArray();
 
     /// <summary>
     /// Returns All Process IDs on the Target System.
+    /// NOTE: No validation is performed on the PIDs returned.
     /// </summary>
     public unsafe uint[] PIDs
     {
@@ -507,13 +833,16 @@ public sealed class Vmm : IDisposable
             bool result;
             ulong c = 0;
             result = Vmmi.VMMDLL_PidList(_h, null, ref c);
-            if (!result || c == 0) return Array.Empty<uint>();
+            if (!result || c == 0) 
+                return Array.Empty<uint>();
             fixed (byte* pb = new byte[c * 4])
             {
                 result = Vmmi.VMMDLL_PidList(_h, pb, ref c);
-                if (!result || c == 0) return Array.Empty<uint>();
+                if (!result || c == 0) 
+                    return Array.Empty<uint>();
                 var m = new uint[c];
-                for (ulong i = 0; i < c; i++) m[i] = (uint)Marshal.ReadInt32((IntPtr)(pb + i * 4));
+                for (ulong i = 0; i < c; i++) 
+                    m[i] = (uint)Marshal.ReadInt32((IntPtr)(pb + i * 4));
                 return m;
             }
         }
@@ -1285,13 +1614,12 @@ public sealed class Vmm : IDisposable
         Vmmi.VMMDLL_Log(_h, MID, (uint)logLevel, "%s", message);
     }
 
-    private VmmKernel _kernel;
-
     /// <summary>
-    /// VmmKernel convenience object.
+    /// Create a VmmKernel object for system kernel mode operations.
     /// </summary>
-    /// <returns>The VmmKernel object.</returns>
-    public VmmKernel Kernel => _kernel ??= new VmmKernel(this);
+    /// <returns></returns>
+    public VmmKernel CreateKernel() => 
+        new VmmKernel(this);
 
     /// <summary>
     /// Create a VmmSearch object for searching memory.
