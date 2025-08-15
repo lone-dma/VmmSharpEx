@@ -130,7 +130,7 @@ namespace VmmSharpEx
             public byte[] pb;
         }
 
-        [System.Runtime.InteropServices.StructLayoutAttribute(System.Runtime.InteropServices.LayoutKind.Sequential, CharSet = CharSet.Ansi)]
+        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Ansi)]
         public struct LCConfig
         {
             public uint dwVersion;
@@ -174,7 +174,7 @@ namespace VmmSharpEx
         /// <returns>Initialized LeechCore Instance.</returns>
         public static unsafe LeechCore Create(ref LCConfig pLcCreateConfig, out LCConfigErrorInfo configErrorInfo)
         {
-            int cbERROR_INFO = System.Runtime.InteropServices.Marshal.SizeOf<Lci.LC_CONFIG_ERRORINFO>();
+            int cbERROR_INFO = Marshal.SizeOf<Lci.LC_CONFIG_ERRORINFO>();
             IntPtr hLC = Lci.LcCreateEx(ref pLcCreateConfig, out var pLcErrorInfo);
             configErrorInfo = new LCConfigErrorInfo
             {
@@ -381,7 +381,7 @@ namespace VmmSharpEx
         {
             if (!Lci.LcAllocScatter1((uint)pas.Length, out IntPtr pppMEMs))
                 throw new VmmException("LcAllocScatter1 FAIL");
-            var ppMEMs = (MEM_SCATTER_INTERNAL**)pppMEMs.ToPointer();
+            var ppMEMs = (Lci.LC_MEM_SCATTER**)pppMEMs.ToPointer();
             for (int i = 0; i < pas.Length; i++)
             {
                 var pMEM = ppMEMs[i];
@@ -396,21 +396,6 @@ namespace VmmSharpEx
                     results[pMEM->qwA] = new SCATTER_PAGE(pMEM->pb);
             }
             return new SCATTER_HANDLE(results, pppMEMs);
-        }
-
-        /// <summary>
-        /// From tdMEM_SCATTER in Leechcore.h
-        /// </summary>
-        [StructLayout(LayoutKind.Sequential, Pack = 8)]
-        internal unsafe struct MEM_SCATTER_INTERNAL
-        {
-            private readonly uint version;    // DWORD
-            public int f;                     // BOOL (TRUE=1, FALSE=0)
-            public ulong qwA;                 // QWORD
-            public readonly IntPtr pb;        // PBYTE
-            private readonly uint cb;         // DWORD
-            private readonly uint iStack;     // DWORD
-            private fixed ulong vStack[12];   // internal stack
         }
 
         /// <summary>
@@ -557,7 +542,7 @@ namespace VmmSharpEx
                 throw new VmmException("LcAllocScatter1 FAIL");
             try
             {
-                var ppMEMs = (MEM_SCATTER_INTERNAL**)pppMEMs.ToPointer();
+                var ppMEMs = (Lci.LC_MEM_SCATTER**)pppMEMs.ToPointer();
                 for (int i = 0; i < MEMs.Length; i++)
                 {
                     var entry = MEMs[i];

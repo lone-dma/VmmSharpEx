@@ -65,7 +65,7 @@ namespace VmmSharpEx.Internal
         internal const uint VMMDLL_VFS_FILELIST_EXINFO_VERSION = 1;
         internal const uint VMMDLL_VFS_FILELIST_VERSION = 2;
 
-        [System.Runtime.InteropServices.StructLayoutAttribute(System.Runtime.InteropServices.LayoutKind.Sequential)]
+        [StructLayout(LayoutKind.Sequential)]
         internal struct VMMDLL_VFS_FILELIST
         {
             internal uint dwVersion;
@@ -78,7 +78,7 @@ namespace VmmSharpEx.Internal
         internal const ulong VMMDLL_PROCESS_INFORMATION_MAGIC = 0xc0ffee663df9301e;
         internal const ushort VMMDLL_PROCESS_INFORMATION_VERSION = 7;
 
-        [System.Runtime.InteropServices.StructLayoutAttribute(System.Runtime.InteropServices.LayoutKind.Sequential, CharSet = CharSet.Ansi)]
+        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Ansi)]
         internal struct VMMDLL_PROCESS_INFORMATION
         {
             internal ulong magic;
@@ -114,7 +114,7 @@ namespace VmmSharpEx.Internal
             internal uint cMap;
         }
 
-        [System.Runtime.InteropServices.StructLayoutAttribute(System.Runtime.InteropServices.LayoutKind.Sequential)]
+        [StructLayout(LayoutKind.Sequential)]
         internal struct VMMDLL_MAP_PTEENTRY
         {
             internal ulong vaBase;
@@ -127,7 +127,7 @@ namespace VmmSharpEx.Internal
             internal uint cSoftware;
         }
 
-        [System.Runtime.InteropServices.StructLayoutAttribute(System.Runtime.InteropServices.LayoutKind.Sequential)]
+        [StructLayout(LayoutKind.Sequential)]
         internal struct VMMDLL_MAP_PTE
         {
             internal uint dwVersion;
@@ -138,7 +138,7 @@ namespace VmmSharpEx.Internal
         }
 
 
-        [System.Runtime.InteropServices.StructLayoutAttribute(System.Runtime.InteropServices.LayoutKind.Sequential, CharSet = CharSet.Ansi)]
+        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Ansi)]
         internal struct VMMDLL_IMAGE_SECTION_HEADER
         {
             [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 8)] internal string Name;
@@ -153,14 +153,14 @@ namespace VmmSharpEx.Internal
             internal uint Characteristics;
         }
 
-        [System.Runtime.InteropServices.StructLayoutAttribute(System.Runtime.InteropServices.LayoutKind.Sequential)]
+        [StructLayout(LayoutKind.Sequential)]
         internal struct VMMDLL_IMAGE_DATA_DIRECTORY
         {
             internal uint VirtualAddress;
             internal uint Size;
         }
 
-        [System.Runtime.InteropServices.StructLayoutAttribute(System.Runtime.InteropServices.LayoutKind.Sequential)]
+        [StructLayout(LayoutKind.Sequential)]
         internal struct VMMDLL_MAP_VADENTRY
         {
             internal ulong vaStart;
@@ -181,7 +181,7 @@ namespace VmmSharpEx.Internal
             internal ulong _Reserved2;
         }
 
-        [System.Runtime.InteropServices.StructLayoutAttribute(System.Runtime.InteropServices.LayoutKind.Sequential)]
+        [StructLayout(LayoutKind.Sequential)]
         internal struct VMMDLL_MAP_VAD
         {
             internal uint dwVersion;
@@ -192,7 +192,7 @@ namespace VmmSharpEx.Internal
             internal uint cMap;
         }
 
-        [System.Runtime.InteropServices.StructLayoutAttribute(System.Runtime.InteropServices.LayoutKind.Sequential)]
+        [StructLayout(LayoutKind.Sequential)]
         internal struct VMMDLL_MAP_VADEXENTRY
         {
             internal uint tp;
@@ -209,7 +209,7 @@ namespace VmmSharpEx.Internal
             internal ulong vaVadBase;
         }
 
-        [System.Runtime.InteropServices.StructLayoutAttribute(System.Runtime.InteropServices.LayoutKind.Sequential)]
+        [StructLayout(LayoutKind.Sequential)]
         internal struct VMMDLL_MAP_VADEX
         {
             internal uint dwVersion;
@@ -217,7 +217,7 @@ namespace VmmSharpEx.Internal
             internal uint cMap;
         }
 
-        [System.Runtime.InteropServices.StructLayoutAttribute(System.Runtime.InteropServices.LayoutKind.Sequential)]
+        [StructLayout(LayoutKind.Sequential)]
         internal struct VMMDLL_MAP_UNLOADEDMODULEENTRY
         {
             internal ulong vaBase;
@@ -240,7 +240,7 @@ namespace VmmSharpEx.Internal
             internal uint cMap;
         }
 
-        [System.Runtime.InteropServices.StructLayoutAttribute(System.Runtime.InteropServices.LayoutKind.Sequential)]
+        [StructLayout(LayoutKind.Sequential)]
         internal struct VMMDLL_MAP_MODULEENTRY_DEBUGINFO
         {
             internal uint dwAge;
@@ -250,7 +250,7 @@ namespace VmmSharpEx.Internal
             [MarshalAs(UnmanagedType.LPUTF8Str)] internal string uszPdbFilename;
         }
 
-        [System.Runtime.InteropServices.StructLayoutAttribute(System.Runtime.InteropServices.LayoutKind.Sequential)]
+        [StructLayout(LayoutKind.Sequential)]
         internal struct VMMDLL_MAP_MODULEENTRY_VERSIONINFO
         {
             [MarshalAs(UnmanagedType.LPUTF8Str)] internal string uszCompanyName;
@@ -263,7 +263,7 @@ namespace VmmSharpEx.Internal
             [MarshalAs(UnmanagedType.LPUTF8Str)] internal string uszProductVersion;
         }
 
-        [System.Runtime.InteropServices.StructLayoutAttribute(System.Runtime.InteropServices.LayoutKind.Sequential)]
+        [StructLayout(LayoutKind.Sequential)]
         internal struct VMMDLL_MAP_MODULEENTRY
         {
             internal ulong vaBase;
@@ -285,7 +285,7 @@ namespace VmmSharpEx.Internal
             internal IntPtr pExVersionInfo;
         }
 
-        [System.Runtime.InteropServices.StructLayoutAttribute(System.Runtime.InteropServices.LayoutKind.Sequential)]
+        [StructLayout(LayoutKind.Sequential)]
         internal struct VMMDLL_MAP_EATENTRY
         {
             internal ulong vaFunction;
@@ -313,7 +313,7 @@ namespace VmmSharpEx.Internal
             internal uint cMap;
         }
 
-        [System.Runtime.InteropServices.StructLayoutAttribute(System.Runtime.InteropServices.LayoutKind.Sequential)]
+        [StructLayout(LayoutKind.Sequential)]
         internal struct VMMDLL_MAP_IATENTRY
         {
             internal ulong vaFunction;
@@ -340,7 +340,7 @@ namespace VmmSharpEx.Internal
             internal uint cMap;
         }
 
-        [System.Runtime.InteropServices.StructLayoutAttribute(System.Runtime.InteropServices.LayoutKind.Sequential)]
+        [StructLayout(LayoutKind.Sequential)]
         internal struct VMMDLL_MAP_HEAPENTRY
         {
             internal ulong va;
@@ -350,7 +350,7 @@ namespace VmmSharpEx.Internal
             internal uint dwHeapNum;
         }
 
-        [System.Runtime.InteropServices.StructLayoutAttribute(System.Runtime.InteropServices.LayoutKind.Sequential)]
+        [StructLayout(LayoutKind.Sequential)]
         internal struct VMMDLL_MAP_HEAPSEGMENTENTRY
         {
             internal ulong va;
@@ -359,7 +359,7 @@ namespace VmmSharpEx.Internal
             internal ushort iHeap;
         }
 
-        [System.Runtime.InteropServices.StructLayoutAttribute(System.Runtime.InteropServices.LayoutKind.Sequential)]
+        [StructLayout(LayoutKind.Sequential)]
         internal struct VMMDLL_MAP_HEAP
         {
             internal uint dwVersion;
@@ -369,7 +369,7 @@ namespace VmmSharpEx.Internal
             internal uint cMap;
         }
 
-        [System.Runtime.InteropServices.StructLayoutAttribute(System.Runtime.InteropServices.LayoutKind.Sequential)]
+        [StructLayout(LayoutKind.Sequential)]
         internal struct VMMDLL_MAP_HEAPALLOCENTRY
         {
             internal ulong va;
@@ -377,7 +377,7 @@ namespace VmmSharpEx.Internal
             internal uint tp;
         }
 
-        [System.Runtime.InteropServices.StructLayoutAttribute(System.Runtime.InteropServices.LayoutKind.Sequential)]
+        [StructLayout(LayoutKind.Sequential)]
         internal struct VMMDLL_MAP_HEAPALLOC
         {
             internal uint dwVersion;
@@ -387,7 +387,7 @@ namespace VmmSharpEx.Internal
             internal uint cMap;
         }
 
-        [System.Runtime.InteropServices.StructLayoutAttribute(System.Runtime.InteropServices.LayoutKind.Sequential)]
+        [StructLayout(LayoutKind.Sequential)]
         internal struct VMMDLL_MAP_THREADENTRY
         {
             internal uint dwTID;
@@ -420,7 +420,7 @@ namespace VmmSharpEx.Internal
             internal ulong vaWin32StartAddress;
         }
 
-        [System.Runtime.InteropServices.StructLayoutAttribute(System.Runtime.InteropServices.LayoutKind.Sequential)]
+        [StructLayout(LayoutKind.Sequential)]
         internal struct VMMDLL_MAP_THREAD
         {
             internal uint dwVersion;
@@ -428,7 +428,7 @@ namespace VmmSharpEx.Internal
             internal uint cMap;
         }
 
-        [System.Runtime.InteropServices.StructLayoutAttribute(System.Runtime.InteropServices.LayoutKind.Sequential)]
+        [StructLayout(LayoutKind.Sequential)]
         internal struct VMMDLL_MAP_THREAD_CALLSTACKENTRY
         {
             internal uint i;
@@ -442,7 +442,7 @@ namespace VmmSharpEx.Internal
             [MarshalAs(UnmanagedType.LPUTF8Str)] internal string uszFunction;
         }
 
-        [System.Runtime.InteropServices.StructLayoutAttribute(System.Runtime.InteropServices.LayoutKind.Sequential)]
+        [StructLayout(LayoutKind.Sequential)]
         internal struct VMMDLL_MAP_THREAD_CALLSTACK
         {
             internal uint dwVersion;
@@ -456,7 +456,7 @@ namespace VmmSharpEx.Internal
             internal uint cMap;
         }
 
-        [System.Runtime.InteropServices.StructLayoutAttribute(System.Runtime.InteropServices.LayoutKind.Sequential)]
+        [StructLayout(LayoutKind.Sequential)]
         internal struct VMMDLL_MAP_HANDLEENTRY
         {
             internal ulong vaObject;
@@ -474,7 +474,7 @@ namespace VmmSharpEx.Internal
             [MarshalAs(UnmanagedType.LPUTF8Str)] internal string uszType;
         }
 
-        [System.Runtime.InteropServices.StructLayoutAttribute(System.Runtime.InteropServices.LayoutKind.Sequential)]
+        [StructLayout(LayoutKind.Sequential)]
         internal struct VMMDLL_MAP_HANDLE
         {
             internal uint dwVersion;
@@ -484,7 +484,7 @@ namespace VmmSharpEx.Internal
             internal uint cMap;
         }
 
-        [System.Runtime.InteropServices.StructLayoutAttribute(System.Runtime.InteropServices.LayoutKind.Sequential)]
+        [StructLayout(LayoutKind.Sequential)]
         internal struct VMMDLL_MAP_NETENTRY
         {
             internal uint dwPID;
@@ -512,7 +512,7 @@ namespace VmmSharpEx.Internal
             [MarshalAs(UnmanagedType.ByValArray, SizeConst = 4)] internal uint[] _FutureUse2;
         }
 
-        [System.Runtime.InteropServices.StructLayoutAttribute(System.Runtime.InteropServices.LayoutKind.Sequential)]
+        [StructLayout(LayoutKind.Sequential)]
         internal struct VMMDLL_MAP_NET
         {
             internal uint dwVersion;
@@ -522,14 +522,14 @@ namespace VmmSharpEx.Internal
             internal uint cMap;
         }
 
-        [System.Runtime.InteropServices.StructLayoutAttribute(System.Runtime.InteropServices.LayoutKind.Sequential)]
+        [StructLayout(LayoutKind.Sequential)]
         internal struct VMMDLL_MAP_PHYSMEMENTRY
         {
             internal ulong pa;
             internal ulong cb;
         }
 
-        [System.Runtime.InteropServices.StructLayoutAttribute(System.Runtime.InteropServices.LayoutKind.Sequential)]
+        [StructLayout(LayoutKind.Sequential)]
         internal struct VMMDLL_MAP_PHYSMEM
         {
             internal uint dwVersion;
@@ -538,7 +538,7 @@ namespace VmmSharpEx.Internal
             internal uint _Reserved2;
         }
 
-        [System.Runtime.InteropServices.StructLayoutAttribute(System.Runtime.InteropServices.LayoutKind.Sequential)]
+        [StructLayout(LayoutKind.Sequential)]
         internal struct VMMDLL_MAP_KDEVICEENTRY
         {
             internal ulong va;
@@ -551,7 +551,7 @@ namespace VmmSharpEx.Internal
             [MarshalAs(UnmanagedType.LPUTF8Str)] internal string uszVolumeInfo;
         }
 
-        [System.Runtime.InteropServices.StructLayoutAttribute(System.Runtime.InteropServices.LayoutKind.Sequential)]
+        [StructLayout(LayoutKind.Sequential)]
         internal struct VMMDLL_MAP_KDEVICE
         {
             internal uint dwVersion;
@@ -561,7 +561,7 @@ namespace VmmSharpEx.Internal
             internal uint cMap;
         }
 
-        [System.Runtime.InteropServices.StructLayoutAttribute(System.Runtime.InteropServices.LayoutKind.Sequential)]
+        [StructLayout(LayoutKind.Sequential)]
         internal struct VMMDLL_MAP_KDRIVERENTRY
         {
             internal ulong va;
@@ -574,7 +574,7 @@ namespace VmmSharpEx.Internal
             [MarshalAs(UnmanagedType.ByValArray, SizeConst = 28)] internal ulong[] MajorFunction;
         }
 
-        [System.Runtime.InteropServices.StructLayoutAttribute(System.Runtime.InteropServices.LayoutKind.Sequential)]
+        [StructLayout(LayoutKind.Sequential)]
         internal struct VMMDLL_MAP_KDRIVER
         {
             internal uint dwVersion;
@@ -584,7 +584,7 @@ namespace VmmSharpEx.Internal
             internal uint cMap;
         }
 
-        [System.Runtime.InteropServices.StructLayoutAttribute(System.Runtime.InteropServices.LayoutKind.Sequential)]
+        [StructLayout(LayoutKind.Sequential)]
         internal struct VMMDLL_MAP_KOBJECTENTRY
         {
             internal ulong va;
@@ -596,7 +596,7 @@ namespace VmmSharpEx.Internal
             [MarshalAs(UnmanagedType.LPUTF8Str)] internal string uszType;
         }
 
-        [System.Runtime.InteropServices.StructLayoutAttribute(System.Runtime.InteropServices.LayoutKind.Sequential)]
+        [StructLayout(LayoutKind.Sequential)]
         internal struct VMMDLL_MAP_KOBJECT
         {
             internal uint dwVersion;
@@ -609,7 +609,7 @@ namespace VmmSharpEx.Internal
         internal const uint VMMDLL_POOLMAP_FLAG_ALL = 0;
         internal const uint VMMDLL_POOLMAP_FLAG_BIG = 1;
 
-        [System.Runtime.InteropServices.StructLayoutAttribute(System.Runtime.InteropServices.LayoutKind.Sequential)]
+        [StructLayout(LayoutKind.Sequential)]
         internal struct VMMDLL_MAP_POOLENTRY
         {
             internal ulong va;
@@ -622,7 +622,7 @@ namespace VmmSharpEx.Internal
             internal uint _Filler;
         }
 
-        [System.Runtime.InteropServices.StructLayoutAttribute(System.Runtime.InteropServices.LayoutKind.Sequential)]
+        [StructLayout(LayoutKind.Sequential)]
         internal struct VMMDLL_MAP_POOL
         {
             internal uint dwVersion;
@@ -634,7 +634,7 @@ namespace VmmSharpEx.Internal
             internal uint cMap;
         }
 
-        [System.Runtime.InteropServices.StructLayoutAttribute(System.Runtime.InteropServices.LayoutKind.Sequential, CharSet = CharSet.Ansi)]
+        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Ansi)]
         internal struct VMMDLL_MAP_USERENTRY
         {
             [MarshalAs(UnmanagedType.ByValArray, SizeConst = 2)] internal uint[] _FutureUse1;
@@ -644,7 +644,7 @@ namespace VmmSharpEx.Internal
             [MarshalAs(UnmanagedType.ByValArray, SizeConst = 2)] internal uint[] _FutureUse2;
         }
 
-        [System.Runtime.InteropServices.StructLayoutAttribute(System.Runtime.InteropServices.LayoutKind.Sequential)]
+        [StructLayout(LayoutKind.Sequential)]
         internal struct VMMDLL_MAP_USER
         {
             internal uint dwVersion;
@@ -654,7 +654,7 @@ namespace VmmSharpEx.Internal
             internal uint cMap;
         }
 
-        [System.Runtime.InteropServices.StructLayoutAttribute(System.Runtime.InteropServices.LayoutKind.Sequential)]
+        [StructLayout(LayoutKind.Sequential)]
         internal struct VMMDLL_MAP_VMENTRY
         {
             internal ulong hVM;
@@ -671,7 +671,7 @@ namespace VmmSharpEx.Internal
             internal uint dwVmMemPID;
         }
 
-        [System.Runtime.InteropServices.StructLayoutAttribute(System.Runtime.InteropServices.LayoutKind.Sequential)]
+        [StructLayout(LayoutKind.Sequential)]
         internal struct VMMDLL_MAP_VM
         {
             internal uint dwVersion;
@@ -681,7 +681,7 @@ namespace VmmSharpEx.Internal
             internal uint cMap;
         }
 
-        [System.Runtime.InteropServices.StructLayoutAttribute(System.Runtime.InteropServices.LayoutKind.Sequential)]
+        [StructLayout(LayoutKind.Sequential)]
         internal struct VMMDLL_MAP_SERVICEENTRY
         {
             internal ulong vaObj;
@@ -707,7 +707,7 @@ namespace VmmSharpEx.Internal
             internal ulong _FutureUse2;
         }
 
-        [System.Runtime.InteropServices.StructLayoutAttribute(System.Runtime.InteropServices.LayoutKind.Sequential)]
+        [StructLayout(LayoutKind.Sequential)]
         internal struct VMMDLL_MAP_SERVICE
         {
             internal uint dwVersion;
@@ -717,7 +717,7 @@ namespace VmmSharpEx.Internal
             internal uint cMap;
         }
 
-        [System.Runtime.InteropServices.StructLayoutAttribute(System.Runtime.InteropServices.LayoutKind.Sequential)]
+        [StructLayout(LayoutKind.Sequential)]
         internal struct VMMDLL_MAP_PFNENTRY
         {
             internal uint dwPfn;
@@ -731,7 +731,7 @@ namespace VmmSharpEx.Internal
             [MarshalAs(UnmanagedType.ByValArray, SizeConst = 6)] internal uint[] _FutureUse;
         }
 
-        [System.Runtime.InteropServices.StructLayoutAttribute(System.Runtime.InteropServices.LayoutKind.Sequential)]
+        [StructLayout(LayoutKind.Sequential)]
         internal struct VMMDLL_MAP_PFN
         {
             internal uint dwVersion;
@@ -740,7 +740,7 @@ namespace VmmSharpEx.Internal
             internal uint _Reserved2;
         }
 
-        [System.Runtime.InteropServices.StructLayoutAttribute(System.Runtime.InteropServices.LayoutKind.Sequential)]
+        [StructLayout(LayoutKind.Sequential)]
         internal struct VMMDLL_REGISTRY_HIVE_INFORMATION
         {
             internal ulong magic;
@@ -756,7 +756,7 @@ namespace VmmSharpEx.Internal
             [MarshalAs(UnmanagedType.ByValArray, SizeConst = 0x10)] internal ulong[] _FutureReserved;
         }
 
-        [System.Runtime.InteropServices.StructLayoutAttribute(System.Runtime.InteropServices.LayoutKind.Sequential)]
+        [StructLayout(LayoutKind.Sequential)]
         internal struct VMMDLL_MEM_SEARCH_CONTEXT_SEARCHENTRY
         {
             internal uint cbAlign;
@@ -770,7 +770,7 @@ namespace VmmSharpEx.Internal
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
         internal delegate bool SearchResultCallback(VMMDLL_MEM_SEARCH_CONTEXT ctx, ulong va, uint iSearch);
 
-        [System.Runtime.InteropServices.StructLayoutAttribute(System.Runtime.InteropServices.LayoutKind.Sequential)]
+        [StructLayout(LayoutKind.Sequential)]
         internal struct VMMDLL_MEM_SEARCH_CONTEXT
         {
             internal uint dwVersion;

@@ -4,7 +4,7 @@ namespace VmmSharpEx.Internal
 {
     internal static partial class Lci
     {
-        [System.Runtime.InteropServices.StructLayoutAttribute(System.Runtime.InteropServices.LayoutKind.Sequential)]
+        [StructLayout(LayoutKind.Sequential)]
         internal struct LC_CONFIG_ERRORINFO
         {
             internal uint dwVersion;
@@ -15,16 +15,16 @@ namespace VmmSharpEx.Internal
             // szUserText
         }
 
-        [System.Runtime.InteropServices.StructLayoutAttribute(System.Runtime.InteropServices.LayoutKind.Sequential)]
+        [StructLayout(LayoutKind.Sequential, Pack = 8)]
         internal struct LC_MEM_SCATTER
         {
-            internal uint version;
-            internal bool f;
+            private readonly uint version;
+            internal int f;
             internal ulong qwA;
-            internal IntPtr pb;
-            internal uint cb;
-            internal uint iStack;
-            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 12)] internal ulong[] vStack;
+            internal readonly IntPtr pb;
+            private readonly uint cb;
+            private readonly uint iStack;
+            private unsafe fixed ulong vStack[12];
         }
 
 #pragma warning disable SYSLIB1054 // Use 'LibraryImportAttribute' instead of 'DllImportAttribute' to generate P/Invoke marshalling code at compile time

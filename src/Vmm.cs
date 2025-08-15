@@ -53,7 +53,7 @@ namespace VmmSharpEx
         /// </summary>
         private static unsafe IntPtr Create(out LeechCore.LCConfigErrorInfo configErrorInfo, params string[] args)
         {
-            int cbERROR_INFO = System.Runtime.InteropServices.Marshal.SizeOf<Lci.LC_CONFIG_ERRORINFO>();
+            int cbERROR_INFO = Marshal.SizeOf<Lci.LC_CONFIG_ERRORINFO>();
             IntPtr hVMM = Vmmi.VMMDLL_InitializeEx(args.Length, args, out var pLcErrorInfo);
             long vaLcCreateErrorInfo = pLcErrorInfo.ToInt64();
             configErrorInfo = new LeechCore.LCConfigErrorInfo
@@ -310,7 +310,7 @@ namespace VmmSharpEx
         // VFS (VIRTUAL FILE SYSTEM) FUNCTIONALITY BELOW:
         //---------------------------------------------------------------------
 
-        [System.Runtime.InteropServices.StructLayoutAttribute(System.Runtime.InteropServices.LayoutKind.Sequential)]
+        [StructLayout(LayoutKind.Sequential)]
         public struct VMMDLL_VFS_FILELIST_EXINFO
         {
             public uint dwVersion;
@@ -590,7 +590,7 @@ namespace VmmSharpEx
         public unsafe RegHiveEntry[] RegHiveList()
         {
             bool result;
-            int cbENTRY = System.Runtime.InteropServices.Marshal.SizeOf<Vmmi.VMMDLL_REGISTRY_HIVE_INFORMATION>();
+            int cbENTRY = Marshal.SizeOf<Vmmi.VMMDLL_REGISTRY_HIVE_INFORMATION>();
             result = Vmmi.VMMDLL_WinReg_HiveList(_h, null, 0, out var cHives);
             if (!result || (cHives == 0)) { return Array.Empty<RegHiveEntry>(); }
             fixed (byte* pb = new byte[cHives * cbENTRY])
@@ -898,8 +898,8 @@ namespace VmmSharpEx
 
         public unsafe NetEntry[] MapNet()
         {
-            int cbMAP = System.Runtime.InteropServices.Marshal.SizeOf<Vmmi.VMMDLL_MAP_NET>();
-            int cbENTRY = System.Runtime.InteropServices.Marshal.SizeOf<Vmmi.VMMDLL_MAP_NETENTRY>();
+            int cbMAP = Marshal.SizeOf<Vmmi.VMMDLL_MAP_NET>();
+            int cbENTRY = Marshal.SizeOf<Vmmi.VMMDLL_MAP_NETENTRY>();
             NetEntry[] m = Array.Empty<NetEntry>();
             if (!Vmmi.VMMDLL_Map_GetNet(_h, out var pMap)) { goto fail; }
             Vmmi.VMMDLL_MAP_NET nM = Marshal.PtrToStructure<Vmmi.VMMDLL_MAP_NET>(pMap);
@@ -937,8 +937,8 @@ namespace VmmSharpEx
         /// <returns>An array of MemoryEntry elements.</returns>
         public unsafe MemoryEntry[] MapMemory()
         {
-            int cbMAP = System.Runtime.InteropServices.Marshal.SizeOf<Vmmi.VMMDLL_MAP_PHYSMEM>();
-            int cbENTRY = System.Runtime.InteropServices.Marshal.SizeOf<Vmmi.VMMDLL_MAP_PHYSMEMENTRY>();
+            int cbMAP = Marshal.SizeOf<Vmmi.VMMDLL_MAP_PHYSMEM>();
+            int cbENTRY = Marshal.SizeOf<Vmmi.VMMDLL_MAP_PHYSMEMENTRY>();
             MemoryEntry[] m = Array.Empty<MemoryEntry>();
             if (!Vmmi.VMMDLL_Map_GetPhysMem(_h, out var pMap)) { goto fail; }
             Vmmi.VMMDLL_MAP_PHYSMEM nM = Marshal.PtrToStructure<Vmmi.VMMDLL_MAP_PHYSMEM>(pMap);
@@ -963,8 +963,8 @@ namespace VmmSharpEx
         /// <returns>An array of KDeviceEntry elements.</returns>
         public unsafe KDeviceEntry[] MapKDevice()
         {
-            int cbMAP = System.Runtime.InteropServices.Marshal.SizeOf<Vmmi.VMMDLL_MAP_KDEVICE>();
-            int cbENTRY = System.Runtime.InteropServices.Marshal.SizeOf<Vmmi.VMMDLL_MAP_KDEVICEENTRY>();
+            int cbMAP = Marshal.SizeOf<Vmmi.VMMDLL_MAP_KDEVICE>();
+            int cbENTRY = Marshal.SizeOf<Vmmi.VMMDLL_MAP_KDEVICEENTRY>();
             KDeviceEntry[] m = Array.Empty<KDeviceEntry>();
             if (!Vmmi.VMMDLL_Map_GetKDevice(_h, out var pMap)) { goto fail; }
             Vmmi.VMMDLL_MAP_KDEVICE nM = Marshal.PtrToStructure<Vmmi.VMMDLL_MAP_KDEVICE>(pMap);
@@ -995,8 +995,8 @@ namespace VmmSharpEx
         /// <returns>An array of KDriverEntry elements.</returns>
         public unsafe KDriverEntry[] MapKDriver()
         {
-            int cbMAP = System.Runtime.InteropServices.Marshal.SizeOf<Vmmi.VMMDLL_MAP_KDRIVER>();
-            int cbENTRY = System.Runtime.InteropServices.Marshal.SizeOf<Vmmi.VMMDLL_MAP_KDRIVERENTRY>();
+            int cbMAP = Marshal.SizeOf<Vmmi.VMMDLL_MAP_KDRIVER>();
+            int cbENTRY = Marshal.SizeOf<Vmmi.VMMDLL_MAP_KDRIVERENTRY>();
             KDriverEntry[] m = Array.Empty<KDriverEntry>();
             if (!Vmmi.VMMDLL_Map_GetKDriver(_h, out var pMap)) { goto fail; }
             Vmmi.VMMDLL_MAP_KDRIVER nM = Marshal.PtrToStructure<Vmmi.VMMDLL_MAP_KDRIVER>(pMap);
@@ -1031,8 +1031,8 @@ namespace VmmSharpEx
         /// <returns>An array of KObjectEntry elements.</returns>
         public unsafe KObjectEntry[] MapKObject()
         {
-            int cbMAP = System.Runtime.InteropServices.Marshal.SizeOf<Vmmi.VMMDLL_MAP_KOBJECT>();
-            int cbENTRY = System.Runtime.InteropServices.Marshal.SizeOf<Vmmi.VMMDLL_MAP_KOBJECTENTRY>();
+            int cbMAP = Marshal.SizeOf<Vmmi.VMMDLL_MAP_KOBJECT>();
+            int cbENTRY = Marshal.SizeOf<Vmmi.VMMDLL_MAP_KOBJECTENTRY>();
             KObjectEntry[] m = Array.Empty<KObjectEntry>();
             if (!Vmmi.VMMDLL_Map_GetKObject(_h, out var pMap)) { goto fail; }
             Vmmi.VMMDLL_MAP_KOBJECT nM = Marshal.PtrToStructure<Vmmi.VMMDLL_MAP_KOBJECT>(pMap);
@@ -1066,8 +1066,8 @@ namespace VmmSharpEx
         public unsafe PoolEntry[] MapPool(bool isBigPoolOnly = false)
         {
             byte[] tag = { 0, 0, 0, 0 };
-            int cbMAP = System.Runtime.InteropServices.Marshal.SizeOf<Vmmi.VMMDLL_MAP_POOL>();
-            int cbENTRY = System.Runtime.InteropServices.Marshal.SizeOf<Vmmi.VMMDLL_MAP_POOLENTRY>();
+            int cbMAP = Marshal.SizeOf<Vmmi.VMMDLL_MAP_POOL>();
+            int cbENTRY = Marshal.SizeOf<Vmmi.VMMDLL_MAP_POOLENTRY>();
             uint flags = isBigPoolOnly ? Vmmi.VMMDLL_POOLMAP_FLAG_BIG : Vmmi.VMMDLL_POOLMAP_FLAG_ALL;
             if (!Vmmi.VMMDLL_Map_GetPool(_h, out var pN, flags)) { return Array.Empty<PoolEntry>(); }
             Vmmi.VMMDLL_MAP_POOL nM = Marshal.PtrToStructure<Vmmi.VMMDLL_MAP_POOL>(pN);
@@ -1101,8 +1101,8 @@ namespace VmmSharpEx
         /// <returns>An array of UserEntry elements.</returns>
         public unsafe UserEntry[] MapUser()
         {
-            int cbMAP = System.Runtime.InteropServices.Marshal.SizeOf<Vmmi.VMMDLL_MAP_USER>();
-            int cbENTRY = System.Runtime.InteropServices.Marshal.SizeOf<Vmmi.VMMDLL_MAP_USERENTRY>();
+            int cbMAP = Marshal.SizeOf<Vmmi.VMMDLL_MAP_USER>();
+            int cbENTRY = Marshal.SizeOf<Vmmi.VMMDLL_MAP_USERENTRY>();
             UserEntry[] m = Array.Empty<UserEntry>();
             if (!Vmmi.VMMDLL_Map_GetUsers(_h, out var pMap)) { goto fail; }
             Vmmi.VMMDLL_MAP_USER nM = Marshal.PtrToStructure<Vmmi.VMMDLL_MAP_USER>(pMap);
@@ -1128,8 +1128,8 @@ namespace VmmSharpEx
         /// <returns>An array of VirtualMachineEntry elements.</returns>
         public unsafe VirtualMachineEntry[] MapVirtualMachine()
         {
-            int cbMAP = System.Runtime.InteropServices.Marshal.SizeOf<Vmmi.VMMDLL_MAP_VM>();
-            int cbENTRY = System.Runtime.InteropServices.Marshal.SizeOf<Vmmi.VMMDLL_MAP_VMENTRY>();
+            int cbMAP = Marshal.SizeOf<Vmmi.VMMDLL_MAP_VM>();
+            int cbENTRY = Marshal.SizeOf<Vmmi.VMMDLL_MAP_VMENTRY>();
             VirtualMachineEntry[] m = Array.Empty<VirtualMachineEntry>();
             if (!Vmmi.VMMDLL_Map_GetVM(_h, out var pMap)) { goto fail; }
             Vmmi.VMMDLL_MAP_VM nM = Marshal.PtrToStructure<Vmmi.VMMDLL_MAP_VM>(pMap);
@@ -1164,8 +1164,8 @@ namespace VmmSharpEx
         /// <returns>An array of ServiceEntry elements.</returns>
         public unsafe ServiceEntry[] MapService()
         {
-            int cbMAP = System.Runtime.InteropServices.Marshal.SizeOf<Vmmi.VMMDLL_MAP_SERVICE>();
-            int cbENTRY = System.Runtime.InteropServices.Marshal.SizeOf<Vmmi.VMMDLL_MAP_SERVICEENTRY>();
+            int cbMAP = Marshal.SizeOf<Vmmi.VMMDLL_MAP_SERVICE>();
+            int cbENTRY = Marshal.SizeOf<Vmmi.VMMDLL_MAP_SERVICEENTRY>();
             ServiceEntry[] m = Array.Empty<ServiceEntry>();
             if (!Vmmi.VMMDLL_Map_GetServices(_h, out var pMap)) { goto fail; }
             Vmmi.VMMDLL_MAP_SERVICE nM = Marshal.PtrToStructure<Vmmi.VMMDLL_MAP_SERVICE>(pMap);
@@ -1208,8 +1208,8 @@ namespace VmmSharpEx
         {
             bool result;
             uint cbPfns;
-            int cbMAP = System.Runtime.InteropServices.Marshal.SizeOf<Vmmi.VMMDLL_MAP_PFN>();
-            int cbENTRY = System.Runtime.InteropServices.Marshal.SizeOf<Vmmi.VMMDLL_MAP_PFNENTRY>();
+            int cbMAP = Marshal.SizeOf<Vmmi.VMMDLL_MAP_PFN>();
+            int cbENTRY = Marshal.SizeOf<Vmmi.VMMDLL_MAP_PFNENTRY>();
             if (pfns.Length == 0) { return Array.Empty<PfnEntry>(); }
             byte[] dataPfns = new byte[pfns.Length * sizeof(uint)];
             System.Buffer.BlockCopy(pfns, 0, dataPfns, 0, dataPfns.Length);
