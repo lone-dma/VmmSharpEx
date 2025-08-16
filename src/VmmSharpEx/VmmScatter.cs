@@ -64,15 +64,15 @@ public sealed class VmmScatter : IDisposable
     {
         if (_h == IntPtr.Zero)
         {
-            return "VmmScatterMemory:NotValid";
+            return "VmmScatter:NotValid";
         }
 
         if (_pid == 0xFFFFFFFF)
         {
-            return "VmmScatterMemory:physical";
+            return "VmmScatter:physical";
         }
 
-        return $"VmmScatterMemory:virtual:{_pid}";
+        return $"VmmScatter:virtual:{_pid}";
     }
 
     #endregion
