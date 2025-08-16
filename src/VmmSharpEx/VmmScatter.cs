@@ -5,7 +5,7 @@ using VmmSharpEx.Internal;
 namespace VmmSharpEx;
 
 /// <summary>
-/// The VmmScatterMemory class is used to ease the reading and writing of memory in bulk using the VMM Scatter API.
+///     The VmmScatterMemory class is used to ease the reading and writing of memory in bulk using the VMM Scatter API.
 /// </summary>
 public sealed class VmmScatter : IDisposable
 {
@@ -31,7 +31,10 @@ public sealed class VmmScatter : IDisposable
     {
         var hS = Vmmi.VMMDLL_Scatter_Initialize(vmm, pid, flags);
         if (hS == IntPtr.Zero)
+        {
             throw new VmmException("Failed to create VmmScatter handle!");
+        }
+
         return hS;
     }
 
@@ -48,17 +51,26 @@ public sealed class VmmScatter : IDisposable
 
     private void Dispose(bool disposing)
     {
-        if (Interlocked.Exchange(ref _h, IntPtr.Zero) is IntPtr h && h != IntPtr.Zero) Vmmi.VMMDLL_Scatter_CloseHandle(h);
+        if (Interlocked.Exchange(ref _h, IntPtr.Zero) is IntPtr h && h != IntPtr.Zero)
+        {
+            Vmmi.VMMDLL_Scatter_CloseHandle(h);
+        }
     }
 
     /// <summary>
-    /// ToString override.
+    ///     ToString override.
     /// </summary>
     public override string ToString()
     {
-        if (_h == IntPtr.Zero) return "VmmScatterMemory:NotValid";
+        if (_h == IntPtr.Zero)
+        {
+            return "VmmScatterMemory:NotValid";
+        }
 
-        if (_pid == 0xFFFFFFFF) return "VmmScatterMemory:physical";
+        if (_pid == 0xFFFFFFFF)
+        {
+            return "VmmScatterMemory:physical";
+        }
 
         return $"VmmScatterMemory:virtual:{_pid}";
     }
@@ -68,7 +80,7 @@ public sealed class VmmScatter : IDisposable
     #region Memory Read/Write
 
     /// <summary>
-    /// Prepare to read memory of a certain size.
+    ///     Prepare to read memory of a certain size.
     /// </summary>
     /// <param name="qwA">Address of the memory to be read.</param>
     /// <param name="cb">Length in bytes of the data to be read.</param>
@@ -79,7 +91,7 @@ public sealed class VmmScatter : IDisposable
     }
 
     /// <summary>
-    /// Prepare to read memory of a certain struct.
+    ///     Prepare to read memory of a certain struct.
     /// </summary>
     /// <typeparam name="T">Struct type to read.</typeparam>
     /// <param name="qwA">Address of the memory to be read.</param>
@@ -92,7 +104,7 @@ public sealed class VmmScatter : IDisposable
     }
 
     /// <summary>
-    /// Prepare to read memory from a contiguous array of a certain struct.
+    ///     Prepare to read memory from a contiguous array of a certain struct.
     /// </summary>
     /// <typeparam name="T">Struct type to read.</typeparam>
     /// <param name="qwA">Address of the memory to be read.</param>
@@ -106,7 +118,7 @@ public sealed class VmmScatter : IDisposable
     }
 
     /// <summary>
-    /// Prepare to write bytes to memory.
+    ///     Prepare to write bytes to memory.
     /// </summary>
     /// <param name="qwA">The address where to write the data.</param>
     /// <param name="data">The data to write to memory.</param>
@@ -118,7 +130,7 @@ public sealed class VmmScatter : IDisposable
     }
 
     /// <summary>
-    /// Prepare to write an array of a certain struct to memory.
+    ///     Prepare to write an array of a certain struct to memory.
     /// </summary>
     /// <typeparam name="T">The type of struct to write.</typeparam>
     /// <param name="qwA">The address where to write the data.</param>
@@ -136,7 +148,7 @@ public sealed class VmmScatter : IDisposable
     }
 
     /// <summary>
-    /// Prepare to write a span of a certain struct to memory.
+    ///     Prepare to write a span of a certain struct to memory.
     /// </summary>
     /// <typeparam name="T">The type of struct to write.</typeparam>
     /// <param name="qwA">The address where to write the data.</param>
@@ -154,7 +166,7 @@ public sealed class VmmScatter : IDisposable
     }
 
     /// <summary>
-    /// Prepare to write a struct to memory.
+    ///     Prepare to write a struct to memory.
     /// </summary>
     /// <typeparam name="T">The type of struct to write.</typeparam>
     /// <param name="qwA">The address where to write the data.</param>
@@ -169,7 +181,7 @@ public sealed class VmmScatter : IDisposable
     }
 
     /// <summary>
-    /// Execute any prepared read and/or write operations.
+    ///     Execute any prepared read and/or write operations.
     /// </summary>
     /// <returns>true/false.</returns>
     public bool Execute()
@@ -178,7 +190,7 @@ public sealed class VmmScatter : IDisposable
     }
 
     /// <summary>
-    /// Read memory bytes from an address.
+    ///     Read memory bytes from an address.
     /// </summary>
     /// <param name="qwA">Address to read from.</param>
     /// <param name="cb">Bytes to read.</param>
@@ -190,7 +202,7 @@ public sealed class VmmScatter : IDisposable
     }
 
     /// <summary>
-    /// Read memory from an address into a struct type.
+    ///     Read memory from an address into a struct type.
     /// </summary>
     /// <typeparam name="T">The type of struct to read.</typeparam>
     /// <param name="qwA">Address to read from.</param>
@@ -205,16 +217,21 @@ public sealed class VmmScatter : IDisposable
         fixed (T* pb = &result)
         {
             if (!Vmmi.VMMDLL_Scatter_Read(_h, qwA, cb, (byte*)pb, out cbRead))
+            {
                 return false;
+            }
         }
 
         if (cbRead != cb)
+        {
             return false;
+        }
+
         return true;
     }
 
     /// <summary>
-    /// Read memory from an address into an array of a certain type.
+    ///     Read memory from an address into an array of a certain type.
     /// </summary>
     /// <typeparam name="T">The type of struct to read.</typeparam>
     /// <param name="qwA">Address to read from.</param>
@@ -228,7 +245,10 @@ public sealed class VmmScatter : IDisposable
         var data = new T[count];
         fixed (T* pb = data)
         {
-            if (!Vmmi.VMMDLL_Scatter_Read(_h, qwA, cb, (byte*)pb, out cbRead)) return null;
+            if (!Vmmi.VMMDLL_Scatter_Read(_h, qwA, cb, (byte*)pb, out cbRead))
+            {
+                return null;
+            }
         }
 
         if (cbRead != cb)
@@ -241,7 +261,7 @@ public sealed class VmmScatter : IDisposable
     }
 
     /// <summary>
-    /// Read memory from an address into a Span of a certain type.
+    ///     Read memory from an address into a Span of a certain type.
     /// </summary>
     /// <typeparam name="T">The type of struct to read.</typeparam>
     /// <param name="qwA">Address to read from.</param>
@@ -259,7 +279,7 @@ public sealed class VmmScatter : IDisposable
     }
 
     /// <summary>
-    /// Read memory from an address into a managed string.
+    ///     Read memory from an address into a managed string.
     /// </summary>
     /// <param name="encoding">String Encoding for this read.</param>
     /// <param name="qwA">Address to read from.</param>
@@ -270,20 +290,25 @@ public sealed class VmmScatter : IDisposable
     {
         var buffer = Read(qwA, cb);
         if (buffer is null)
+        {
             return null;
+        }
+
         var result = encoding.GetString(buffer);
         if (terminateOnNullChar)
         {
             var nullIndex = result.IndexOf('\0');
             if (nullIndex != -1)
+            {
                 result = result.Substring(0, nullIndex);
+            }
         }
 
         return result;
     }
 
     /// <summary>
-    /// Clear the VmmScatter object to allow for new operations.
+    ///     Clear the VmmScatter object to allow for new operations.
     /// </summary>
     /// <param name="flags"></param>
     /// <returns>true/false.</returns>

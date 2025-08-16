@@ -20,7 +20,10 @@ internal static class RefreshManager
     {
         var dict = _refreshers.GetOrAdd(instance, new ConcurrentDictionary<RefreshOptions, VmmRefresher>());
         if (dict.ContainsKey(option))
+        {
             throw new VmmException("Refresher already registered for this option!");
+        }
+
         var refresher = new VmmRefresher(instance, option, interval);
         dict[option] = refresher;
     }
@@ -32,7 +35,10 @@ internal static class RefreshManager
     /// <param name="option"></param>
     public static void Unregister(Vmm instance, RefreshOptions option)
     {
-        if (_refreshers.TryGetValue(instance, out var dict) && dict.TryRemove(option, out var refresher)) refresher.Dispose();
+        if (_refreshers.TryGetValue(instance, out var dict) && dict.TryRemove(option, out var refresher))
+        {
+            refresher.Dispose();
+        }
     }
 
     /// <summary>
@@ -43,7 +49,11 @@ internal static class RefreshManager
     public static void UnregisterAll(Vmm instance)
     {
         if (_refreshers.TryRemove(instance, out var dict))
+        {
             foreach (var refresher in dict.Values)
+            {
                 refresher.Dispose();
+            }
+        }
     }
 }

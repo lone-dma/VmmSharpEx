@@ -1439,7 +1439,7 @@ internal static partial class Vmmi
 #pragma warning disable SYSLIB1054
 
     [DllImport("vmm.dll", EntryPoint = "VMMDLL_MemSearch")]
-    public static unsafe extern bool VMMDLL_MemSearch(
+    public static extern unsafe bool VMMDLL_MemSearch(
         IntPtr hVMM,
         uint dwPID,
         void* ctx,

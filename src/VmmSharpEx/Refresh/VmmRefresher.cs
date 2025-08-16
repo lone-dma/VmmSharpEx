@@ -4,7 +4,7 @@ using Timer = System.Timers.Timer;
 namespace VmmSharpEx.Refresh;
 
 /// <summary>
-/// Internal wrapper for the VMM refresher utilizing a System.Timers.Timer to periodically refresh.
+///     Internal wrapper for the VMM refresher utilizing a System.Timers.Timer to periodically refresh.
 /// </summary>
 internal sealed class VmmRefresher : IDisposable
 {
@@ -14,7 +14,7 @@ internal sealed class VmmRefresher : IDisposable
     private bool _disposed;
 
     /// <summary>
-    /// Ctor for the VmmRefresher.
+    ///     Ctor for the VmmRefresher.
     /// </summary>
     /// <param name="instance">Parent Vmm instance.</param>
     /// <param name="option">Option to invoke refresh upon.</param>
@@ -44,7 +44,9 @@ internal sealed class VmmRefresher : IDisposable
 
     private void Interval_Elapsed(object sender, ElapsedEventArgs e)
     {
-        if (!_instance.SetConfig((ulong)_option, 1))
+        if (!_instance.ConfigSet((ulong)_option, 1))
+        {
             _instance.Log($"WARNING: {_option} Auto Refresh Failed!", Vmm.LogLevel.Warning);
+        }
     }
 }
