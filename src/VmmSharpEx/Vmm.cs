@@ -295,7 +295,7 @@ public sealed class Vmm : IDisposable
             var pMEM = ppMEMs[i];
             if (pMEM->f != 0)
             {
-                results[pMEM->qwA] = new LeechCore.ScatterPage(pMEM->pb);
+                results[pMEM->qwA] = new LeechCore.ScatterPage(pMEM->pb, pMEM->cb);
             }
         }
 

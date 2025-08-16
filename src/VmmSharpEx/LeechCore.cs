@@ -277,7 +277,7 @@ public sealed class LeechCore : IDisposable
             var pMEM = ppMEMs[i];
             if (pMEM->f != 0)
             {
-                results[pMEM->qwA] = new ScatterPage(pMEM->pb);
+                results[pMEM->qwA] = new ScatterPage(pMEM->pb, pMEM->cb);
             }
         }
 
@@ -534,19 +534,20 @@ public sealed class LeechCore : IDisposable
     public readonly struct ScatterPage
     {
         private readonly IntPtr _pb;
+        private readonly int _cb;
 
-        public ScatterPage(IntPtr pb)
+        public ScatterPage(IntPtr pb, uint cb)
         {
             _pb = pb;
+            _cb = (int)cb;
         }
 
         /// <summary>
         /// Page for this scatter read entry.
-        /// Length is always 4096 bytes (one page).
-        /// WARNING: Do not access this memory after the SCATTER_HANDLE is disposed!
+        /// WARNING: Do not access this memory after the parent scope is disposed/freed!
         /// </summary>
         public readonly unsafe ReadOnlySpan<byte> Page =>
-            new(_pb.ToPointer(), 0x1000);
+            new(_pb.ToPointer(), _cb);
     }
 
     #region Constants/Types
@@ -565,24 +566,39 @@ public sealed class LeechCore : IDisposable
         public byte[] pb;
     }
 
+    /// <summary>
+    /// From tdMEM_SCATTER in leechcore.h
+    /// </summary>
     [StructLayout(LayoutKind.Sequential, Pack = 8)]
     public struct LcMemScatter
     {
+        /// <summary>
+        /// MEM_SCATTER_VERSION
+        /// </summary>
         private readonly uint version;
         /// <summary>
-        /// True if successful, otherwise False.
+        /// TRUE = success data in pb, FALSE = fail or not yet read.
         /// </summary>
         public int f; // BOOL
         /// <summary>
-        /// Page aligned address.
+        /// address of memory to read
         /// </summary>
         public ulong qwA;
         /// <summary>
-        /// Pointer to the memory buffer for this page (0x1000 in length).
+        /// buffer to hold memory contents
         /// </summary>
         public readonly IntPtr pb;
-        private readonly uint cb;
+        /// <summary>
+        /// size of buffer to hold memory contents.
+        /// </summary>
+        public readonly uint cb;
+        /// <summary>
+        /// internal stack pointer
+        /// </summary>
         private readonly uint iStack;
+        /// <summary>
+        /// internal stack
+        /// </summary>
         private unsafe fixed ulong vStack[12];
 
         /// <summary>
@@ -590,7 +606,7 @@ public sealed class LeechCore : IDisposable
         /// DANGER: Do not access this memory after the memory is freed via <see cref="Lci.LcMemFree(nint)"/>!
         /// </summary>
         public readonly unsafe ReadOnlySpan<byte> Page =>
-            new ReadOnlySpan<byte>(pb.ToPointer(), 0x1000);
+            new ReadOnlySpan<byte>(pb.ToPointer(), (int)cb);
     }
 
     [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Ansi)]
