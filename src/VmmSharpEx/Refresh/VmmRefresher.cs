@@ -35,7 +35,7 @@ internal sealed class VmmRefresher : IDisposable
 
     public void Dispose()
     {
-        if (!Interlocked.Exchange(ref _disposed, true))
+        if (Interlocked.Exchange(ref _disposed, true) == false)
         {
             _timer.Stop();
             _timer.Dispose();
