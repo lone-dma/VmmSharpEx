@@ -17,6 +17,7 @@ namespace VmmSharpEx
 
         internal VmmMemCallback(Vmm vmm, VmmMemCallbackType type, Vmm.VmmMemCallbackFn cb, IntPtr context = 0)
         {
+            ArgumentNullException.ThrowIfNull(cb, nameof(cb));
             _vmm = vmm;
             _type = type;
             _cb = cb;

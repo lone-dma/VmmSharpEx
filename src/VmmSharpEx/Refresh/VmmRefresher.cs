@@ -22,7 +22,6 @@ internal sealed class VmmRefresher : IDisposable
     /// <param name="interval">Timespan interval in which to refresh. Minimum resolution ~10-15ms.</param>
     public VmmRefresher(Vmm instance, RefreshOptions option, TimeSpan interval)
     {
-        ArgumentNullException.ThrowIfNull(instance, nameof(instance));
         ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(interval, TimeSpan.Zero, nameof(interval));
         _instance = instance;
         _option = option;
