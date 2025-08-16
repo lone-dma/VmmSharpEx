@@ -5,7 +5,7 @@ using VmmSharpEx.Internal;
 namespace VmmSharpEx;
 
 /// <summary>
-///     VmmSearch represents a binary search in memory.
+/// VmmSearch represents a binary search in memory.
 /// </summary>
 public sealed unsafe class VmmSearch : IDisposable
 {
@@ -52,7 +52,7 @@ public sealed unsafe class VmmSearch : IDisposable
     }
 
     /// <summary>
-    ///     Get the result of the search: Blocking / wait until finish.
+    /// Get the result of the search: Blocking / wait until finish.
     /// </summary>
     /// <returns></returns>
     public SearchResultsContainer Result
@@ -77,7 +77,7 @@ public sealed unsafe class VmmSearch : IDisposable
     }
 
     /// <summary>
-    ///     ToString override.
+    /// ToString override.
     /// </summary>
     public override string ToString()
     {
@@ -111,7 +111,7 @@ public sealed unsafe class VmmSearch : IDisposable
     }
 
     /// <summary>
-    ///     Add an entry to the search. Must be done before search is started, or no effect will take place.
+    /// Add an entry to the search. Must be done before search is started, or no effect will take place.
     /// </summary>
     /// <param name="search">Search filter (max 32 bytes). Excess will be truncated.</param>
     /// <param name="skipmask">Skip mask (max 32 bytes). Excess will be truncated.</param>
@@ -138,7 +138,7 @@ public sealed unsafe class VmmSearch : IDisposable
     }
 
     /// <summary>
-    ///     Start the search. Non-blocking.
+    /// Start the search. Non-blocking.
     /// </summary>
     public void Start()
     {
@@ -159,7 +159,7 @@ public sealed unsafe class VmmSearch : IDisposable
     }
 
     /// <summary>
-    ///     Abort the search (Non-Blocking).
+    /// Abort the search (Non-Blocking).
     /// </summary>
     public void Abort()
     {
@@ -167,7 +167,7 @@ public sealed unsafe class VmmSearch : IDisposable
     }
 
     /// <summary>
-    ///     Poll the search for results. Non-blocking.
+    /// Poll the search for results. Non-blocking.
     /// </summary>
     /// <returns></returns>
     public SearchResultsContainer Poll()
@@ -220,48 +220,48 @@ public sealed unsafe class VmmSearch : IDisposable
     }
 
     /// <summary>
-    ///     Class with info about the search results. Find the actual results in the result field.
+    /// Class with info about the search results. Find the actual results in the result field.
     /// </summary>
     public sealed class SearchResultsContainer
     {
         /// <summary>
-        ///     Indicates that the search has been completed.
+        /// Indicates that the search has been completed.
         /// </summary>
         public bool IsCompleted { get; set; }
 
         /// <summary>
-        ///     If isCompletedSuccess is true this indicates if the search was completed successfully.
+        /// If isCompletedSuccess is true this indicates if the search was completed successfully.
         /// </summary>
         public bool IsCompletedSuccess { get; set; }
 
         /// <summary>
-        ///     Address to start searching from - default 0.
+        /// Address to start searching from - default 0.
         /// </summary>
         public ulong AddrMin { get; set; }
 
         /// <summary>
-        ///     Address to stop searching at - default MAXUINT64.
+        /// Address to stop searching at - default MAXUINT64.
         /// </summary>
         public ulong AddrMax { get; set; }
 
         /// <summary>
-        ///     Current address being searched in search thread.
+        /// Current address being searched in search thread.
         /// </summary>
         public ulong AddrCurrent { get; set; }
 
         /// <summary>
-        ///     Number of bytes that have been procssed in search.
+        /// Number of bytes that have been procssed in search.
         /// </summary>
         public ulong TotalReadBytes { get; set; }
 
         /// <summary>
-        ///     The actual results.
+        /// The actual results.
         /// </summary>
         public ConcurrentBag<SearchResultEntry> Results { get; } = new();
     }
 
     /// <summary>
-    ///     Struct with info about a single search result. Address, search term id.
+    /// Struct with info about a single search result. Address, search term id.
     /// </summary>
     public readonly struct SearchResultEntry
     {
