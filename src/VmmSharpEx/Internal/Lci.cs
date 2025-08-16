@@ -1,4 +1,5 @@
 ﻿using System.Runtime.InteropServices;
+using VmmSharpEx.Options;
 
 namespace VmmSharpEx.Internal;
 
@@ -30,15 +31,15 @@ internal static partial class Lci
 
     [LibraryImport("leechcore.dll", EntryPoint = "LcGetOption")]
     [return: MarshalAs(UnmanagedType.Bool)]
-    public static partial bool GetOption(IntPtr hLC, ulong fOption, out ulong pqwValue);
+    public static partial bool GetOption(IntPtr hLC, LcOption fOption, out ulong pqwValue);
 
     [LibraryImport("leechcore.dll", EntryPoint = "LcSetOption")]
     [return: MarshalAs(UnmanagedType.Bool)]
-    public static partial bool SetOption(IntPtr hLC, ulong fOption, ulong qwValue);
+    public static partial bool SetOption(IntPtr hLC, LcOption fOption, ulong qwValue);
 
     [LibraryImport("leechcore.dll", EntryPoint = "LcCommand")]
     [return: MarshalAs(UnmanagedType.Bool)]
-    public static unsafe partial bool LcCommand(IntPtr hLC, ulong fOption, uint cbDataIn, byte* pbDataIn, out IntPtr ppbDataOut, out uint pcbDataOut);
+    public static unsafe partial bool LcCommand(IntPtr hLC, LcCmd fOption, uint cbDataIn, byte* pbDataIn, out IntPtr ppbDataOut, out uint pcbDataOut);
 
     [StructLayout(LayoutKind.Sequential)]
     public struct LC_CONFIG_ERRORINFO
@@ -53,18 +54,6 @@ internal static partial class Lci
 
         public uint cwszUserText;
         // szUserText
-    }
-
-    [StructLayout(LayoutKind.Sequential, Pack = 8)]
-    public struct LC_MEM_SCATTER
-    {
-        private readonly uint version;
-        public int f; // BOOL
-        public ulong qwA;
-        public readonly IntPtr pb;
-        private readonly uint cb;
-        private readonly uint iStack;
-        private unsafe fixed ulong vStack[12];
     }
 
 #pragma warning disable SYSLIB1054 // Use 'LibraryImportAttribute' instead of 'DllImportAttribute' to generate P/Invoke marshalling code at compile time

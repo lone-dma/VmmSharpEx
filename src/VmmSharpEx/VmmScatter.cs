@@ -1,6 +1,7 @@
 ﻿using System.Runtime.CompilerServices;
 using System.Text;
 using VmmSharpEx.Internal;
+using VmmSharpEx.Options;
 
 namespace VmmSharpEx;
 
@@ -20,14 +21,14 @@ public sealed class VmmScatter : IDisposable
         ;
     }
 
-    internal VmmScatter(Vmm vmm, uint pid, uint flags = 0)
+    internal VmmScatter(Vmm vmm, uint pid, VmmFlags flags = VmmFlags.None)
     {
         _vmm = vmm;
         _pid = pid;
         _h = Create(vmm, pid, flags);
     }
 
-    private static IntPtr Create(Vmm vmm, uint pid, uint flags = 0)
+    private static IntPtr Create(Vmm vmm, uint pid, VmmFlags flags = VmmFlags.None)
     {
         var hS = Vmmi.VMMDLL_Scatter_Initialize(vmm, pid, flags);
         if (hS == IntPtr.Zero)
@@ -312,7 +313,7 @@ public sealed class VmmScatter : IDisposable
     /// </summary>
     /// <param name="flags"></param>
     /// <returns>true/false.</returns>
-    public bool Clear(uint flags)
+    public bool Clear(VmmFlags flags)
     {
         return Vmmi.VMMDLL_Scatter_Clear(_h, _pid, flags);
     }

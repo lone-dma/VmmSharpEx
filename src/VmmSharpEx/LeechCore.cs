@@ -1,6 +1,7 @@
 ﻿using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using VmmSharpEx.Internal;
+using VmmSharpEx.Options;
 
 namespace VmmSharpEx;
 
@@ -26,7 +27,7 @@ public sealed class LeechCore : IDisposable
     /// <exception cref="VmmException"></exception>
     internal LeechCore(Vmm vmm)
     {
-        if (vmm.ConfigGet(Vmm.CONFIG_OPT_CORE_LEECHCORE_HANDLE) is not ulong pqwValue)
+        if (vmm.ConfigGet(VmmOption.CORE_LEECHCORE_HANDLE) is not ulong pqwValue)
         {
             throw new VmmException("LeechCore: failed retrieving handle from Vmm.");
         }
@@ -262,7 +263,7 @@ public sealed class LeechCore : IDisposable
             throw new VmmException("LcAllocScatter1 FAIL");
         }
 
-        var ppMEMs = (Lci.LC_MEM_SCATTER**)pppMEMs.ToPointer();
+        var ppMEMs = (LcMemScatter**)pppMEMs.ToPointer();
         for (var i = 0; i < pas.Length; i++)
         {
             var pMEM = ppMEMs[i];
@@ -374,7 +375,7 @@ public sealed class LeechCore : IDisposable
     /// the writes with subsequent reads.
     /// </summary>
     /// <param name="MEMs">MEMs containing the memory addresses and data to write.</param>
-    public unsafe void WriteScatter(params MemScatter[] MEMs)
+    public unsafe void WriteScatter(params ScatterWriteParams[] MEMs)
     {
         _parent?.ThrowIfMemWritesDisabled();
         if (!Lci.LcAllocScatter1((uint)MEMs.Length, out var pppMEMs))
@@ -384,7 +385,7 @@ public sealed class LeechCore : IDisposable
 
         try
         {
-            var ppMEMs = (Lci.LC_MEM_SCATTER**)pppMEMs.ToPointer();
+            var ppMEMs = (LcMemScatter**)pppMEMs.ToPointer();
             for (var i = 0; i < MEMs.Length; i++)
             {
                 var entry = MEMs[i];
@@ -416,7 +417,7 @@ public sealed class LeechCore : IDisposable
     /// </summary>
     /// <param name="fOption">Parameter LeechCore.LC_OPT_*</param>
     /// <returns>The option value retrieved. NULL on fail.</returns>
-    public ulong? GetOption(ulong fOption)
+    public ulong? GetOption(LcOption fOption)
     {
         if (!Lci.GetOption(_h, fOption, out var pqwValue))
         {
@@ -432,7 +433,7 @@ public sealed class LeechCore : IDisposable
     /// <param name="fOption">Parameter LeechCore.LC_OPT_*</param>
     /// <param name="qwValue">The option value to set.</param>
     /// <returns></returns>
-    public bool SetOption(ulong fOption, ulong qwValue)
+    public bool SetOption(LcOption fOption, ulong qwValue)
     {
         return Lci.SetOption(_h, fOption, qwValue);
     }
@@ -444,7 +445,7 @@ public sealed class LeechCore : IDisposable
     /// <param name="dataIn">The data to set (or null).</param>
     /// <param name="dataOut">The data retrieved.</param>
     /// <returns></returns>
-    public unsafe bool ExecuteCommand(ulong fOption, byte[] dataIn, out byte[] dataOut)
+    public unsafe bool ExecuteCommand(LcCmd fOption, byte[] dataIn, out byte[] dataOut)
     {
         uint cbDataOut;
         IntPtr pbDataOut;
@@ -551,117 +552,45 @@ public sealed class LeechCore : IDisposable
     #region Constants/Types
 
     //---------------------------------------------------------------------
-    // LEECHCORE: PUBLIC API CONSTANTS BELOW:
-    //---------------------------------------------------------------------
-    public const uint LC_CONFIG_VERSION = 0xc0fd0002;
-    public const uint LC_CONFIG_ERRORINFO_VERSION = 0xc0fe0002;
-
-    public const uint LC_CONFIG_PRINTF_ENABLED = 0x01;
-    public const uint LC_CONFIG_PRINTF_V = 0x02;
-    public const uint LC_CONFIG_PRINTF_VV = 0x04;
-    public const uint LC_CONFIG_PRINTF_VVV = 0x08;
-
-    public const ulong LC_OPT_CORE_PRINTF_ENABLE = 0x4000000100000000; // RW
-    public const ulong LC_OPT_CORE_VERBOSE = 0x4000000200000000; // RW
-    public const ulong LC_OPT_CORE_VERBOSE_EXTRA = 0x4000000300000000; // RW
-    public const ulong LC_OPT_CORE_VERBOSE_EXTRA_TLP = 0x4000000400000000; // RW
-    public const ulong LC_OPT_CORE_VERSION_MAJOR = 0x4000000500000000; // R
-    public const ulong LC_OPT_CORE_VERSION_MINOR = 0x4000000600000000; // R
-    public const ulong LC_OPT_CORE_VERSION_REVISION = 0x4000000700000000; // R
-    public const ulong LC_OPT_CORE_ADDR_MAX = 0x1000000800000000; // R
-    public const ulong LC_OPT_CORE_STATISTICS_CALL_COUNT = 0x4000000900000000; // R [lo-dword: LC_STATISTICS_ID_*]
-    public const ulong LC_OPT_CORE_STATISTICS_CALL_TIME = 0x4000000a00000000; // R [lo-dword: LC_STATISTICS_ID_*]
-    public const ulong LC_OPT_CORE_VOLATILE = 0x1000000b00000000; // R
-    public const ulong LC_OPT_CORE_READONLY = 0x1000000c00000000; // R
-
-    public const ulong LC_OPT_MEMORYINFO_VALID = 0x0200000100000000; // R
-    public const ulong LC_OPT_MEMORYINFO_FLAG_32BIT = 0x0200000300000000; // R
-    public const ulong LC_OPT_MEMORYINFO_FLAG_PAE = 0x0200000400000000; // R
-    public const ulong LC_OPT_MEMORYINFO_ARCH = 0x0200001200000000; // R - LC_ARCH_TP
-    public const ulong LC_OPT_MEMORYINFO_OS_VERSION_MINOR = 0x0200000500000000; // R
-    public const ulong LC_OPT_MEMORYINFO_OS_VERSION_MAJOR = 0x0200000600000000; // R
-    public const ulong LC_OPT_MEMORYINFO_OS_DTB = 0x0200000700000000; // R
-    public const ulong LC_OPT_MEMORYINFO_OS_PFN = 0x0200000800000000; // R
-    public const ulong LC_OPT_MEMORYINFO_OS_PsLoadedModuleList = 0x0200000900000000; // R
-    public const ulong LC_OPT_MEMORYINFO_OS_PsActiveProcessHead = 0x0200000a00000000; // R
-    public const ulong LC_OPT_MEMORYINFO_OS_MACHINE_IMAGE_TP = 0x0200000b00000000; // R
-    public const ulong LC_OPT_MEMORYINFO_OS_NUM_PROCESSORS = 0x0200000c00000000; // R
-    public const ulong LC_OPT_MEMORYINFO_OS_SYSTEMTIME = 0x0200000d00000000; // R
-    public const ulong LC_OPT_MEMORYINFO_OS_UPTIME = 0x0200000e00000000; // R
-    public const ulong LC_OPT_MEMORYINFO_OS_KERNELBASE = 0x0200000f00000000; // R
-    public const ulong LC_OPT_MEMORYINFO_OS_KERNELHINT = 0x0200001000000000; // R
-    public const ulong LC_OPT_MEMORYINFO_OS_KdDebuggerDataBlock = 0x0200001100000000; // R
-
-    public const ulong LC_OPT_FPGA_PROBE_MAXPAGES = 0x0300000100000000; // RW
-    public const ulong LC_OPT_FPGA_MAX_SIZE_RX = 0x0300000300000000; // RW
-    public const ulong LC_OPT_FPGA_MAX_SIZE_TX = 0x0300000400000000; // RW
-    public const ulong LC_OPT_FPGA_DELAY_PROBE_READ = 0x0300000500000000; // RW - uS
-    public const ulong LC_OPT_FPGA_DELAY_PROBE_WRITE = 0x0300000600000000; // RW - uS
-    public const ulong LC_OPT_FPGA_DELAY_WRITE = 0x0300000700000000; // RW - uS
-    public const ulong LC_OPT_FPGA_DELAY_READ = 0x0300000800000000; // RW - uS
-    public const ulong LC_OPT_FPGA_RETRY_ON_ERROR = 0x0300000900000000; // RW
-    public const ulong LC_OPT_FPGA_DEVICE_ID = 0x0300008000000000; // RW - bus:dev:fn (ex: 04:00.0 === 0x0400).
-    public const ulong LC_OPT_FPGA_FPGA_ID = 0x0300008100000000; // R
-    public const ulong LC_OPT_FPGA_VERSION_MAJOR = 0x0300008200000000; // R
-    public const ulong LC_OPT_FPGA_VERSION_MINOR = 0x0300008300000000; // R
-    public const ulong LC_OPT_FPGA_ALGO_TINY = 0x0300008400000000; // RW - 1/0 use tiny 128-byte/tlp read algorithm.
-    public const ulong LC_OPT_FPGA_ALGO_SYNCHRONOUS = 0x0300008500000000; // RW - 1/0 use synchronous (old) read algorithm.
-    public const ulong LC_OPT_FPGA_CFGSPACE_XILINX = 0x0300008600000000; // RW - [lo-dword: register address in bytes] [bytes: 0-3: data, 4-7: byte_enable(if wr/set); top bit = cfg_mgmt_wr_rw1c_as_rw]
-    public const ulong LC_OPT_FPGA_TLP_READ_CB_WITHINFO = 0x0300009000000000; // RW - 1/0 call TLP read callback with additional string info in szInfo
-    public const ulong LC_OPT_FPGA_TLP_READ_CB_FILTERCPL = 0x0300009100000000; // RW - 1/0 call TLP read callback with memory read completions from read calls filtered
-
-    public const ulong LC_CMD_FPGA_PCIECFGSPACE = 0x0000010300000000; // R
-    public const ulong LC_CMD_FPGA_CFGREGPCIE = 0x0000010400000000; // RW - [lo-dword: register address]
-    public const ulong LC_CMD_FPGA_CFGREGCFG = 0x0000010500000000; // RW - [lo-dword: register address]
-    public const ulong LC_CMD_FPGA_CFGREGDRP = 0x0000010600000000; // RW - [lo-dword: register address]
-    public const ulong LC_CMD_FPGA_CFGREGCFG_MARKWR = 0x0000010700000000; // W  - write with mask [lo-dword: register address] [bytes: 0-1: data, 2-3: mask]
-    public const ulong LC_CMD_FPGA_CFGREGPCIE_MARKWR = 0x0000010800000000; // W  - write with mask [lo-dword: register address] [bytes: 0-1: data, 2-3: mask]
-    public const ulong LC_CMD_FPGA_CFGREG_DEBUGPRINT = 0x0000010a00000000; // N/A
-    public const ulong LC_CMD_FPGA_PROBE = 0x0000010b00000000; // RW
-    public const ulong LC_CMD_FPGA_CFGSPACE_SHADOW_RD = 0x0000010c00000000; // R
-    public const ulong LC_CMD_FPGA_CFGSPACE_SHADOW_WR = 0x0000010d00000000; // W  - [lo-dword: config space write base address]
-    public const ulong LC_CMD_FPGA_TLP_WRITE_SINGLE = 0x0000011000000000; // W  - write single tlp BYTE:s
-    public const ulong LC_CMD_FPGA_TLP_WRITE_MULTIPLE = 0x0000011100000000; // W  - write multiple LC_TLP:s
-    public const ulong LC_CMD_FPGA_TLP_TOSTRING = 0x0000011200000000; // RW - convert single TLP to LPSTR; *pcbDataOut includes NULL terminator.
-
-    public const ulong LC_CMD_FPGA_TLP_CONTEXT = 0x2000011400000000; // W - set/unset TLP user-defined context to be passed to callback function. (pbDataIn == LPVOID user context). [not remote].
-    public const ulong LC_CMD_FPGA_TLP_CONTEXT_RD = 0x2000011b00000000; // R - get TLP user-defined context to be passed to callback function. [not remote].
-    public const ulong LC_CMD_FPGA_TLP_FUNCTION_CALLBACK = 0x2000011500000000; // W - set/unset TLP callback function (pbDataIn == PLC_TLP_CALLBACK). [not remote].
-    public const ulong LC_CMD_FPGA_TLP_FUNCTION_CALLBACK_RD = 0x2000011c00000000; // R - get TLP callback function. [not remote].
-    public const ulong LC_CMD_FPGA_BAR_CONTEXT = 0x2000011800000000; // W - set/unset BAR user-defined context to be passed to callback function. (pbDataIn == LPVOID user context). [not remote].
-    public const ulong LC_CMD_FPGA_BAR_CONTEXT_RD = 0x2000011d00000000; // R - get BAR user-defined context to be passed to callback function. [not remote].
-    public const ulong LC_CMD_FPGA_BAR_FUNCTION_CALLBACK = 0x2000011900000000; // W - set/unset BAR callback function (pbDataIn == PLC_BAR_CALLBACK). [not remote].
-    public const ulong LC_CMD_FPGA_BAR_FUNCTION_CALLBACK_RD = 0x2000011e00000000; // R - get BAR callback function. [not remote].
-    public const ulong LC_CMD_FPGA_BAR_INFO = 0x0000011a00000000; // R - get BAR info (pbDataOut == LC_BAR_INFO[6]).
-
-    public const ulong LC_CMD_FILE_DUMPHEADER_GET = 0x0000020100000000; // R
-
-    public const ulong LC_CMD_STATISTICS_GET = 0x4000010000000000; // R
-    public const ulong LC_CMD_MEMMAP_GET = 0x4000020000000000; // R  - MEMMAP as LPSTR
-    public const ulong LC_CMD_MEMMAP_SET = 0x4000030000000000; // W  - MEMMAP as LPSTR
-    public const ulong LC_CMD_MEMMAP_GET_STRUCT = 0x4000040000000000; // R  - MEMMAP as LC_MEMMAP_ENTRY[]
-    public const ulong LC_CMD_MEMMAP_SET_STRUCT = 0x4000050000000000; // W  - MEMMAP as LC_MEMMAP_ENTRY[]
-
-    public const ulong LC_CMD_AGENT_EXEC_PYTHON = 0x8000000100000000; // RW - [lo-dword: optional timeout in ms]
-    public const ulong LC_CMD_AGENT_EXIT_PROCESS = 0x8000000200000000; //    - [lo-dword: process exit code]
-    public const ulong LC_CMD_AGENT_VFS_LIST = 0x8000000300000000; // RW
-    public const ulong LC_CMD_AGENT_VFS_READ = 0x8000000400000000; // RW
-    public const ulong LC_CMD_AGENT_VFS_WRITE = 0x8000000500000000; // RW
-    public const ulong LC_CMD_AGENT_VFS_OPT_GET = 0x8000000600000000; // RW
-    public const ulong LC_CMD_AGENT_VFS_OPT_SET = 0x8000000700000000; // RW
-    public const ulong LC_CMD_AGENT_VFS_INITIALIZE = 0x8000000800000000; // RW
-    public const ulong LC_CMD_AGENT_VFS_CONSOLE = 0x8000000900000000; // RW
-
-
-    //---------------------------------------------------------------------
     // LEECHCORE: CORE FUNCTIONALITY BELOW:
     //---------------------------------------------------------------------
 
-    public struct MemScatter
+    public const uint LC_CONFIG_VERSION = 0xc0fd0002;
+    public const uint LC_CONFIG_ERRORINFO_VERSION = 0xc0fe0002;
+
+    public struct ScatterWriteParams
     {
         public bool f;
         public ulong qwA;
         public byte[] pb;
+    }
+
+    [StructLayout(LayoutKind.Sequential, Pack = 8)]
+    public struct LcMemScatter
+    {
+        private readonly uint version;
+        /// <summary>
+        /// True if successful, otherwise False.
+        /// </summary>
+        public int f; // BOOL
+        /// <summary>
+        /// Page aligned address.
+        /// </summary>
+        public ulong qwA;
+        /// <summary>
+        /// Pointer to the memory buffer for this page (0x1000 in length).
+        /// </summary>
+        public readonly IntPtr pb;
+        private readonly uint cb;
+        private readonly uint iStack;
+        private unsafe fixed ulong vStack[12];
+
+        /// <summary>
+        /// Contains the page data from the <see cref="pb"/> buffer.
+        /// DANGER: Do not access this memory after the memory is freed via <see cref="Lci.LcMemFree(nint)"/>!
+        /// </summary>
+        public readonly unsafe ReadOnlySpan<byte> Page =>
+            new ReadOnlySpan<byte>(pb.ToPointer(), 0x1000);
     }
 
     [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Ansi)]

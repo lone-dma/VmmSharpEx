@@ -1,11 +1,10 @@
 ﻿using VmmSharpEx;
+using VmmSharpEx.Options;
 
 namespace VmmSharpEx_Tests;
 
-internal class Program
+internal unsafe class Program
 {
-    private static Vmm _vmm;
-
     private static void Main()
     {
         string[] args = new[]
@@ -16,15 +15,35 @@ internal class Program
             "fpga",
             "-waitinitialize"
         };
-        _vmm = new Vmm(args);
-        if (!_vmm.PidGetFromName("explorer.exe", out var pid))
+        using var vmm = new Vmm(args);
+        if (!vmm.PidGetFromName("explorer.exe", out var pid))
         {
             throw new VmmException("Failed to get PID for explorer.exe");
         }
 
-        using var search = _vmm.CreateSearch(pid);
-        search.AddEntry(new byte[] { 0x00, 0x00, 0x01, 0x00, 0x01 });
-        var result = search.Result;
-        Console.WriteLine($"Found {result.Results.Count} results.");
+        using var cb = vmm.CreateMemCallback(VmmMemCallbackType.READ_VIRTUAL_PRE, TestCb, 0);
+
+        ulong vaBase = vmm.ProcessGetModuleBase(pid, "explorer.exe");
+        for (int i = 0; i < 10; i++)
+        {
+            vmm.MemRead(pid, vaBase + (uint)(i * 0x1000), 8);
+            Thread.Sleep(1000);
+        }
+    }
+
+    private static void TestCb(
+        IntPtr ctxUser,
+        uint dwPID,
+        uint cpMEMs,
+        LeechCore.LcMemScatter** ppMEMs)
+    {
+        Console.WriteLine(ctxUser);
+        Console.WriteLine(dwPID);
+        Console.WriteLine(cpMEMs);
+        for (int i = 0; i < cpMEMs; i++)
+        {
+            var mem = ppMEMs[i];
+            Console.WriteLine(mem->qwA);
+        }
     }
 }

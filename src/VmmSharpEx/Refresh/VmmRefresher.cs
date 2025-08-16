@@ -1,4 +1,5 @@
 ﻿using System.Timers;
+using VmmSharpEx.Options;
 using Timer = System.Timers.Timer;
 
 namespace VmmSharpEx.Refresh;
@@ -44,7 +45,7 @@ internal sealed class VmmRefresher : IDisposable
 
     private void Interval_Elapsed(object sender, ElapsedEventArgs e)
     {
-        if (!_instance.ConfigSet((ulong)_option, 1))
+        if (!_instance.ConfigSet((VmmOption)_option, 1))
         {
             _instance.Log($"WARNING: {_option} Auto Refresh Failed!", Vmm.LogLevel.Warning);
         }

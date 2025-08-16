@@ -2,6 +2,7 @@
 using System.Runtime.InteropServices;
 using System.Text;
 using VmmSharpEx.Internal;
+using VmmSharpEx.Options;
 using VmmSharpEx.Refresh;
 
 namespace VmmSharpEx;
@@ -178,51 +179,7 @@ public sealed class Vmm : IDisposable
         SYSTEM_WINDOWS_X86 = 4
     }
 
-    public const ulong CONFIG_OPT_CORE_PRINTF_ENABLE = 0x4000000100000000; // RW
-    public const ulong CONFIG_OPT_CORE_VERBOSE = 0x4000000200000000; // RW
-    public const ulong CONFIG_OPT_CORE_VERBOSE_EXTRA = 0x4000000300000000; // RW
-    public const ulong CONFIG_OPT_CORE_VERBOSE_EXTRA_TLP = 0x4000000400000000; // RW
-    public const ulong CONFIG_OPT_CORE_MAX_NATIVE_ADDRESS = 0x4000000800000000; // R
-    public const ulong CONFIG_OPT_CORE_LEECHCORE_HANDLE = 0x4000001000000000; // R - underlying leechcore handle (do not close).
-    public const ulong CONFIG_OPT_CORE_h_ID = 0x4000002000000000; // R - use with startup option '-create-from-vmmid' to create a thread-safe duplicate VMM instance.
 
-    public const ulong CONFIG_OPT_CORE_SYSTEM = 0x2000000100000000; // R
-    public const ulong CONFIG_OPT_CORE_MEMORYMODEL = 0x2000000200000000; // R
-
-    public const ulong CONFIG_OPT_CONFIG_IS_REFRESH_ENABLED = 0x2000000300000000; // R - 1/0
-    public const ulong CONFIG_OPT_CONFIG_TICK_PERIOD = 0x2000000400000000; // RW - base tick period in ms
-    public const ulong CONFIG_OPT_CONFIG_READCACHE_TICKS = 0x2000000500000000; // RW - memory cache validity period (in ticks)
-    public const ulong CONFIG_OPT_CONFIG_TLBCACHE_TICKS = 0x2000000600000000; // RW - page table (tlb) cache validity period (in ticks)
-    public const ulong CONFIG_OPT_CONFIG_PROCCACHE_TICKS_PARTIAL = 0x2000000700000000; // RW - process refresh (partial) period (in ticks)
-    public const ulong CONFIG_OPT_CONFIG_PROCCACHE_TICKS_TOTAL = 0x2000000800000000; // RW - process refresh (full) period (in ticks)
-    public const ulong CONFIG_OPT_CONFIG_h_VERSION_MAJOR = 0x2000000900000000; // R
-    public const ulong CONFIG_OPT_CONFIG_h_VERSION_MINOR = 0x2000000A00000000; // R
-    public const ulong CONFIG_OPT_CONFIG_h_VERSION_REVISION = 0x2000000B00000000; // R
-    public const ulong CONFIG_OPT_CONFIG_STATISTICS_FUNCTIONCALL = 0x2000000C00000000; // RW - enable function call statistics (.status/statistics_fncall file)
-    public const ulong CONFIG_OPT_CONFIG_IS_PAGING_ENABLED = 0x2000000D00000000; // RW - 1/0
-    public const ulong CONFIG_OPT_CONFIG_DEBUG = 0x2000000E00000000; // W
-    public const ulong CONFIG_OPT_CONFIG_YARA_RULES = 0x2000000F00000000; // R
-
-    public const ulong CONFIG_OPT_WIN_VERSION_MAJOR = 0x2000010100000000; // R
-    public const ulong CONFIG_OPT_WIN_VERSION_MINOR = 0x2000010200000000; // R
-    public const ulong CONFIG_OPT_WIN_VERSION_BUILD = 0x2000010300000000; // R
-    public const ulong CONFIG_OPT_WIN_SYSTEM_UNIQUE_ID = 0x2000010400000000; // R
-
-    public const ulong CONFIG_OPT_FORENSIC_MODE = 0x2000020100000000; // RW - enable/retrieve forensic mode type [0-4].
-
-    // REFRESH OPTIONS:
-    public const ulong CONFIG_OPT_REFRESH_ALL = 0x2001ffff00000000; // W - refresh all caches
-    public const ulong CONFIG_OPT_REFRESH_FREQ_MEM = 0x2001100000000000; // W - refresh memory cache (excl. TLB) [fully]
-    public const ulong CONFIG_OPT_REFRESH_FREQ_MEM_PARTIAL = 0x2001000200000000; // W - refresh memory cache (excl. TLB) [partial 33%/call]
-    public const ulong CONFIG_OPT_REFRESH_FREQ_TLB = 0x2001080000000000; // W - refresh page table (TLB) cache [fully]
-    public const ulong CONFIG_OPT_REFRESH_FREQ_TLB_PARTIAL = 0x2001000400000000; // W - refresh page table (TLB) cache [partial 33%/call]
-    public const ulong CONFIG_OPT_REFRESH_FREQ_FAST = 0x2001040000000000; // W - refresh fast frequency - incl. partial process refresh
-    public const ulong CONFIG_OPT_REFRESH_FREQ_MEDIUM = 0x2001000100000000; // W - refresh medium frequency - incl. full process refresh
-    public const ulong CONFIG_OPT_REFRESH_FREQ_SLOW = 0x2001001000000000; // W - refresh slow frequency.
-
-    // PROCESS OPTIONS: [LO-DWORD: Process PID]
-    public const ulong CONFIG_OPT_PROCESS_DTB = 0x2002000100000000; // W - force set process directory table base.
-    public const ulong CONFIG_OPT_PROCESS_DTB_FAST_LOWINTEGRITY = 0x2002000200000000; // W - force set process directory table base (fast, low integrity mode, with less checks) - use at own risk!.
 
     //---------------------------------------------------------------------
     // CONFIG GET/SET:
@@ -233,7 +190,7 @@ public sealed class Vmm : IDisposable
     /// </summary>
     /// <param name="fOption">The a Vmm.CONFIG_* option to get.</param>
     /// <returns>The config value retrieved on success. NULL on fail.</returns>
-    public ulong? ConfigGet(ulong fOption)
+    public ulong? ConfigGet(VmmOption fOption)
     {
         if (!Vmmi.VMMDLL_ConfigGet(_h, fOption, out var value))
         {
@@ -249,7 +206,7 @@ public sealed class Vmm : IDisposable
     /// <param name="fOption">The Vmm.CONFIG_* option to set.</param>
     /// <param name="qwValue">The value to set.</param>
     /// <returns></returns>
-    public bool ConfigSet(ulong fOption, ulong qwValue)
+    public bool ConfigSet(VmmOption fOption, ulong qwValue)
     {
         return Vmmi.VMMDLL_ConfigSet(_h, fOption, qwValue);
     }
@@ -284,7 +241,7 @@ public sealed class Vmm : IDisposable
         strMap = sb.ToString();
         if (applyMap)
         {
-            if (!LeechCore.ExecuteCommand(LeechCore.LC_CMD_MEMMAP_SET, Encoding.UTF8.GetBytes(strMap), out _))
+            if (!LeechCore.ExecuteCommand(LcCmd.MEMMAP_SET, Encoding.UTF8.GetBytes(strMap), out _))
             {
                 throw new VmmException("LC_CMD_MEMMAP_SET FAIL");
             }
@@ -307,19 +264,6 @@ public sealed class Vmm : IDisposable
     public const uint PID_PHYSICALMEMORY = unchecked((uint)-1); // Pass as a PID Parameter to read Physical Memory
     public const uint PID_PROCESS_WITH_KERNELMEMORY = 0x80000000; // Combine with dwPID to enable process kernel memory (NB! use with extreme care).
 
-    public const uint FLAG_NOCACHE = 0x0001; // do not use the data cache (force reading from memory acquisition device)
-    public const uint FLAG_ZEROPAD_ON_FAIL = 0x0002; // zero pad failed physical memory reads and report success if read within range of physical memory.
-    public const uint FLAG_FORCECACHE_READ = 0x0008; // force use of cache - fail non-cached pages - only valid for reads, invalid with VMM_FLAG_NOCACHE/VMM_FLAG_ZEROPAD_ON_FAIL.
-    public const uint FLAG_NOPAGING = 0x0010; // do not try to retrieve memory from paged out memory from pagefile/compressed (even if possible)
-    public const uint FLAG_NOPAGING_IO = 0x0020; // do not try to retrieve memory from paged out memory if read would incur additional I/O (even if possible).
-    public const uint FLAG_NOCACHEPUT = 0x0100; // do not write back to the data cache upon successful read from memory acquisition device.
-    public const uint FLAG_CACHE_RECENT_ONLY = 0x0200; // only fetch from the most recent active cache region when reading.
-    public const uint FLAG_NO_PREDICTIVE_READ = 0x0400; // do not use predictive read-ahead when reading memory.
-    public const uint FLAG_FORCECACHE_READ_DISABLE = 0x0800; // this flag is only recommended for local files. improves forensic artifact order.
-    public const uint FLAG_SCATTER_PREPAREEX_NOMEMZERO = 0x1000; // (not used by the C# API).
-    public const uint FLAG_NOMEMCALLBACK = 0x2000; // (not used by the C# API).
-    public const uint FLAG_SCATTER_FORCE_PAGEREAD = 0x4000; // (not used by the C# API).
-
     /// <summary>
     /// Perform a scatter read of multiple page-sized virtual memory ranges.
     /// Does not copy the read memory to a managed byte buffer, but instead allows direct access to the native memory via a
@@ -330,14 +274,14 @@ public sealed class Vmm : IDisposable
     /// <param name="va">Array of page-aligned Memory Addresses.</param>
     /// <returns>SCATTER_HANDLE</returns>
     /// <exception cref="VmmException"></exception>
-    public unsafe LeechCore.LcScatterHandle MemReadScatter(uint pid, uint flags, params ulong[] va)
+    public unsafe LeechCore.LcScatterHandle MemReadScatter(uint pid, VmmFlags flags, params ulong[] va)
     {
         if (!Lci.LcAllocScatter1((uint)va.Length, out var pppMEMs))
         {
             throw new VmmException("LcAllocScatter1 FAIL");
         }
 
-        var ppMEMs = (Lci.LC_MEM_SCATTER**)pppMEMs.ToPointer();
+        var ppMEMs = (LeechCore.LcMemScatter**)pppMEMs.ToPointer();
         for (var i = 0; i < va.Length; i++)
         {
             var pMEM = ppMEMs[i];
@@ -368,7 +312,7 @@ public sealed class Vmm : IDisposable
     /// <param name="flags">VMM Flags.</param>
     /// <returns>Managed byte array containing number of bytes read.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public byte[] MemRead(uint pid, ulong va, uint cb, uint flags = 0)
+    public byte[] MemRead(uint pid, ulong va, uint cb, VmmFlags flags = VmmFlags.None)
     {
         return MemReadArray<byte>(pid, va, cb, flags);
     }
@@ -384,7 +328,7 @@ public sealed class Vmm : IDisposable
     /// <param name="flags">VMM Flags.</param>
     /// <returns>True if successful, otherwise False. Be sure to check cbRead count.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public unsafe bool MemRead(uint pid, ulong va, IntPtr pb, uint cb, out uint cbRead, uint flags = 0)
+    public unsafe bool MemRead(uint pid, ulong va, IntPtr pb, uint cb, out uint cbRead, VmmFlags flags = VmmFlags.None)
     {
         return MemRead(pid, va, pb.ToPointer(), cb, out cbRead, flags);
     }
@@ -400,7 +344,7 @@ public sealed class Vmm : IDisposable
     /// <param name="flags">VMM Flags.</param>
     /// <returns>True if successful, otherwise False. Be sure to check cbRead count.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public unsafe bool MemRead(uint pid, ulong va, void* pb, uint cb, out uint cbRead, uint flags = 0)
+    public unsafe bool MemRead(uint pid, ulong va, void* pb, uint cb, out uint cbRead, VmmFlags flags = VmmFlags.None)
     {
         return Vmmi.VMMDLL_MemReadEx(_h, pid, va, (byte*)pb, cb, out cbRead, flags);
     }
@@ -414,7 +358,7 @@ public sealed class Vmm : IDisposable
     /// <param name="result">Memory read result.</param>
     /// <param name="flags">VMM Flags.</param>
     /// <returns>TRUE if successful, otherwise FALSE.</returns>
-    public unsafe bool MemReadValue<T>(uint pid, ulong va, out T result, uint flags = 0)
+    public unsafe bool MemReadValue<T>(uint pid, ulong va, out T result, VmmFlags flags = VmmFlags.None)
         where T : unmanaged, allows ref struct
     {
         var cb = (uint)sizeof(T);
@@ -436,7 +380,7 @@ public sealed class Vmm : IDisposable
     /// <param name="count">Number of elements to read.</param>
     /// <param name="flags">VMM Flags.</param>
     /// <returns>Managed <typeparamref name="T" /> array containing number of elements read.</returns>
-    public unsafe T[] MemReadArray<T>(uint pid, ulong va, uint count, uint flags = 0)
+    public unsafe T[] MemReadArray<T>(uint pid, ulong va, uint count, VmmFlags flags = VmmFlags.None)
         where T : unmanaged
     {
         var cb = (uint)sizeof(T) * count;
@@ -472,7 +416,7 @@ public sealed class Vmm : IDisposable
     /// True if successful, otherwise False.
     /// Please be sure to also check the cbRead out value.
     /// </returns>
-    public unsafe bool MemReadSpan<T>(uint pid, ulong va, Span<T> span, out uint cbRead, uint flags)
+    public unsafe bool MemReadSpan<T>(uint pid, ulong va, Span<T> span, out uint cbRead, VmmFlags flags)
         where T : unmanaged
     {
         var cb = (uint)(sizeof(T) * span.Length);
@@ -493,7 +437,7 @@ public sealed class Vmm : IDisposable
     /// <param name="terminateOnNullChar">Terminate the string at the first occurrence of the null character.</param>
     /// <returns>C# Managed System.String. Null if failed.</returns>
     public unsafe string MemReadString(Encoding encoding, uint pid, ulong va, uint cb,
-        uint flags = 0, bool terminateOnNullChar = true)
+        VmmFlags flags = VmmFlags.None, bool terminateOnNullChar = true)
     {
         var buffer = cb <= 256 ? stackalloc byte[(int)cb] : new byte[cb];
         if (!MemReadSpan(pid, va, buffer, out var cbRead, flags) ||
@@ -644,7 +588,7 @@ public sealed class Vmm : IDisposable
     /// <param name="pid">PID to create VmmScatter over.</param>
     /// <param name="flags">Vmm Flags.</param>
     /// <returns>A VmmScatterMemory handle.</returns>
-    public VmmScatter CreateScatter(uint pid, uint flags = 0)
+    public VmmScatter CreateScatter(uint pid, VmmFlags flags = VmmFlags.None)
     {
         return new VmmScatter(this, pid, flags);
     }
@@ -1450,7 +1394,7 @@ public sealed class Vmm : IDisposable
     /// <param name="tid">The thread id to retrieve the callstack for.</param>
     /// <param name="flags">Supported flags: 0, FLAG_NOCACHE, FLAG_FORCECACHE_READ</param>
     /// <returns></returns>
-    public unsafe ThreadCallstackEntry[] Map_GetThread_Callstack(uint pid, uint tid, uint flags = 0)
+    public unsafe ThreadCallstackEntry[] Map_GetThread_Callstack(uint pid, uint tid, VmmFlags flags = VmmFlags.None)
     {
         var cbMAP = Marshal.SizeOf<Vmmi.VMMDLL_MAP_THREAD_CALLSTACK>();
         var cbENTRY = Marshal.SizeOf<Vmmi.VMMDLL_MAP_THREAD_CALLSTACKENTRY>();
@@ -2125,7 +2069,7 @@ public sealed class Vmm : IDisposable
     /// <param name="cb"></param>
     /// <param name="flags"></param>
     /// <returns>Read data on success (length may differ from requested read size). Zero-length array on fail.</returns>
-    public unsafe byte[] WinReg_HiveReadEx(ulong vaCMHIVE, uint ra, uint cb, uint flags = 0)
+    public unsafe byte[] WinReg_HiveReadEx(ulong vaCMHIVE, uint ra, uint cb, VmmFlags flags = VmmFlags.None)
     {
         uint cbRead;
         var data = new byte[cb];
@@ -2624,7 +2568,7 @@ public sealed class Vmm : IDisposable
         byte[] tag = { 0, 0, 0, 0 };
         var cbMAP = Marshal.SizeOf<Vmmi.VMMDLL_MAP_POOL>();
         var cbENTRY = Marshal.SizeOf<Vmmi.VMMDLL_MAP_POOLENTRY>();
-        var flags = isBigPoolOnly ? Vmmi.VMMDLL_POOLMAP_FLAG_BIG : Vmmi.VMMDLL_POOLMAP_FLAG_ALL;
+        var flags = isBigPoolOnly ? VmmPoolMapFlags.BIG : VmmPoolMapFlags.ALL;
         if (!Vmmi.VMMDLL_Map_GetPool(_h, out var pN, flags))
         {
             return Array.Empty<PoolEntry>();
@@ -3046,7 +2990,7 @@ public sealed class Vmm : IDisposable
     /// </summary>
     public void ForceFullRefresh()
     {
-        if (!ConfigSet(CONFIG_OPT_REFRESH_ALL, 1))
+        if (!ConfigSet(VmmOption.REFRESH_ALL, 1))
         {
             Log("WARNING: Vmm Full Refresh Failed!", LogLevel.Warning);
         }
@@ -3072,6 +3016,35 @@ public sealed class Vmm : IDisposable
     {
         RefreshManager.Unregister(this, option);
     }
+
+    #endregion
+
+    #region Vmm Mem Callbacks
+
+    /// <summary>
+    /// MEM callback function definition.
+    /// </summary>
+    /// <param name="ctxUser">user context pointer.</param>
+    /// <param name="dwPID">PID of target process, (DWORD)-1 for physical memory.</param>
+    /// <param name="cpMEMs">count of pMEMs.</param>
+    /// <param name="ppMEMs">array of pointers to MEM scatter read headers.</param>
+    public unsafe delegate void VmmMemCallbackFn(
+        IntPtr ctxUser,
+        uint dwPID,
+        uint cpMEMs,
+        LeechCore.LcMemScatter** ppMEMs
+    );
+
+    /// <summary>
+    /// Register a memory callback function.
+    /// Can only have one callback of each type registered at a time.
+    /// </summary>
+    /// <param name="type">Callback type</param>
+    /// <param name="callback">Callback delegate.</param>
+    /// <param name="context">User context pointer to be passed to the callback function.</param>
+    /// <returns><see cref="VmmMemCallback"/> instance. Dispose of it when you would like to unregister the callback.</returns>
+    public VmmMemCallback CreateMemCallback(VmmMemCallbackType type, VmmMemCallbackFn callback, IntPtr context) =>
+        new VmmMemCallback(this, type, callback, context);
 
     #endregion
 }
