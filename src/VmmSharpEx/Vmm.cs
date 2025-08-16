@@ -416,7 +416,7 @@ public sealed class Vmm : IDisposable
     /// True if successful, otherwise False.
     /// Please be sure to also check the cbRead out value.
     /// </returns>
-    public unsafe bool MemReadSpan<T>(uint pid, ulong va, Span<T> span, out uint cbRead, VmmFlags flags)
+    public unsafe bool MemReadSpan<T>(uint pid, ulong va, Span<T> span, out uint cbRead, VmmFlags flags = VmmFlags.None)
         where T : unmanaged
     {
         var cb = (uint)(sizeof(T) * span.Length);
