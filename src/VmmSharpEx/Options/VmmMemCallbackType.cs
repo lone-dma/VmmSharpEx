@@ -26,7 +26,7 @@
         /// </summary>
         READ_VIRTUAL_POST = 5,
         /// <summary>
-        /// After virtual write.
+        /// Before virtual write.
         /// </summary>
         WRITE_VIRTUAL_PRE = 6,
     }
