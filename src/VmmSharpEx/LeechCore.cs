@@ -528,15 +528,11 @@ public sealed class LeechCore : IDisposable
         /// MEM_SCATTER_VERSION
         /// </summary>
         private readonly uint version;
-        private int _f; // WIN32 BOOL
+        private readonly int _f; // WIN32 BOOL
         /// <summary>
         /// TRUE = success data in pb, FALSE = fail or not yet read.
         /// </summary>
-        public bool f
-        {
-            readonly get => _f != 0;
-            set => _f = value ? 1 : 0;
-        }
+        public readonly bool f => _f != 0;
         /// <summary>
         /// address of memory to read
         /// </summary>
