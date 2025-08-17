@@ -519,6 +519,7 @@ public sealed class LeechCore : IDisposable
 
     /// <summary>
     /// From tdMEM_SCATTER in leechcore.h
+    /// Designed to be blittable for direct pointer access.
     /// </summary>
     [StructLayout(LayoutKind.Sequential, Pack = 8)]
     public struct LcMemScatter
