@@ -4,6 +4,7 @@
     /// Pool map flags returned by VMMDLL.  
     /// Used to filter pool allocations.
     /// </summary>
+    [Flags]
     public enum VmmPoolMapFlags : uint
     {
         /// <summary>
