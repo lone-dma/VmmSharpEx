@@ -371,48 +371,6 @@ public sealed class LeechCore : IDisposable
     }
 
     /// <summary>
-    /// Write multiple page-sized physical memory ranges. The write is best-effort and may fail. It's recommended to verify
-    /// the writes with subsequent reads.
-    /// </summary>
-    /// <param name="MEMs">MEMs containing the memory addresses and data to write.</param>
-    public unsafe void WriteScatter(params ScatterWriteParams[] MEMs)
-    {
-        _parent?.ThrowIfMemWritesDisabled();
-        if (!Lci.LcAllocScatter1((uint)MEMs.Length, out var pppMEMs))
-        {
-            throw new VmmException("LcAllocScatter1 FAIL");
-        }
-
-        try
-        {
-            var ppMEMs = (LcMemScatter**)pppMEMs.ToPointer();
-            for (var i = 0; i < MEMs.Length; i++)
-            {
-                var entry = MEMs[i];
-                ArgumentNullException.ThrowIfNull(entry.pb, nameof(entry.pb));
-                ArgumentOutOfRangeException.ThrowIfNotEqual(entry.pb.Length, 0x1000, nameof(entry.pb));
-                var pMEM = ppMEMs[i];
-                var pMEM_pb = new Span<byte>(pMEM->pb.ToPointer(), 0x1000);
-                pMEM->f = entry.f;
-                pMEM->qwA = entry.qwA & ~(ulong)0xfff;
-                entry.pb.CopyTo(pMEM_pb);
-            }
-
-            Lci.LcWriteScatter(_h, (uint)MEMs.Length, pppMEMs);
-            for (var i = 0; i < MEMs.Length; i++)
-            {
-                var pMEM = ppMEMs[i];
-                MEMs[i].f = pMEM->f;
-                MEMs[i].qwA = pMEM->qwA;
-            }
-        }
-        finally
-        {
-            Lci.LcMemFree(pppMEMs);
-        }
-    }
-
-    /// <summary>
     /// Retrieve a LeechCore option value.
     /// </summary>
     /// <param name="fOption">Parameter LeechCore.LC_OPT_*</param>
@@ -558,13 +516,6 @@ public sealed class LeechCore : IDisposable
 
     public const uint LC_CONFIG_VERSION = 0xc0fd0002;
     public const uint LC_CONFIG_ERRORINFO_VERSION = 0xc0fe0002;
-
-    public struct ScatterWriteParams
-    {
-        public bool f;
-        public ulong qwA;
-        public byte[] pb;
-    }
 
     /// <summary>
     /// From tdMEM_SCATTER in leechcore.h
