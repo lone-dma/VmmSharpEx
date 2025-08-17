@@ -26,9 +26,6 @@ internal static partial class Lci
     [return: MarshalAs(UnmanagedType.Bool)]
     public static unsafe partial bool LcWrite(IntPtr hLC, ulong pa, uint cb, byte* pb);
 
-    [LibraryImport("leechcore.dll", EntryPoint = "LcWriteScatter")]
-    public static unsafe partial void LcWriteScatter(IntPtr hLC, uint cMEMs, IntPtr ppMEMs);
-
     [LibraryImport("leechcore.dll", EntryPoint = "LcGetOption")]
     [return: MarshalAs(UnmanagedType.Bool)]
     public static partial bool GetOption(IntPtr hLC, LcOption fOption, out ulong pqwValue);
