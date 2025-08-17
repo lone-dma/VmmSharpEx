@@ -21,14 +21,14 @@ public sealed class VmmScatter : IDisposable
         ;
     }
 
-    internal VmmScatter(Vmm vmm, uint pid, VmmFlags flags = VmmFlags.None)
+    internal VmmScatter(Vmm vmm, uint pid, VmmFlags flags = VmmFlags.NONE)
     {
         _vmm = vmm;
         _pid = pid;
         _h = Create(vmm, pid, flags);
     }
 
-    private static IntPtr Create(Vmm vmm, uint pid, VmmFlags flags = VmmFlags.None)
+    private static IntPtr Create(Vmm vmm, uint pid, VmmFlags flags = VmmFlags.NONE)
     {
         var hS = Vmmi.VMMDLL_Scatter_Initialize(vmm, pid, flags);
         if (hS == IntPtr.Zero)

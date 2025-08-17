@@ -11,7 +11,7 @@
         /// No Flags Set.
         /// This is the default value and indicates no special options are applied.
         /// </summary>
-        None = 0,
+        NONE = 0,
 
         /// <summary>
         /// Do not use the data cache (force reading directly from the memory acquisition device).

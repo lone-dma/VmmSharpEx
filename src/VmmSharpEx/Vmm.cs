@@ -312,7 +312,7 @@ public sealed class Vmm : IDisposable
     /// <param name="flags">VMM Flags.</param>
     /// <returns>Managed byte array containing number of bytes read.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public byte[] MemRead(uint pid, ulong va, uint cb, VmmFlags flags = VmmFlags.None)
+    public byte[] MemRead(uint pid, ulong va, uint cb, VmmFlags flags = VmmFlags.NONE)
     {
         return MemReadArray<byte>(pid, va, cb, flags);
     }
@@ -328,7 +328,7 @@ public sealed class Vmm : IDisposable
     /// <param name="flags">VMM Flags.</param>
     /// <returns>True if successful, otherwise False. Be sure to check cbRead count.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public unsafe bool MemRead(uint pid, ulong va, IntPtr pb, uint cb, out uint cbRead, VmmFlags flags = VmmFlags.None)
+    public unsafe bool MemRead(uint pid, ulong va, IntPtr pb, uint cb, out uint cbRead, VmmFlags flags = VmmFlags.NONE)
     {
         return MemRead(pid, va, pb.ToPointer(), cb, out cbRead, flags);
     }
@@ -344,7 +344,7 @@ public sealed class Vmm : IDisposable
     /// <param name="flags">VMM Flags.</param>
     /// <returns>True if successful, otherwise False. Be sure to check cbRead count.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public unsafe bool MemRead(uint pid, ulong va, void* pb, uint cb, out uint cbRead, VmmFlags flags = VmmFlags.None)
+    public unsafe bool MemRead(uint pid, ulong va, void* pb, uint cb, out uint cbRead, VmmFlags flags = VmmFlags.NONE)
     {
         return Vmmi.VMMDLL_MemReadEx(_h, pid, va, (byte*)pb, cb, out cbRead, flags);
     }
@@ -358,7 +358,7 @@ public sealed class Vmm : IDisposable
     /// <param name="result">Memory read result.</param>
     /// <param name="flags">VMM Flags.</param>
     /// <returns>TRUE if successful, otherwise FALSE.</returns>
-    public unsafe bool MemReadValue<T>(uint pid, ulong va, out T result, VmmFlags flags = VmmFlags.None)
+    public unsafe bool MemReadValue<T>(uint pid, ulong va, out T result, VmmFlags flags = VmmFlags.NONE)
         where T : unmanaged, allows ref struct
     {
         var cb = (uint)sizeof(T);
@@ -380,7 +380,7 @@ public sealed class Vmm : IDisposable
     /// <param name="count">Number of elements to read.</param>
     /// <param name="flags">VMM Flags.</param>
     /// <returns>Managed <typeparamref name="T" /> array containing number of elements read.</returns>
-    public unsafe T[] MemReadArray<T>(uint pid, ulong va, uint count, VmmFlags flags = VmmFlags.None)
+    public unsafe T[] MemReadArray<T>(uint pid, ulong va, uint count, VmmFlags flags = VmmFlags.NONE)
         where T : unmanaged
     {
         var cb = (uint)sizeof(T) * count;
@@ -416,7 +416,7 @@ public sealed class Vmm : IDisposable
     /// True if successful, otherwise False.
     /// Please be sure to also check the cbRead out value.
     /// </returns>
-    public unsafe bool MemReadSpan<T>(uint pid, ulong va, Span<T> span, out uint cbRead, VmmFlags flags = VmmFlags.None)
+    public unsafe bool MemReadSpan<T>(uint pid, ulong va, Span<T> span, out uint cbRead, VmmFlags flags = VmmFlags.NONE)
         where T : unmanaged
     {
         var cb = (uint)(sizeof(T) * span.Length);
@@ -437,7 +437,7 @@ public sealed class Vmm : IDisposable
     /// <param name="terminateOnNullChar">Terminate the string at the first occurrence of the null character.</param>
     /// <returns>C# Managed System.String. Null if failed.</returns>
     public unsafe string MemReadString(Encoding encoding, uint pid, ulong va, uint cb,
-        VmmFlags flags = VmmFlags.None, bool terminateOnNullChar = true)
+        VmmFlags flags = VmmFlags.NONE, bool terminateOnNullChar = true)
     {
         var buffer = cb <= 256 ? stackalloc byte[(int)cb] : new byte[cb];
         if (!MemReadSpan(pid, va, buffer, out var cbRead, flags) ||
@@ -588,7 +588,7 @@ public sealed class Vmm : IDisposable
     /// <param name="pid">PID to create VmmScatter over.</param>
     /// <param name="flags">Vmm Flags.</param>
     /// <returns>A VmmScatterMemory handle.</returns>
-    public VmmScatter CreateScatter(uint pid, VmmFlags flags = VmmFlags.None)
+    public VmmScatter CreateScatter(uint pid, VmmFlags flags = VmmFlags.NONE)
     {
         return new VmmScatter(this, pid, flags);
     }
@@ -1394,7 +1394,7 @@ public sealed class Vmm : IDisposable
     /// <param name="tid">The thread id to retrieve the callstack for.</param>
     /// <param name="flags">Supported flags: 0, FLAG_NOCACHE, FLAG_FORCECACHE_READ</param>
     /// <returns></returns>
-    public unsafe ThreadCallstackEntry[] Map_GetThread_Callstack(uint pid, uint tid, VmmFlags flags = VmmFlags.None)
+    public unsafe ThreadCallstackEntry[] Map_GetThread_Callstack(uint pid, uint tid, VmmFlags flags = VmmFlags.NONE)
     {
         var cbMAP = Marshal.SizeOf<Vmmi.VMMDLL_MAP_THREAD_CALLSTACK>();
         var cbENTRY = Marshal.SizeOf<Vmmi.VMMDLL_MAP_THREAD_CALLSTACKENTRY>();
@@ -2069,7 +2069,7 @@ public sealed class Vmm : IDisposable
     /// <param name="cb"></param>
     /// <param name="flags"></param>
     /// <returns>Read data on success (length may differ from requested read size). Zero-length array on fail.</returns>
-    public unsafe byte[] WinReg_HiveReadEx(ulong vaCMHIVE, uint ra, uint cb, VmmFlags flags = VmmFlags.None)
+    public unsafe byte[] WinReg_HiveReadEx(ulong vaCMHIVE, uint ra, uint cb, VmmFlags flags = VmmFlags.NONE)
     {
         uint cbRead;
         var data = new byte[cb];
