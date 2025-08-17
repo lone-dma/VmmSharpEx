@@ -275,7 +275,7 @@ public sealed class LeechCore : IDisposable
         for (var i = 0; i < pas.Length; i++)
         {
             var pMEM = ppMEMs[i];
-            if (pMEM->f != 0)
+            if (pMEM->f)
             {
                 results[pMEM->qwA] = new ScatterPage(pMEM->pb, pMEM->cb);
             }
@@ -393,7 +393,7 @@ public sealed class LeechCore : IDisposable
                 ArgumentOutOfRangeException.ThrowIfNotEqual(entry.pb.Length, 0x1000, nameof(entry.pb));
                 var pMEM = ppMEMs[i];
                 var pMEM_pb = new Span<byte>(pMEM->pb.ToPointer(), 0x1000);
-                pMEM->f = entry.f ? 1 : 0;
+                pMEM->f = entry.f;
                 pMEM->qwA = entry.qwA & ~(ulong)0xfff;
                 entry.pb.CopyTo(pMEM_pb);
             }
@@ -402,7 +402,7 @@ public sealed class LeechCore : IDisposable
             for (var i = 0; i < MEMs.Length; i++)
             {
                 var pMEM = ppMEMs[i];
-                MEMs[i].f = pMEM->f != 0;
+                MEMs[i].f = pMEM->f;
                 MEMs[i].qwA = pMEM->qwA;
             }
         }
@@ -576,10 +576,15 @@ public sealed class LeechCore : IDisposable
         /// MEM_SCATTER_VERSION
         /// </summary>
         private readonly uint version;
+        private int _f; // WIN32 BOOL
         /// <summary>
         /// TRUE = success data in pb, FALSE = fail or not yet read.
         /// </summary>
-        public int f; // BOOL
+        public bool f
+        {
+            readonly get => _f != 0;
+            set => _f = value ? 1 : 0;
+        }
         /// <summary>
         /// address of memory to read
         /// </summary>

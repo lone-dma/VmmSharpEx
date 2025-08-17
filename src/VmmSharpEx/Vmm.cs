@@ -293,7 +293,7 @@ public sealed class Vmm : IDisposable
         for (var i = 0; i < va.Length; i++)
         {
             var pMEM = ppMEMs[i];
-            if (pMEM->f != 0)
+            if (pMEM->f)
             {
                 results[pMEM->qwA] = new LeechCore.ScatterPage(pMEM->pb, pMEM->cb);
             }
