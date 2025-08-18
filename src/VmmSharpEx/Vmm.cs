@@ -762,7 +762,6 @@ public sealed class Vmm : IDisposable
     /// <returns>The NTSTATUS value of the operation (success = 0).</returns>
     public unsafe uint VfsWrite(string fileName, byte[] data, ulong offset = 0)
     {
-        ThrowIfMemWritesDisabled();
         uint cbRead = 0;
         fixed (byte* pb = data)
         {
