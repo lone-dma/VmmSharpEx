@@ -9,7 +9,6 @@ namespace VmmSharpEx;
 /// </summary>
 public sealed unsafe class VmmSearch : IDisposable
 {
-    private readonly SearchResultsContainer _managed = new();
     private readonly uint _pid;
     private readonly ConcurrentBag<Vmmi.VMMDLL_MEM_SEARCH_CONTEXT_SEARCHENTRY> _searches = new();
     private readonly Vmmi.SearchResultCallback _searchResultCallback; // Root the delegate to prevent it from being garbage collected.
@@ -18,6 +17,7 @@ public sealed unsafe class VmmSearch : IDisposable
     private readonly Vmm _vmm;
     private bool _disposed;
     private Vmmi.VMMDLL_MEM_SEARCH_CONTEXT* _native;
+    private SearchResultsContainer _managed = new();
     private bool _started;
 
     private VmmSearch() { }
@@ -223,10 +223,12 @@ public sealed unsafe class VmmSearch : IDisposable
     }
 
     /// <summary>
-    /// Class with info about the search results. Find the actual results in the result field.
+    /// Struct with info about the current search results. Find the actual results in the result field.
     /// </summary>
-    public sealed class SearchResultsContainer
+    public struct SearchResultsContainer
     {
+        public SearchResultsContainer() { }
+
         /// <summary>
         /// Indicates that the search has been completed.
         /// </summary>
@@ -260,7 +262,7 @@ public sealed unsafe class VmmSearch : IDisposable
         /// <summary>
         /// The actual results.
         /// </summary>
-        public ConcurrentBag<SearchResultEntry> Results { get; } = new();
+        public readonly ConcurrentBag<SearchResultEntry> Results { get; } = new();
     }
 
     /// <summary>
