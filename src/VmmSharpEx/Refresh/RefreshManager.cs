@@ -7,7 +7,7 @@ namespace VmmSharpEx.Refresh;
 /// </summary>
 internal static class RefreshManager
 {
-    private static readonly ConcurrentDictionary<Vmm, ConcurrentDictionary<RefreshOptions, VmmRefresher>> _refreshers = new();
+    private static readonly ConcurrentDictionary<Vmm, ConcurrentDictionary<RefreshOption, VmmRefresher>> _refreshers = new();
 
     /// <summary>
     /// Register a refresher for the given Vmm instance and refresh option.
@@ -16,9 +16,9 @@ internal static class RefreshManager
     /// <param name="option"></param>
     /// <param name="interval"></param>
     /// <exception cref="VmmException"></exception>
-    public static void Register(Vmm instance, RefreshOptions option, TimeSpan interval)
+    public static void Register(Vmm instance, RefreshOption option, TimeSpan interval)
     {
-        var dict = _refreshers.GetOrAdd(instance, new ConcurrentDictionary<RefreshOptions, VmmRefresher>());
+        var dict = _refreshers.GetOrAdd(instance, new ConcurrentDictionary<RefreshOption, VmmRefresher>());
         if (dict.ContainsKey(option))
         {
             throw new VmmException("Refresher already registered for this option!");
@@ -33,7 +33,7 @@ internal static class RefreshManager
     /// </summary>
     /// <param name="instance"></param>
     /// <param name="option"></param>
-    public static void Unregister(Vmm instance, RefreshOptions option)
+    public static void Unregister(Vmm instance, RefreshOption option)
     {
         if (_refreshers.TryGetValue(instance, out var dict) && dict.TryRemove(option, out var refresher))
         {

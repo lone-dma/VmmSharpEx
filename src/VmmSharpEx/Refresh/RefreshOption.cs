@@ -5,7 +5,7 @@ namespace VmmSharpEx.Refresh;
 /// <summary>
 /// VMM Refresh Options.
 /// </summary>
-public enum RefreshOptions : ulong
+public enum RefreshOption : ulong
 {
     /// <summary>
     /// refresh all caches

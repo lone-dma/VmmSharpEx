@@ -114,7 +114,7 @@ public sealed class VmmScatter : IDisposable
     public unsafe bool PrepareReadContiguous<T>(ulong qwA, int count)
         where T : unmanaged
     {
-        var cb = (uint)sizeof(T) * (uint)count;
+        var cb = (uint)(sizeof(T) * count);
         return Vmmi.VMMDLL_Scatter_Prepare(_h, qwA, cb);
     }
 
@@ -141,7 +141,7 @@ public sealed class VmmScatter : IDisposable
         where T : unmanaged
     {
         _vmm.ThrowIfMemWritesDisabled();
-        var cb = (uint)sizeof(T) * (uint)data.Length;
+        var cb = (uint)(sizeof(T) * data.Length);
         fixed (T* pb = data)
         {
             return Vmmi.VMMDLL_Scatter_PrepareWrite(_h, qwA, (byte*)pb, cb);
@@ -159,7 +159,7 @@ public sealed class VmmScatter : IDisposable
         where T : unmanaged
     {
         _vmm.ThrowIfMemWritesDisabled();
-        var cb = (uint)sizeof(T) * (uint)data.Length;
+        var cb = (uint)(sizeof(T) * data.Length);
         fixed (T* pb = data)
         {
             return Vmmi.VMMDLL_Scatter_PrepareWrite(_h, qwA, (byte*)pb, cb);

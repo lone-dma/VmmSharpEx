@@ -270,14 +270,14 @@ public sealed class LeechCore : IDisposable
             pMEM->qwA = pas[i] & ~(ulong)0xfff;
         }
 
-        var results = new Dictionary<ulong, ScatterPage>(pas.Length);
+        var results = new Dictionary<ulong, ScatterData>(pas.Length);
         Lci.LcReadScatter(_h, (uint)pas.Length, pppMEMs);
         for (var i = 0; i < pas.Length; i++)
         {
             var pMEM = ppMEMs[i];
             if (pMEM->f)
             {
-                results[pMEM->qwA] = new ScatterPage(pMEM->pb, pMEM->cb);
+                results[pMEM->qwA] = new ScatterData(pMEM->pb, pMEM->cb);
             }
         }
 
@@ -445,7 +445,7 @@ public sealed class LeechCore : IDisposable
     {
         private IntPtr _mems;
 
-        public LcScatterHandle(Dictionary<ulong, ScatterPage> results, IntPtr mems)
+        public LcScatterHandle(Dictionary<ulong, ScatterData> results, IntPtr mems)
         {
             Results = results;
             _mems = mems;
@@ -457,7 +457,7 @@ public sealed class LeechCore : IDisposable
         /// KEY: Page-aligned Memory Address.
         /// VALUE: SCATTER_PAGE containing the page data.
         /// </summary>
-        public IReadOnlyDictionary<ulong, ScatterPage> Results { get; }
+        public IReadOnlyDictionary<ulong, ScatterData> Results { get; }
 
         #region IDisposable
 
@@ -487,14 +487,14 @@ public sealed class LeechCore : IDisposable
     }
 
     /// <summary>
-    /// Defines a Scatter Read Page.
+    /// Encapsulates native data from a scatter read entry.
     /// </summary>
-    public readonly struct ScatterPage
+    public readonly struct ScatterData
     {
         private readonly IntPtr _pb;
         private readonly int _cb;
 
-        public ScatterPage(IntPtr pb, uint cb)
+        public ScatterData(IntPtr pb, uint cb)
         {
             _pb = pb;
             _cb = (int)cb;
@@ -504,7 +504,7 @@ public sealed class LeechCore : IDisposable
         /// Page for this scatter read entry.
         /// WARNING: Do not access this memory after the parent scope is disposed/freed!
         /// </summary>
-        public readonly unsafe ReadOnlySpan<byte> Page =>
+        public readonly unsafe ReadOnlySpan<byte> Data =>
             new(_pb.ToPointer(), _cb);
     }
 
@@ -555,10 +555,10 @@ public sealed class LeechCore : IDisposable
         private unsafe fixed ulong vStack[12];
 
         /// <summary>
-        /// Contains the page data from the <see cref="pb"/> buffer.
+        /// Contains the read data from the <see cref="pb"/> buffer.
         /// DANGER: Do not access this memory after the memory is freed via <see cref="Lci.LcMemFree(nint)"/>!
         /// </summary>
-        public readonly unsafe ReadOnlySpan<byte> Page =>
+        public readonly unsafe ReadOnlySpan<byte> Data =>
             new ReadOnlySpan<byte>(pb.ToPointer(), (int)cb);
     }
 

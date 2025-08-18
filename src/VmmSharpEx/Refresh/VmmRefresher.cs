@@ -10,7 +10,7 @@ namespace VmmSharpEx.Refresh;
 internal sealed class VmmRefresher : IDisposable
 {
     private readonly Vmm _instance;
-    private readonly RefreshOptions _option;
+    private readonly RefreshOption _option;
     private readonly Timer _timer;
     private bool _disposed;
 
@@ -20,7 +20,7 @@ internal sealed class VmmRefresher : IDisposable
     /// <param name="instance">Parent Vmm instance.</param>
     /// <param name="option">Option to invoke refresh upon.</param>
     /// <param name="interval">Timespan interval in which to refresh. Minimum resolution ~10-15ms.</param>
-    public VmmRefresher(Vmm instance, RefreshOptions option, TimeSpan interval)
+    public VmmRefresher(Vmm instance, RefreshOption option, TimeSpan interval)
     {
         ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(interval, TimeSpan.Zero, nameof(interval));
         _instance = instance;

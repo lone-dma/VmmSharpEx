@@ -288,14 +288,14 @@ public sealed class Vmm : IDisposable
             pMEM->qwA = va[i] & ~(ulong)0xfff;
         }
 
-        var results = new Dictionary<ulong, LeechCore.ScatterPage>(va.Length);
+        var results = new Dictionary<ulong, LeechCore.ScatterData>(va.Length);
         _ = Vmmi.VMMDLL_MemReadScatter(_h, pid, pppMEMs, (uint)va.Length, flags);
         for (var i = 0; i < va.Length; i++)
         {
             var pMEM = ppMEMs[i];
             if (pMEM->f)
             {
-                results[pMEM->qwA] = new LeechCore.ScatterPage(pMEM->pb, pMEM->cb);
+                results[pMEM->qwA] = new LeechCore.ScatterData(pMEM->pb, pMEM->cb);
             }
         }
 
@@ -578,7 +578,7 @@ public sealed class Vmm : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public ulong MemVirt2Phys(uint pid, ulong va)
     {
-        Vmmi.VMMDLL_MemVirt2Phys(_h, pid, va, out var pa);
+        _ = Vmmi.VMMDLL_MemVirt2Phys(_h, pid, va, out var pa);
         return pa;
     }
 
@@ -3003,7 +3003,7 @@ public sealed class Vmm : IDisposable
     /// </summary>
     /// <param name="option">Vmm Refresh Option</param>
     /// <param name="interval">Interval in which to fire a refresh operation.</param>
-    public void RegisterAutoRefresh(RefreshOptions option, TimeSpan interval)
+    public void RegisterAutoRefresh(RefreshOption option, TimeSpan interval)
     {
         RefreshManager.Register(this, option, interval);
     }
@@ -3012,7 +3012,7 @@ public sealed class Vmm : IDisposable
     /// Unregisters an Auto Refresher.
     /// </summary>
     /// <param name="option">Option to unregister.</param>
-    public void UnregisterAutoRefresh(RefreshOptions option)
+    public void UnregisterAutoRefresh(RefreshOption option)
     {
         RefreshManager.Unregister(this, option);
     }
