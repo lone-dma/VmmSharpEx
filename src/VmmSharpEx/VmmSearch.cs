@@ -100,7 +100,7 @@ public sealed unsafe class VmmSearch : IDisposable
             }
             else
             {
-                Task.Run(() => // Ensure Cleanup in the background
+                _ = Task.Run(() => // Ensure Cleanup in the background
                 {
                     _native->fAbortRequested = 1;
                     _thread.Join();
