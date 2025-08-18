@@ -59,7 +59,7 @@ public sealed unsafe class VmmSearch : IDisposable
     {
         get
         {
-            ObjectDisposedException.ThrowIf(_disposed, "Object disposed.");
+            ObjectDisposedException.ThrowIf(_disposed, this);
             if (!_started)
             {
                 Start();
@@ -81,7 +81,9 @@ public sealed unsafe class VmmSearch : IDisposable
     /// </summary>
     public override string ToString()
     {
-        return "VmmSearch";
+        return _disposed ?
+            "VmmSearch:Disposed" : _thread.IsAlive ?
+            "VmmSearch:Searching" : "VmmSearch:Ready";
     }
 
     ~VmmSearch()
@@ -121,7 +123,7 @@ public sealed unsafe class VmmSearch : IDisposable
     public void AddEntry(byte[] search, byte[] skipmask = null, uint align = 1)
     {
         const int maxLength = 32;
-        ObjectDisposedException.ThrowIf(_disposed, "Object disposed.");
+        ObjectDisposedException.ThrowIf(_disposed, this);
         var e = new Vmmi.VMMDLL_MEM_SEARCH_CONTEXT_SEARCHENTRY
         {
             cbAlign = align,
@@ -143,7 +145,7 @@ public sealed unsafe class VmmSearch : IDisposable
     /// </summary>
     public void Start()
     {
-        ObjectDisposedException.ThrowIf(_disposed, "Object disposed.");
+        ObjectDisposedException.ThrowIf(_disposed, this);
         if (Interlocked.Exchange(ref _started, true)) // Ensure start is only called once.
         {
             return;
@@ -173,7 +175,7 @@ public sealed unsafe class VmmSearch : IDisposable
     /// <returns></returns>
     public SearchResultsContainer Poll()
     {
-        ObjectDisposedException.ThrowIf(_disposed, "Object disposed.");
+        ObjectDisposedException.ThrowIf(_disposed, this);
         if (!_started)
         {
             Start();
