@@ -102,6 +102,7 @@ public sealed unsafe class VmmSearch : IDisposable
             {
                 Task.Run(() => // Ensure Cleanup in the background
                 {
+                    _native->fAbortRequested = 1;
                     _thread.Join();
                     NativeMemory.Free(_native);
                     _native = null;
