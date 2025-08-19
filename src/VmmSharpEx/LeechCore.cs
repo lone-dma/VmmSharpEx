@@ -256,7 +256,7 @@ public sealed class LeechCore : IDisposable
     /// <param name="pas">Array of page-aligned Physical Memory Addresses.</param>
     /// <returns>SCATTER_HANDLE</returns>
     /// <exception cref="VmmException"></exception>
-    public unsafe LcScatterHandle ReadScatter(params ulong[] pas)
+    public unsafe LcScatterHandle ReadScatter(params Span<ulong> pas)
     {
         if (!Lci.LcAllocScatter1((uint)pas.Length, out var pppMEMs))
         {

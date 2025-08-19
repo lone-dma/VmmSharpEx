@@ -274,7 +274,7 @@ public sealed class Vmm : IDisposable
     /// <param name="va">Array of page-aligned Memory Addresses.</param>
     /// <returns>SCATTER_HANDLE</returns>
     /// <exception cref="VmmException"></exception>
-    public unsafe LeechCore.LcScatterHandle MemReadScatter(uint pid, VmmFlags flags, params ulong[] va)
+    public unsafe LeechCore.LcScatterHandle MemReadScatter(uint pid, VmmFlags flags, params Span<ulong> va)
     {
         if (!Lci.LcAllocScatter1((uint)va.Length, out var pppMEMs))
         {
