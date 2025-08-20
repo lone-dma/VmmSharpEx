@@ -1,52 +1,34 @@
-﻿using System.Timers;
+﻿using VmmSharpEx;
 using VmmSharpEx.Options;
-using Timer = System.Timers.Timer;
+using VmmSharpEx.Refresh;
 
-namespace VmmSharpEx.Refresh;
-
-/// <summary>
-/// Internal wrapper for the VMM refresher utilizing a System.Timers.Timer to periodically refresh.
-/// </summary>
 internal sealed class VmmRefresher : IDisposable
 {
-    private readonly Vmm _instance;
-    private readonly RefreshOption _option;
-    private readonly Timer _timer;
+    private readonly CancellationTokenSource _cts = new();
     private bool _disposed;
 
-    /// <summary>
-    /// Ctor for the VmmRefresher.
-    /// </summary>
-    /// <param name="instance">Parent Vmm instance.</param>
-    /// <param name="option">Option to invoke refresh upon.</param>
-    /// <param name="interval">Timespan interval in which to refresh. Minimum resolution ~10-15ms.</param>
     public VmmRefresher(Vmm instance, RefreshOption option, TimeSpan interval)
     {
         ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(interval, TimeSpan.Zero, nameof(interval));
-        _instance = instance;
-        _option = option;
-        _timer = new Timer(interval)
+        _ = RunAsync(instance, option, interval, _cts.Token);
+    }
+
+    private static async Task RunAsync(Vmm instance, RefreshOption option, TimeSpan interval, CancellationToken ct)
+    {
+        using var timer = new PeriodicTimer(interval);
+        while (await timer.WaitForNextTickAsync(ct).ConfigureAwait(false))
         {
-            AutoReset = true
-        };
-        _timer.Elapsed += Interval_Elapsed;
-        _timer.Start();
+            if (!instance.ConfigSet((VmmOption)option, 1))
+                instance.Log($"WARNING: {option} Auto Refresh Failed!", Vmm.LogLevel.Warning);
+        }
     }
 
     public void Dispose()
     {
         if (Interlocked.Exchange(ref _disposed, true) == false)
         {
-            _timer.Stop();
-            _timer.Dispose();
-        }
-    }
-
-    private void Interval_Elapsed(object sender, ElapsedEventArgs e)
-    {
-        if (!_instance.ConfigSet((VmmOption)_option, 1))
-        {
-            _instance.Log($"WARNING: {_option} Auto Refresh Failed!", Vmm.LogLevel.Warning);
+            _cts.Cancel();
+            _cts.Dispose();
         }
     }
 }
