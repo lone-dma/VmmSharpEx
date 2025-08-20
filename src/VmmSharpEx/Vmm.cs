@@ -271,26 +271,26 @@ public sealed class Vmm : IDisposable
     /// </summary>
     /// <param name="pid">Process ID (PID) this operation will take place within.</param>
     /// <param name="flags">Vmm Flags.</param>
-    /// <param name="va">Array of page-aligned Memory Addresses.</param>
+    /// <param name="vas">Array of page-aligned Memory Addresses.</param>
     /// <returns>SCATTER_HANDLE</returns>
     /// <exception cref="VmmException"></exception>
-    public unsafe LeechCore.LcScatterHandle MemReadScatter(uint pid, VmmFlags flags, params Span<ulong> va)
+    public unsafe LeechCore.LcScatterHandle MemReadScatter(uint pid, VmmFlags flags, params Span<ulong> vas)
     {
-        if (!Lci.LcAllocScatter1((uint)va.Length, out var pppMEMs))
+        if (!Lci.LcAllocScatter1((uint)vas.Length, out var pppMEMs))
         {
             throw new VmmException("LcAllocScatter1 FAIL");
         }
 
         var ppMEMs = (LeechCore.LcMemScatter**)pppMEMs.ToPointer();
-        for (var i = 0; i < va.Length; i++)
+        for (var i = 0; i < vas.Length; i++)
         {
             var pMEM = ppMEMs[i];
-            pMEM->qwA = va[i] & ~(ulong)0xfff;
+            pMEM->qwA = vas[i] & ~(ulong)0xfff;
         }
 
-        var results = new Dictionary<ulong, LeechCore.ScatterData>(va.Length);
-        _ = Vmmi.VMMDLL_MemReadScatter(_h, pid, pppMEMs, (uint)va.Length, flags);
-        for (var i = 0; i < va.Length; i++)
+        var results = new Dictionary<ulong, LeechCore.ScatterData>(vas.Length);
+        _ = Vmmi.VMMDLL_MemReadScatter(_h, pid, pppMEMs, (uint)vas.Length, flags);
+        for (var i = 0; i < vas.Length; i++)
         {
             var pMEM = ppMEMs[i];
             if (pMEM->f)
