@@ -29,9 +29,8 @@ namespace VmmSharpEx
             var mod = vmm.Map_GetModuleFromName(pid, processName);
             if (mod.fValid)
                 return true;
-
             // Ensure plugins are ready
-            if (!Vmmi.VMMDLL_InitializePlugins(vmm))
+            if (!vmm.InitializePlugins())
             {
                 Debug.WriteLine("[-] Failed VMMDLL_InitializePlugins");
                 return false;
@@ -81,7 +80,7 @@ namespace VmmSharpEx
 
             foreach (var dtb in possibleDtbs)
             {
-                Vmmi.VMMDLL_ConfigSet(vmm, (VmmOption)((ulong)VmmOption.PROCESS_DTB | pid), dtb);
+                vmm.ConfigSet((VmmOption)((ulong)VmmOption.PROCESS_DTB | pid), dtb);
                 mod = vmm.Map_GetModuleFromName(pid, processName);
                 if (mod.fValid)
                 {

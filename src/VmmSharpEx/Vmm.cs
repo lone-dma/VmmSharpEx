@@ -120,10 +120,7 @@ public sealed class Vmm : IDisposable
     /// Manually initialize plugins.
     /// By default plugins are not initialized during Vmm Init.
     /// </summary>
-    public void InitializePlugins()
-    {
-        Vmmi.VMMDLL_InitializePlugins(_h);
-    }
+    public bool InitializePlugins() => Vmmi.VMMDLL_InitializePlugins(_h);
 
     ~Vmm()
     {
