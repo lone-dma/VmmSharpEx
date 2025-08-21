@@ -212,13 +212,13 @@ public sealed class Vmm : IDisposable
     }
 
     /// <summary>
-    /// Perform Common Memory Map Setup.
+    /// Returns physical memory map in string format, with additional optional setup parameters.
     /// </summary>
     /// <param name="applyMap">(Optional) True if you would like to apply the Memory Map to the current Vmm/LeechCore instance.</param>
     /// <param name="outputFile">(Optional) If Non-Null, will write the Memory Map to disk at the specified output location.</param>
     /// <returns>Memory map result in String Format.</returns>
     /// <exception cref="VmmException"></exception>
-    public string SetupMemoryMap(
+    public string GetMemoryMap(
         bool applyMap = false,
         string outputFile = null)
     {
