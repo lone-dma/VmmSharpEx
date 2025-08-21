@@ -214,12 +214,11 @@ public sealed class Vmm : IDisposable
     /// <summary>
     /// Perform Common Memory Map Setup.
     /// </summary>
-    /// <param name="strMap">Memory map result in String Format.</param>
     /// <param name="applyMap">(Optional) True if you would like to apply the Memory Map to the current Vmm/LeechCore instance.</param>
     /// <param name="outputFile">(Optional) If Non-Null, will write the Memory Map to disk at the specified output location.</param>
+    /// <returns>Memory map result in String Format.</returns>
     /// <exception cref="VmmException"></exception>
-    public void SetupMemoryMap(
-        out string strMap,
+    public string SetupMemoryMap(
         bool applyMap = false,
         string outputFile = null)
     {
@@ -238,7 +237,7 @@ public sealed class Vmm : IDisposable
                 .AppendLine();
         }
 
-        strMap = sb.ToString();
+        string strMap = sb.ToString();
         if (applyMap)
         {
             if (!LeechCore.ExecuteCommand(LcCmd.MEMMAP_SET, Encoding.UTF8.GetBytes(strMap), out _))
@@ -251,6 +250,8 @@ public sealed class Vmm : IDisposable
         {
             File.WriteAllBytes(outputFile, Encoding.UTF8.GetBytes(strMap));
         }
+
+        return strMap;
     }
 
     #endregion
