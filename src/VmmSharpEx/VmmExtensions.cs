@@ -9,6 +9,7 @@ namespace VmmSharpEx
     /// </summary>
     public static class VmmExtensions
     {
+
         /// <summary>
         /// This fixes the database shuffling that EAC does.
         /// It fixes it by iterating over all DTB's that exist within your system and looks for specific ones
@@ -17,6 +18,10 @@ namespace VmmSharpEx
         /// NOTE: Using FixCR3 requires you to have symsrv.dll, dbghelp.dll and info.db
         /// CREDIT: Contributed by Mambo, but based off Metick's DMA Lib https://github.com/Metick/DMALibrary :)
         /// </summary>
+        /// <param name="vmm">Vmm instance.</param>
+        /// <param name="processName">Process name to fix.</param>
+        /// <param name="pid">PID of process to fix.</param>
+        /// <returns>TRUE if successful, otherwise FALSE.</returns>
         public static bool FixCr3_EAC(this Vmm vmm, string processName, uint pid)
         {
             const ulong vmmdll_opt_process_dtb = 0x2002000100000000;
@@ -80,12 +85,12 @@ namespace VmmSharpEx
                 mod = vmm.Map_GetModuleFromName(pid, processName);
                 if (mod.fValid)
                 {
-                    Console.WriteLine($"[+] Patched DTB: 0x{dtb:X}");
+                    Debug.WriteLine($"[+] Patched DTB: 0x{dtb:X}");
                     return true;
                 }
             }
 
-            Console.WriteLine("[-] Failed to patch DTB");
+            Debug.WriteLine("[-] Failed to patch DTB");
             return false;
         }
     }
