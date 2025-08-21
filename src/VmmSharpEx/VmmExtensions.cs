@@ -1,6 +1,7 @@
 ﻿using System.Diagnostics;
 using System.Text;
 using VmmSharpEx.Internal;
+using VmmSharpEx.Options;
 
 namespace VmmSharpEx
 {
@@ -24,7 +25,6 @@ namespace VmmSharpEx
         /// <returns>TRUE if successful, otherwise FALSE.</returns>
         public static bool FixCr3_EAC(this Vmm vmm, string processName, uint pid)
         {
-            const ulong vmmdll_opt_process_dtb = 0x2002000100000000;
             // If already mapped successfully, skip
             var mod = vmm.Map_GetModuleFromName(pid, processName);
             if (mod.fValid)
@@ -81,7 +81,7 @@ namespace VmmSharpEx
 
             foreach (var dtb in possibleDtbs)
             {
-                Vmmi.VMMDLL_ConfigSet(vmm, (VmmSharpEx.Options.VmmOption)(vmmdll_opt_process_dtb | pid), dtb);
+                Vmmi.VMMDLL_ConfigSet(vmm, (VmmOption)((ulong)VmmOption.PROCESS_DTB | pid), dtb);
                 mod = vmm.Map_GetModuleFromName(pid, processName);
                 if (mod.fValid)
                 {
