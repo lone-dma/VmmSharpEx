@@ -9,7 +9,9 @@ Install-Package VmmSharpEx
 This library is **Windows Only** so make sure your solution is targeting a Windows TFM like `net9.0-windows`, etc.
 
 ## Changelog
-- Version 2.x: .NET9 & MemProcFS 5.15.3
+- Initial Release
+  - .NET 9  
+  - MemProcFS 5.15.3
 
 ## License
 ```
