@@ -778,37 +778,34 @@ public sealed class Vmm : IDisposable
     //---------------------------------------------------------------------
 
     /// <summary>
-    /// Returns All Process IDs on the Target System.
-    /// NOTE: No validation is performed on the PIDs returned.
+    /// Get all Process IDs (PIDs) currently running on the target system.
     /// </summary>
-    public unsafe uint[] PIDs
+    /// <returns>Array of PIDs, empty array if failed.</returns>
+    public unsafe uint[] GetPidList()
     {
-        get
+        bool result;
+        ulong c = 0;
+        result = Vmmi.VMMDLL_PidList(_h, null, ref c);
+        if (!result || c == 0)
         {
-            bool result;
-            ulong c = 0;
-            result = Vmmi.VMMDLL_PidList(_h, null, ref c);
+            return Array.Empty<uint>();
+        }
+
+        fixed (byte* pb = new byte[c * 4])
+        {
+            result = Vmmi.VMMDLL_PidList(_h, pb, ref c);
             if (!result || c == 0)
             {
                 return Array.Empty<uint>();
             }
 
-            fixed (byte* pb = new byte[c * 4])
+            var m = new uint[c];
+            for (ulong i = 0; i < c; i++)
             {
-                result = Vmmi.VMMDLL_PidList(_h, pb, ref c);
-                if (!result || c == 0)
-                {
-                    return Array.Empty<uint>();
-                }
-
-                var m = new uint[c];
-                for (ulong i = 0; i < c; i++)
-                {
-                    m[i] = (uint)Marshal.ReadInt32((IntPtr)(pb + i * 4));
-                }
-
-                return m;
+                m[i] = (uint)Marshal.ReadInt32((IntPtr)(pb + i * 4));
             }
+
+            return m;
         }
     }
 
