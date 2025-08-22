@@ -96,7 +96,7 @@ namespace VmmSharpEx.Extensions
         /// </summary>
         /// <param name="vmm">Vmm instance.</param>
         /// <param name="pid">Process to search within.</param>
-        /// <param name="signature">Signature to search for. Hex Characters (separated by space) with optional ?? wildcard mask. Ex: 0F 1F ?? ?? 90 AA</param>
+        /// <param name="signature">Signature to search for (max 32 bytes). Hex Characters (separated by space) with optional ?? wildcard mask. Ex: 0F 1F ?? ?? 90 AA</param>
         /// <param name="vaMin">(Optional) Minimum Virtual Address to begin scanning at. By default will scan whole process.</param>
         /// <param name="vaMax">(Optional) Maximum Virtual Address to end scanning at. By default will scan whole process.</param>
         /// <returns>Address of first occurrence of signature, otherwise 0 if failed.</returns>
