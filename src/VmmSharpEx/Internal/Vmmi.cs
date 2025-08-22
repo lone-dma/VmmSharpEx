@@ -1117,6 +1117,14 @@ internal static partial class Vmmi
         byte* pProcessInformation,
         ref ulong pcbProcessInformation);
 
+    [LibraryImport("vmm.dll", EntryPoint = "VMMDLL_ProcessGetInformationAll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static partial bool VMMDLL_ProcessGetInformationAll(
+    IntPtr hVMM,
+    out IntPtr ppProcessInformationAll,
+    out uint pcProcessInformation
+    );
+
     [LibraryImport("vmm.dll", EntryPoint = "VMMDLL_ProcessGetInformationString")]
     public static unsafe partial byte* VMMDLL_ProcessGetInformationString(
         IntPtr hVMM,

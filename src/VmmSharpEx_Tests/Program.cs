@@ -16,18 +16,15 @@ internal unsafe class Program
             "-waitinitialize"
         };
         using var vmm = new Vmm(args);
-        if (!vmm.PidGetFromName("explorer.exe", out var pid))
+        var info = vmm.ProcessGetInformationAll();
+        foreach (var proc in info)
         {
-            throw new VmmException("Failed to get PID for explorer.exe");
+            Console.WriteLine(proc.sNameLong);
         }
-
-        using var cb = vmm.CreateMemCallback(VmmMemCallbackType.READ_VIRTUAL_PRE, TestCb, 0);
-
-        ulong vaBase = vmm.ProcessGetModuleBase(pid, "explorer.exe");
-        for (int i = 0; i < 10; i++)
+        var pids = vmm.PidGetAllFromName("brave.exe");
+        foreach (var pid in pids)
         {
-            vmm.MemRead(pid, vaBase + (uint)(i * 0x1000), 8);
-            Thread.Sleep(1000);
+            Console.WriteLine(pid);
         }
     }
 

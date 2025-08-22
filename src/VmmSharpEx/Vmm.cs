@@ -1,4 +1,5 @@
-﻿using System.Runtime.CompilerServices;
+﻿using System.Diagnostics.Contracts;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
 using VmmSharpEx.Internal;
@@ -813,6 +814,7 @@ public sealed class Vmm : IDisposable
 
     /// <summary>
     /// Get the Process ID (PID) for a given process name.
+    /// NOTE: This only returns the first PID found for the process name. For multiple PIDs, use <see cref="PidGetAllFromName"/>/>.
     /// </summary>
     /// <param name="sProcName">Name of the process to look up.</param>
     /// <param name="pdwPID">PID result.</param>
@@ -820,6 +822,29 @@ public sealed class Vmm : IDisposable
     public bool PidGetFromName(string sProcName, out uint pdwPID)
     {
         return Vmmi.VMMDLL_PidGetFromName(_h, sProcName, out pdwPID);
+    }
+
+    /// <summary>
+    /// Get all Process IDs (PIDs) for a given process name.
+    /// </summary>
+    /// <param name="sProcName"></param>
+    /// <returns></returns>
+    public uint[] PidGetAllFromName(string sProcName)
+    {
+        var pids = new List<uint>();
+        var procInfo = ProcessGetInformationAll();
+        if (procInfo.Length == 0)
+        {
+            throw new VmmException("ProcessGetInformationAll FAIL");
+        }
+        for (var i = 0; i < procInfo.Length; i++)
+        {
+            if (procInfo[i].sName.Equals(sProcName, StringComparison.OrdinalIgnoreCase))
+            {
+                pids.Add(procInfo[i].dwPID);
+            }
+        }
+        return pids.ToArray();
     }
 
     /// <summary>
@@ -1633,9 +1658,10 @@ public sealed class Vmm : IDisposable
     /// Get process information.
     /// </summary>
     /// <param name="pid">Process ID (PID) for this operation.</param>
-    /// <returns>ProcessInformation on success. NULL on fail.</returns>
-    public unsafe ProcessInfo? ProcessGetInformation(uint pid)
+    /// <returns>ProcessInformation data.</returns>
+    public unsafe ProcessInfo ProcessGetInformation(uint pid)
     {
+        var e = new ProcessInfo();
         var cbENTRY = (ulong)Marshal.SizeOf<Vmmi.VMMDLL_PROCESS_INFORMATION>();
         fixed (byte* pb = new byte[cbENTRY])
         {
@@ -1643,13 +1669,58 @@ public sealed class Vmm : IDisposable
             Marshal.WriteInt16(new IntPtr(pb + 8), unchecked((short)Vmmi.VMMDLL_PROCESS_INFORMATION_VERSION));
             if (!Vmmi.VMMDLL_ProcessGetInformation(_h, pid, pb, ref cbENTRY))
             {
-                return null;
+                goto fail;
             }
 
             var n = Marshal.PtrToStructure<Vmmi.VMMDLL_PROCESS_INFORMATION>((IntPtr)pb);
             if (n.wVersion != Vmmi.VMMDLL_PROCESS_INFORMATION_VERSION)
             {
-                return null;
+                goto fail;
+            }
+
+            e.fValid = true;
+            e.tpMemoryModel = n.tpMemoryModel;
+            e.tpSystem = n.tpSystem;
+            e.fUserOnly = n.fUserOnly;
+            e.dwPID = n.dwPID;
+            e.dwPPID = n.dwPPID;
+            e.dwState = n.dwState;
+            e.sName = n.szName;
+            e.sNameLong = n.szNameLong;
+            e.paDTB = n.paDTB;
+            e.paDTB_UserOpt = n.paDTB_UserOpt;
+            e.vaEPROCESS = n.vaEPROCESS;
+            e.vaPEB = n.vaPEB;
+            e.fWow64 = n.fWow64;
+            e.vaPEB32 = n.vaPEB32;
+            e.dwSessionId = n.dwSessionId;
+            e.qwLUID = n.qwLUID;
+            e.sSID = n.szSID;
+            e.IntegrityLevel = n.IntegrityLevel;
+            fail:
+            return e;
+        }
+    }
+
+    /// <summary>
+    /// Get process information for all processes.
+    /// </summary>
+    /// <returns>ProcessInformation array, Empty Array if failed.</returns>
+    public unsafe ProcessInfo[] ProcessGetInformationAll()
+    {
+        var m = Array.Empty<ProcessInfo>();
+        var cbENTRY = (uint)Marshal.SizeOf<Vmmi.VMMDLL_PROCESS_INFORMATION>();
+        if (!Vmmi.VMMDLL_ProcessGetInformationAll(_h, out var pMap, out uint pc))
+        {
+            goto fail;
+        }
+        m = new ProcessInfo[pc];
+        for (var i = 0; i < pc; i++)
+        {
+            var n = Marshal.PtrToStructure<Vmmi.VMMDLL_PROCESS_INFORMATION>((IntPtr)(pMap + i * cbENTRY));
+            if (i == 0 && n.wVersion != Vmmi.VMMDLL_PROCESS_INFORMATION_VERSION)
+            {
+                goto fail;
             }
 
             ProcessInfo e;
@@ -1672,8 +1743,11 @@ public sealed class Vmm : IDisposable
             e.qwLUID = n.qwLUID;
             e.sSID = n.szSID;
             e.IntegrityLevel = n.IntegrityLevel;
-            return e;
+            m[i] = e;
         }
+    fail:
+        Vmmi.VMMDLL_MemFree((byte*)pMap.ToPointer());
+        return m;
     }
 
     public struct ProcessInfo
