@@ -26,9 +26,10 @@ namespace VmmSharpEx
         public static bool FixCr3_EAC(this Vmm vmm, string processName, uint pid)
         {
             // If already mapped successfully, skip
-            var mod = vmm.Map_GetModuleFromName(pid, processName);
-            if (mod.fValid)
+            if (vmm.Map_GetModuleFromName(pid, processName, out var mod) && mod.fValid)
+            {
                 return true;
+            }
             // Ensure plugins are ready
             if (!vmm.InitializePlugins())
             {
@@ -81,8 +82,7 @@ namespace VmmSharpEx
             foreach (var dtb in possibleDtbs)
             {
                 vmm.ConfigSet((VmmOption)((ulong)VmmOption.PROCESS_DTB | pid), dtb);
-                mod = vmm.Map_GetModuleFromName(pid, processName);
-                if (mod.fValid)
+                if (vmm.Map_GetModuleFromName(pid, processName, out mod) && mod.fValid)
                 {
                     Debug.WriteLine($"[+] Patched DTB: 0x{dtb:X}");
                     return true;

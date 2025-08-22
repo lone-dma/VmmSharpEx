@@ -1102,8 +1102,9 @@ public sealed class Vmm : IDisposable
     /// Get a module from its name. If more than one module with the same name is loaded, the first one is returned.
     /// </summary>
     /// <param name="pid">Process ID (PID) for this operation.</param>
-    /// <param name="module"></param>
-    /// <returns></returns>
+    /// <param name="module">Module to lookup.</param>
+    /// <param name="result">Result if successful.</param>
+    /// <returns>TRUE if successful, otherwise FALSE.</returns>
     public unsafe bool Map_GetModuleFromName(uint pid, string module, out ModuleEntry result)
     {
         bool f = false;
