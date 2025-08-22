@@ -97,10 +97,10 @@ namespace VmmSharpEx.Extensions
         /// <param name="vmm">Vmm instance.</param>
         /// <param name="pid">Process to search within.</param>
         /// <param name="signature">Signature to search for (max 32 bytes). Hex Characters (separated by space) with optional ?? wildcard mask. Ex: 0F 1F ?? ?? 90 AA</param>
-        /// <param name="vaMin">(Optional) Minimum Virtual Address to begin scanning at. By default will scan whole process.</param>
-        /// <param name="vaMax">(Optional) Maximum Virtual Address to end scanning at. By default will scan whole process.</param>
+        /// <param name="addrMin">(Optional) Minimum Address to begin scanning at. By default will scan whole process.</param>
+        /// <param name="addrMax">(Optional) Maximum Address to end scanning at. By default will scan whole process.</param>
         /// <returns>Address of first occurrence of signature, otherwise 0 if failed.</returns>
-        public static ulong FindSignature(this Vmm vmm, uint pid, string signature, ulong vaMin = 0, ulong vaMax = ulong.MaxValue)
+        public static ulong FindSignature(this Vmm vmm, uint pid, string signature, ulong addrMin = 0, ulong addrMax = ulong.MaxValue)
         {
             ArgumentNullException.ThrowIfNull(vmm, nameof(vmm));
             ArgumentException.ThrowIfNullOrEmpty(signature, nameof(signature));
@@ -124,8 +124,8 @@ namespace VmmSharpEx.Extensions
             }
             using var vmmSearch = vmm.CreateSearch(
                 pid: pid,
-                addr_min: vaMin,
-                addr_max: vaMax,
+                addr_min: addrMin,
+                addr_max: addrMax,
                 cMaxResult: 1);
             vmmSearch.AddEntry(
                 search: searchBytes,
