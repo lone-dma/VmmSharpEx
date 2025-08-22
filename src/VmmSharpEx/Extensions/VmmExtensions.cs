@@ -1,12 +1,11 @@
 ﻿using System.Diagnostics;
 using System.Text;
-using VmmSharpEx.Internal;
 using VmmSharpEx.Options;
 
-namespace VmmSharpEx
+namespace VmmSharpEx.Extensions
 {
     /// <summary>
-    /// Contains various VMM extension methods to implement additional functionality.
+    /// Contains various Core VMM extension methods to implement additional functionality.
     /// </summary>
     public static class VmmExtensions
     {

@@ -1,4 +1,5 @@
 ﻿using VmmSharpEx;
+using VmmSharpEx.Extensions;
 using VmmSharpEx.Options;
 
 namespace VmmSharpEx_Tests;
