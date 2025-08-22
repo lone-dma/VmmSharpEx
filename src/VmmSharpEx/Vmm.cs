@@ -1104,30 +1104,32 @@ public sealed class Vmm : IDisposable
     /// <param name="pid">Process ID (PID) for this operation.</param>
     /// <param name="module"></param>
     /// <returns></returns>
-    public unsafe ModuleEntry Map_GetModuleFromName(uint pid, string module)
+    public unsafe bool Map_GetModuleFromName(uint pid, string module, out ModuleEntry result)
     {
-        var e = new ModuleEntry();
+        bool f = false;
+        result = default;
         if (!Vmmi.VMMDLL_Map_GetModuleFromName(_h, pid, module, out var pMap, 0))
         {
             goto fail;
         }
 
         var nM = Marshal.PtrToStructure<Vmmi.VMMDLL_MAP_MODULEENTRY>(pMap);
-        e.fValid = true;
-        e.vaBase = nM.vaBase;
-        e.vaEntry = nM.vaEntry;
-        e.cbImageSize = nM.cbImageSize;
-        e.fWow64 = nM.fWow64;
-        e.sText = module;
-        e.sFullName = nM.uszFullName;
-        e.tp = nM.tp;
-        e.cbFileSizeRaw = nM.cbFileSizeRaw;
-        e.cSection = nM.cSection;
-        e.cEAT = nM.cEAT;
-        e.cIAT = nM.cIAT;
+        result.fValid = true;
+        result.vaBase = nM.vaBase;
+        result.vaEntry = nM.vaEntry;
+        result.cbImageSize = nM.cbImageSize;
+        result.fWow64 = nM.fWow64;
+        result.sText = module;
+        result.sFullName = nM.uszFullName;
+        result.tp = nM.tp;
+        result.cbFileSizeRaw = nM.cbFileSizeRaw;
+        result.cSection = nM.cSection;
+        result.cEAT = nM.cEAT;
+        result.cIAT = nM.cIAT;
+        f = true;
         fail:
         Vmmi.VMMDLL_MemFree((byte*)pMap.ToPointer());
-        return e;
+        return f;
     }
 
     /// <summary>
@@ -1271,15 +1273,17 @@ public sealed class Vmm : IDisposable
     /// Heap information.
     /// </summary>
     /// <param name="pid">Process ID (PID) for this operation.</param>
-    /// <returns></returns>
-    public unsafe HeapMap Map_GetHeap(uint pid)
+    /// <param name="result">Result if successful.</param>
+    /// <returns>TRUE if successful, otherwise FALSE.</returns>
+    public unsafe bool Map_GetHeap(uint pid, out HeapMap result)
     {
+        bool f = false;
         var cbMAP = Marshal.SizeOf<Vmmi.VMMDLL_MAP_HEAP>();
         var cbENTRY = Marshal.SizeOf<Vmmi.VMMDLL_MAP_HEAPENTRY>();
         var cbSEGENTRY = Marshal.SizeOf<Vmmi.VMMDLL_MAP_HEAPSEGMENTENTRY>();
-        HeapMap Heap;
-        Heap.heaps = Array.Empty<HeapEntry>();
-        Heap.segments = Array.Empty<HeapSegmentEntry>();
+        result = default;
+        result.heaps = Array.Empty<HeapEntry>();
+        result.segments = Array.Empty<HeapSegmentEntry>();
         if (!Vmmi.VMMDLL_Map_GetHeap(_h, pid, out var pMap))
         {
             goto fail;
@@ -1291,29 +1295,29 @@ public sealed class Vmm : IDisposable
             goto fail;
         }
 
-        Heap.heaps = new HeapEntry[nM.cMap];
+        result.heaps = new HeapEntry[nM.cMap];
         for (var i = 0; i < nM.cMap; i++)
         {
             var nH = Marshal.PtrToStructure<Vmmi.VMMDLL_MAP_HEAPENTRY>((IntPtr)(pMap.ToInt64() + cbMAP + i * cbENTRY));
-            Heap.heaps[i].va = nH.va;
-            Heap.heaps[i].f32 = nH.f32;
-            Heap.heaps[i].tpHeap = nH.tp;
-            Heap.heaps[i].iHeapNum = nH.dwHeapNum;
+            result.heaps[i].va = nH.va;
+            result.heaps[i].f32 = nH.f32;
+            result.heaps[i].tpHeap = nH.tp;
+            result.heaps[i].iHeapNum = nH.dwHeapNum;
         }
 
-        Heap.segments = new HeapSegmentEntry[nM.cSegments];
+        result.segments = new HeapSegmentEntry[nM.cSegments];
         for (var i = 0; i < nM.cMap; i++)
         {
             var nH = Marshal.PtrToStructure<Vmmi.VMMDLL_MAP_HEAPSEGMENTENTRY>((IntPtr)(nM.pSegments.ToInt64() + i * cbSEGENTRY));
-            Heap.segments[i].va = nH.va;
-            Heap.segments[i].cb = nH.cb;
-            Heap.segments[i].tpHeapSegment = nH.tp;
-            Heap.segments[i].iHeapNum = nH.iHeap;
+            result.segments[i].va = nH.va;
+            result.segments[i].cb = nH.cb;
+            result.segments[i].tpHeapSegment = nH.tp;
+            result.segments[i].iHeapNum = nH.iHeap;
         }
-
+        f = true;
         fail:
         Vmmi.VMMDLL_MemFree((byte*)pMap.ToPointer());
-        return Heap;
+        return f;
     }
 
     /// <summary>
@@ -1659,10 +1663,11 @@ public sealed class Vmm : IDisposable
     /// Get process information.
     /// </summary>
     /// <param name="pid">Process ID (PID) for this operation.</param>
-    /// <returns>ProcessInformation data.</returns>
-    public unsafe ProcessInfo ProcessGetInformation(uint pid)
+    /// <param name="result">Result if successful.</param>
+    /// <returns>TRUE if successful, otherwise FALSE.</returns>
+    public unsafe bool ProcessGetInformation(uint pid, out ProcessInfo result)
     {
-        var e = new ProcessInfo();
+        result = default;
         var cbENTRY = (ulong)Marshal.SizeOf<Vmmi.VMMDLL_PROCESS_INFORMATION>();
         fixed (byte* pb = new byte[cbENTRY])
         {
@@ -1670,36 +1675,36 @@ public sealed class Vmm : IDisposable
             Marshal.WriteInt16(new IntPtr(pb + 8), unchecked((short)Vmmi.VMMDLL_PROCESS_INFORMATION_VERSION));
             if (!Vmmi.VMMDLL_ProcessGetInformation(_h, pid, pb, ref cbENTRY))
             {
-                goto fail;
+                return false;
             }
 
             var n = Marshal.PtrToStructure<Vmmi.VMMDLL_PROCESS_INFORMATION>((IntPtr)pb);
             if (n.wVersion != Vmmi.VMMDLL_PROCESS_INFORMATION_VERSION)
             {
-                goto fail;
+                return false;
             }
 
-            e.fValid = true;
-            e.tpMemoryModel = n.tpMemoryModel;
-            e.tpSystem = n.tpSystem;
-            e.fUserOnly = n.fUserOnly;
-            e.dwPID = n.dwPID;
-            e.dwPPID = n.dwPPID;
-            e.dwState = n.dwState;
-            e.sName = n.szName;
-            e.sNameLong = n.szNameLong;
-            e.paDTB = n.paDTB;
-            e.paDTB_UserOpt = n.paDTB_UserOpt;
-            e.vaEPROCESS = n.vaEPROCESS;
-            e.vaPEB = n.vaPEB;
-            e.fWow64 = n.fWow64;
-            e.vaPEB32 = n.vaPEB32;
-            e.dwSessionId = n.dwSessionId;
-            e.qwLUID = n.qwLUID;
-            e.sSID = n.szSID;
-            e.IntegrityLevel = n.IntegrityLevel;
-            fail:
-            return e;
+            result.fValid = true;
+            result.tpMemoryModel = n.tpMemoryModel;
+            result.tpSystem = n.tpSystem;
+            result.fUserOnly = n.fUserOnly;
+            result.dwPID = n.dwPID;
+            result.dwPPID = n.dwPPID;
+            result.dwState = n.dwState;
+            result.sName = n.szName;
+            result.sNameLong = n.szNameLong;
+            result.paDTB = n.paDTB;
+            result.paDTB_UserOpt = n.paDTB_UserOpt;
+            result.vaEPROCESS = n.vaEPROCESS;
+            result.vaPEB = n.vaPEB;
+            result.fWow64 = n.fWow64;
+            result.vaPEB32 = n.vaPEB32;
+            result.dwSessionId = n.dwSessionId;
+            result.qwLUID = n.qwLUID;
+            result.sSID = n.szSID;
+            result.IntegrityLevel = n.IntegrityLevel;
+
+            return true;
         }
     }
 
