@@ -827,8 +827,9 @@ public sealed class Vmm : IDisposable
     /// <summary>
     /// Get all Process IDs (PIDs) for a given process name.
     /// </summary>
-    /// <param name="sProcName"></param>
-    /// <returns></returns>
+    /// <param name="sProcName">Name of the process to look up.</param>
+    /// <returns>Array of PIDs that match, or empty array if no matches.</returns>
+    /// <exception cref="VmmException"></exception>
     public uint[] PidGetAllFromName(string sProcName)
     {
         var pids = new List<uint>();
