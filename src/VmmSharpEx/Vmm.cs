@@ -781,7 +781,7 @@ public sealed class Vmm : IDisposable
     /// Get all Process IDs (PIDs) currently running on the target system.
     /// </summary>
     /// <returns>Array of PIDs, empty array if failed.</returns>
-    public unsafe uint[] GetPidList()
+    public unsafe uint[] PidGetList()
     {
         bool result;
         ulong c = 0;
