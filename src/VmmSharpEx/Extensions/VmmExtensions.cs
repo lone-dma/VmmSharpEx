@@ -132,7 +132,7 @@ namespace VmmSharpEx.Extensions
                 search: searchBytes,
                 skipmask: skipBytes);
             var result = vmmSearch.Result;
-            if (result.Results.Count == 0)
+            if (result.Results.IsEmpty)
             {
                 Debug.WriteLine("[FindSignature] No results found");
                 return 0;

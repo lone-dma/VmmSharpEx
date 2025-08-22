@@ -258,9 +258,9 @@ public sealed unsafe class VmmSearch : IDisposable
         public ulong TotalReadBytes { get; set; }
 
         /// <summary>
-        /// The actual results.
+        /// The search results.
         /// </summary>
-        public readonly List<SearchResultEntry> Results { get; } = new();
+        public readonly ConcurrentBag<SearchResultEntry> Results { get; } = new();
     }
 
     /// <summary>
