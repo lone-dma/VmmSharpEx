@@ -16,16 +16,10 @@ internal unsafe class Program
             "-waitinitialize"
         };
         using var vmm = new Vmm(args);
-        var info = vmm.ProcessGetInformationAll();
-        foreach (var proc in info)
-        {
-            Console.WriteLine(proc.sNameLong);
-        }
-        var pids = vmm.PidGetAllFromName("brave.exe");
-        foreach (var pid in pids)
-        {
-            Console.WriteLine(pid);
-        }
+        if (!vmm.PidGetFromName("Process.exe", out uint pid))
+            throw new InvalidOperationException("Failed to get PID");
+        ulong addr = vmm.FindSignature(pid, "40 a6 93 aa cd 01 00 00");
+        Console.WriteLine(addr.ToString("X"));
     }
 
     private static void TestCb(

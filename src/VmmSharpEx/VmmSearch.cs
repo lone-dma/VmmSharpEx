@@ -10,9 +10,8 @@ namespace VmmSharpEx;
 public sealed unsafe class VmmSearch : IDisposable
 {
     private readonly uint _pid;
-    private readonly ConcurrentBag<Vmmi.VMMDLL_MEM_SEARCH_CONTEXT_SEARCHENTRY> _searches = new();
+    private readonly List<Vmmi.VMMDLL_MEM_SEARCH_CONTEXT_SEARCHENTRY> _searches = new();
     private readonly Vmmi.SearchResultCallback _searchResultCallback; // Root the delegate to prevent it from being garbage collected.
-    private readonly bool _stopAfterFirstMatch;
     private readonly Thread _thread;
     private readonly Vmm _vmm;
     private bool _disposed;
@@ -22,7 +21,7 @@ public sealed unsafe class VmmSearch : IDisposable
 
     private VmmSearch() { }
 
-    internal VmmSearch(Vmm vmm, uint pid, ulong addr_min = 0, ulong addr_max = ulong.MaxValue, uint cMaxResult = 0, uint readFlags = 0, bool stopAfterFirstMatch = false)
+    internal VmmSearch(Vmm vmm, uint pid, ulong addr_min = 0, ulong addr_max = ulong.MaxValue, uint cMaxResult = 0, uint readFlags = 0)
     {
         if (cMaxResult == 0)
         {
@@ -37,7 +36,6 @@ public sealed unsafe class VmmSearch : IDisposable
         _pid = pid;
         _managed.AddrMin = addr_min;
         _managed.AddrMax = addr_max;
-        _stopAfterFirstMatch = stopAfterFirstMatch;
         _native = (Vmmi.VMMDLL_MEM_SEARCH_CONTEXT*)NativeMemory.Alloc((nuint)sizeof(Vmmi.VMMDLL_MEM_SEARCH_CONTEXT) + 8);
         _searchResultCallback = SearchResultCallback;
         *_native = new Vmmi.VMMDLL_MEM_SEARCH_CONTEXT
@@ -151,7 +149,7 @@ public sealed unsafe class VmmSearch : IDisposable
             return;
         }
 
-        if (_searches.IsEmpty)
+        if (_searches.Count == 0)
         {
             _managed.IsCompleted = true;
             _managed.IsCompletedSuccess = false;
@@ -219,7 +217,7 @@ public sealed unsafe class VmmSearch : IDisposable
             SearchTermId = iSearch
         };
         _managed.Results.Add(e);
-        return !_stopAfterFirstMatch;
+        return _managed.Results.Count < ctx.cMaxResult;
     }
 
     /// <summary>
@@ -262,7 +260,7 @@ public sealed unsafe class VmmSearch : IDisposable
         /// <summary>
         /// The actual results.
         /// </summary>
-        public readonly ConcurrentBag<SearchResultEntry> Results { get; } = new();
+        public readonly List<SearchResultEntry> Results { get; } = new();
     }
 
     /// <summary>

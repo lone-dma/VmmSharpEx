@@ -3037,11 +3037,10 @@ public sealed class Vmm : IDisposable
     /// <param name="addr_max"></param>
     /// <param name="cMaxResult"></param>
     /// <param name="readFlags"></param>
-    /// <param name="stopAfterFirstMatch"></param>
     /// <returns></returns>
-    public VmmSearch CreateSearch(uint pid, ulong addr_min = 0, ulong addr_max = ulong.MaxValue, uint cMaxResult = 0, uint readFlags = 0, bool stopAfterFirstMatch = false)
+    public VmmSearch CreateSearch(uint pid, ulong addr_min = 0, ulong addr_max = ulong.MaxValue, uint cMaxResult = 0, uint readFlags = 0)
     {
-        return new VmmSearch(this, pid, addr_min, addr_max, cMaxResult, readFlags, stopAfterFirstMatch);
+        return new VmmSearch(this, pid, addr_min, addr_max, cMaxResult, readFlags);
     }
 
     /// <summary>

@@ -10,7 +10,6 @@ namespace VmmSharpEx
     /// </summary>
     public static class VmmExtensions
     {
-
         /// <summary>
         /// This fixes the database shuffling that EAC does.
         /// It fixes it by iterating over all DTB's that exist within your system and looks for specific ones
@@ -91,6 +90,55 @@ namespace VmmSharpEx
 
             Debug.WriteLine("[-] Failed to patch DTB");
             return false;
+        }
+
+        /// <summary>
+        /// Find a signature within a process' memory.
+        /// </summary>
+        /// <param name="vmm">Vmm instance.</param>
+        /// <param name="pid">Process to search within.</param>
+        /// <param name="signature">Signature to search for. Hex Characters (separated by space) with optional ?? wildcard mask. Ex: 0F 1F ?? ?? 90 AA</param>
+        /// <param name="vaMin">(Optional) Minimum Virtual Address to begin scanning at. By default will scan whole process.</param>
+        /// <param name="vaMax">(Optional) Maximum Virtual Address to end scanning at. By default will scan whole process.</param>
+        /// <returns>Address of first occurrence of signature, otherwise 0 if failed.</returns>
+        public static ulong FindSignature(this Vmm vmm, uint pid, string signature, ulong vaMin = 0, ulong vaMax = ulong.MaxValue)
+        {
+            ArgumentNullException.ThrowIfNull(vmm, nameof(vmm));
+            ArgumentOutOfRangeException.ThrowIfZero(pid, nameof(pid));
+            ArgumentException.ThrowIfNullOrEmpty(signature, nameof(signature));
+            string[] sigSplit = signature.Split(' ');
+            ArgumentOutOfRangeException.ThrowIfGreaterThan(sigSplit.Length, 32, nameof(signature));
+            byte[] searchBytes = new byte[sigSplit.Length];
+            byte[] skipBytes = new byte[sigSplit.Length];
+            for (int i = 0; i< sigSplit.Length; i++)
+            {
+                string byteStr = sigSplit[i];
+                if (byteStr.StartsWith('?'))
+                {
+                    searchBytes[i] = 0;
+                    skipBytes[i] = 0xff;
+                }
+                else
+                {
+                    searchBytes[i] = byte.Parse(byteStr, System.Globalization.NumberStyles.HexNumber);
+                    skipBytes[i] = 0;
+                }
+            }
+            using var vmmSearch = vmm.CreateSearch(
+                pid: pid,
+                addr_min: vaMin,
+                addr_max: vaMax,
+                cMaxResult: 1);
+            vmmSearch.AddEntry(
+                search: searchBytes,
+                skipmask: skipBytes);
+            var result = vmmSearch.Result;
+            if (result.Results.Count == 0)
+            {
+                Debug.WriteLine("[FindSignature] No results found");
+                return 0;
+            }
+            return result.Results.First().Address;
         }
     }
 }
