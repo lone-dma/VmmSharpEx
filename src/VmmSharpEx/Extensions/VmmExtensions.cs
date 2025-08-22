@@ -103,7 +103,6 @@ namespace VmmSharpEx.Extensions
         public static ulong FindSignature(this Vmm vmm, uint pid, string signature, ulong vaMin = 0, ulong vaMax = ulong.MaxValue)
         {
             ArgumentNullException.ThrowIfNull(vmm, nameof(vmm));
-            ArgumentOutOfRangeException.ThrowIfZero(pid, nameof(pid));
             ArgumentException.ThrowIfNullOrEmpty(signature, nameof(signature));
             string[] sigSplit = signature.Split(' ');
             ArgumentOutOfRangeException.ThrowIfGreaterThan(sigSplit.Length, 32, nameof(signature));
