@@ -31,7 +31,7 @@ namespace VmmSharpEx.Extensions
             // Ensure plugins are ready
             if (!vmm.InitializePlugins())
             {
-                Debug.WriteLine("[-] Failed VMMDLL_InitializePlugins");
+                Debug.WriteLine("[FixCr3_EAC] Failed VMMDLL_InitializePlugins");
                 return false;
             }
 
@@ -82,12 +82,12 @@ namespace VmmSharpEx.Extensions
                 vmm.ConfigSet((VmmOption)((ulong)VmmOption.PROCESS_DTB | pid), dtb);
                 if (vmm.Map_GetModuleFromName(pid, processName, out mod) && mod.fValid)
                 {
-                    Debug.WriteLine($"[+] Patched DTB: 0x{dtb:X}");
+                    Debug.WriteLine($"[FixCr3_EAC] Patched DTB: 0x{dtb:X}");
                     return true;
                 }
             }
 
-            Debug.WriteLine("[-] Failed to patch DTB");
+            Debug.WriteLine("[FixCr3_EAC] Failed to patch DTB");
             return false;
         }
 
