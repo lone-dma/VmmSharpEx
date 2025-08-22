@@ -133,7 +133,6 @@ namespace VmmSharpEx.Extensions
             var result = vmmSearch.Result;
             if (result.Results.IsEmpty)
             {
-                Debug.WriteLine("[FindSignature] No results found");
                 return 0;
             }
             return result.Results.First().Address;
