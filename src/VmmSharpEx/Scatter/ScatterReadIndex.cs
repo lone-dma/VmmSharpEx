@@ -37,7 +37,7 @@ namespace VmmSharpEx.Scatter
         /// <typeparam name="T">Type to read.</typeparam>
         /// <param name="id">Unique ID for this entry.</param>
         /// <param name="address">Virtual Address to read from.</param>
-        /// <param name="cb">Count of bytes to read.</param>
+        /// <param name="cb">(Reference Types Only) Count of bytes to read. For unmanaged structs/value types this is sized automatically.</param>
         public ScatterReadEntry<T> AddEntry<T>(int id, ulong address, int cb = 0)
         {
             var entry = new ScatterReadEntry<T>(address, cb);

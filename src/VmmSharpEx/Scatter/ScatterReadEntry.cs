@@ -8,7 +8,8 @@ namespace VmmSharpEx.Scatter
 {
     public sealed class ScatterReadEntry<T> : IScatterEntry
     {
-        private static readonly bool _isValueType = !RuntimeHelpers.IsReferenceOrContainsReferences<T>();
+        private static readonly bool _isValueType;
+        private static readonly int _valueCb;
         private T _result;
         /// <summary>
         /// Result for this read. Be sure to check <see cref="IsFailed"/>
@@ -27,11 +28,28 @@ namespace VmmSharpEx.Scatter
         /// </summary>
         public bool IsFailed { get; set; }
 
+        static ScatterReadEntry()
+        {
+            _isValueType = !RuntimeHelpers.IsReferenceOrContainsReferences<T>();
+            if (_isValueType)
+            {
+                _valueCb = Unsafe.SizeOf<T>();
+            }
+        }
+
         internal ScatterReadEntry(ulong address, int cb) 
         {
+            if (!_isValueType && cb == 0)
+            {
+                throw new ArgumentException(
+                    message: $"Must provide {nameof(cb)} parameter for Reference Types.",
+                    paramName: nameof(cb));
+            }
             Address = address;
-            if (cb == 0 && _isValueType)
-                cb = Unsafe.SizeOf<T>();
+            if (_isValueType)
+            {
+                cb = _valueCb;
+            }
             CB = cb;
         }
 
@@ -40,8 +58,7 @@ namespace VmmSharpEx.Scatter
         /// Only called internally via API.
         /// </summary>
         /// <param name="hScatter">Scatter read handle.</param>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void SetResult(VmmSharpEx.LeechCore.LcScatterHandle hScatter)
+        public void SetResult(LeechCore.LcScatterHandle hScatter)
         {
             try
             {
@@ -64,13 +81,12 @@ namespace VmmSharpEx.Scatter
         /// Set the Result from a Value Type.
         /// </summary>
         /// <param name="hScatter">Scatter read handle.</param>
-        private unsafe void SetValueResult(VmmSharpEx.LeechCore.LcScatterHandle hScatter)
+        private unsafe void SetValueResult(LeechCore.LcScatterHandle hScatter)
         {
-            int cb = Unsafe.SizeOf<T>();
 #pragma warning disable CS8500
             fixed (void* pb = &_result)
             {
-                var buffer = new Span<byte>(pb, cb);
+                var buffer = new Span<byte>(pb, _valueCb);
                 if (!ProcessData(hScatter, buffer))
                 {
                     IsFailed = true;
@@ -85,16 +101,16 @@ namespace VmmSharpEx.Scatter
         /// <param name="hScatter">Scatter read handle.</param>
         private void SetClassResult(LeechCore.LcScatterHandle hScatter)
         {
-            if (this is ScatterReadEntry<byte[]> r1) // Memory Buffer
+            if (this is ScatterReadEntry<byte[]> entry) // Memory Buffer
             {
                 byte[] buffer = new byte[CB];
-                if (!ProcessData<byte>(hScatter, buffer.AsSpan()))
+                if (!ProcessData<byte>(hScatter, buffer))
                 {
                     IsFailed = true;
                 }
                 else
                 {
-                    r1._result = buffer;
+                    entry._result = buffer;
                 }
             }
             else

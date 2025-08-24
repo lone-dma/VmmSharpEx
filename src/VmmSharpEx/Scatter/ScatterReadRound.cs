@@ -36,7 +36,22 @@ namespace VmmSharpEx.Scatter
             }
         }
 
-        internal void Run(Vmm vmm, uint pid)
+        /// <summary>
+        /// Returns the requested ScatterReadIndex.
+        /// NOTE: You can index directly via the indexer, this method is just a convenience wrapper.
+        /// </summary>
+        /// <param name="index">Index to retrieve.</param>
+        /// <returns>ScatterReadIndex object.</returns>
+        public ScatterReadIndex GetIndex(int index) => this[index];
+
+        #region Scatter Read Implementation
+
+        /// <summary>
+        /// Execute this scatter read round.
+        /// </summary>
+        /// <param name="vmm"></param>
+        /// <param name="pid"></param>
+        internal void Execute(Vmm vmm, uint pid)
         {
             ReadScatter(vmm, pid, _indexes.Values.SelectMany(x => x.Entries.Values).ToArray(), _useCache);
             foreach (var index in _indexes)
@@ -44,8 +59,6 @@ namespace VmmSharpEx.Scatter
                 index.Value.OnCompleted();
             }
         }
-
-        #region Scatter Read Implementation
 
         [ThreadStatic]
         private static HashSet<ulong> _pagesTls;

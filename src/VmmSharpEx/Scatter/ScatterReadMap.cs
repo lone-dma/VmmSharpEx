@@ -43,7 +43,7 @@ namespace VmmSharpEx.Scatter
             }
             foreach (var round in _rounds)
             {
-                round.Run(_vmm, _pid);
+                round.Execute(_vmm, _pid);
             }
             OnCompleted();
         }
