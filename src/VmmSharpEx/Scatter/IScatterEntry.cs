@@ -1,11 +1,12 @@
 ﻿// Original Credit to lone-dma
 
 using System.Runtime.InteropServices;
+using Microsoft.Extensions.ObjectPool;
 using VmmSharpEx.Internal;
 
 namespace VmmSharpEx.Scatter
 {
-    public interface IScatterEntry
+    public interface IScatterEntry : IResettable
     {
         /// <summary>
         /// Address to read from.
@@ -25,6 +26,10 @@ namespace VmmSharpEx.Scatter
         /// </summary>
         /// <param name="hScatter">Scatter read handle.</param>
         void SetResult(LeechCore.LcScatterHandle hScatter);
+        /// <summary>
+        /// Return this instance to the Object Pool.
+        /// </summary>
+        void Return();
 
         #region Static Helpers
 

@@ -1,5 +1,6 @@
 ﻿// Original Credit to lone-dma
 
+using Microsoft.Extensions.ObjectPool;
 using VmmSharpEx.Internal;
 using VmmSharpEx.Options;
 
@@ -9,15 +10,18 @@ namespace VmmSharpEx.Scatter
     /// Defines a Scatter Read Round. Each round will execute a single scatter read. If you have reads that
     /// are dependent on previous reads (chained pointers for example), you may need multiple rounds.
     /// </summary>
-    public sealed class ScatterReadRound
+    public sealed class ScatterReadRound : IResettable
     {
+        /// <summary>
+        /// Object Pool for <see cref="ScatterReadRound"/>"/>
+        /// </summary>
+        internal static ObjectPool<ScatterReadRound> Pool { get; } =
+            new DefaultObjectPoolProvider() { MaximumRetained = int.MaxValue - 1 }
+            .Create<ScatterReadRound>();
         private readonly Dictionary<int, ScatterReadIndex> _indexes = new();
-        private readonly bool _useCache;
+        private bool _useCache;
 
-        internal ScatterReadRound(bool useCache)
-        {
-            _useCache = useCache;
-        }
+        public ScatterReadRound() { }
 
         /// <summary>
         /// Returns the requested ScatterReadIndex.
@@ -32,7 +36,7 @@ namespace VmmSharpEx.Scatter
                 {
                     return existing;
                 }
-                return _indexes[index] = new ScatterReadIndex();
+                return _indexes[index] = ScatterReadIndex.Pool.Get();
             }
         }
 
@@ -112,6 +116,22 @@ namespace VmmSharpEx.Scatter
 
                 entry.SetResult(hScatter);
             }
+        }
+
+        internal void Configure(bool useCache)
+        {
+            _useCache = useCache;
+        }
+
+        public bool TryReset()
+        {
+            _useCache = default;
+            foreach (var index in _indexes)
+            {
+                ScatterReadIndex.Pool.Return(index.Value);
+            }
+            _indexes.Clear();
+            return true;
         }
 
         #endregion

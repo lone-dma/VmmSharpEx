@@ -7,11 +7,12 @@ namespace VmmSharpEx.Scatter
     /// Results are populated in the IScatterEntry objects, and can be used to chain reads.
     /// NOTE: This API is NOT thread safe, you must keep operations synchronous.
     /// </summary>
-    public sealed class ScatterReadMap
+    public sealed class ScatterReadMap : IDisposable
     {
         private readonly Vmm _vmm;
         private readonly uint _pid;
-        private readonly List<ScatterReadRound> _rounds = new();
+        private readonly List<ScatterReadRound> _rounds = new(capacity: 12);
+        private bool _disposed;
 
         /// <summary>
         /// Event is fired after the completion of all reads/rounds.
@@ -55,9 +56,21 @@ namespace VmmSharpEx.Scatter
         /// <returns>ScatterReadRound object.</returns>
         public ScatterReadRound AddRound(bool useCache = true)
         {
-            var round = new ScatterReadRound(useCache);
+            var round = ScatterReadRound.Pool.Get();
+            round.Configure(useCache);
             _rounds.Add(round);
             return round;
+        }
+
+        public void Dispose()
+        {
+            if (Interlocked.Exchange(ref _disposed, true) == false)
+            {
+                foreach (var round in _rounds)
+                {
+                    ScatterReadRound.Pool.Return(round);
+                }
+            }
         }
     }
 }

@@ -1,5 +1,6 @@
 ﻿// Original Credit to lone-dma
 
+using Microsoft.Extensions.ObjectPool;
 using System.Runtime.CompilerServices;
 using System.Text;
 
@@ -8,8 +9,14 @@ namespace VmmSharpEx.Scatter
     /// <summary>
     /// Single scatter read index. May contain multiple child entries.
     /// </summary>
-    public sealed class ScatterReadIndex
+    public sealed class ScatterReadIndex : IResettable
     {
+        /// <summary>
+        /// Object Pool for <see cref="ScatterReadIndex"/>"/>
+        /// </summary>
+        internal static ObjectPool<ScatterReadIndex> Pool { get; } =
+            new DefaultObjectPoolProvider() { MaximumRetained = int.MaxValue - 1 }
+            .Create<ScatterReadIndex>();
         /// <summary>
         /// All read entries for this index.
         /// [KEY] = ID
@@ -30,7 +37,7 @@ namespace VmmSharpEx.Scatter
             catch { }
         }
 
-        internal ScatterReadIndex() { }
+        public ScatterReadIndex() { }
 
         /// <summary>
         /// Add a scatter read value entry to this index.
@@ -42,14 +49,15 @@ namespace VmmSharpEx.Scatter
         public ScatterReadValueEntry<T> AddValueEntry<T>(int id, ulong address)
             where T : unmanaged
         {
-            var entry = new ScatterReadValueEntry<T>(address);
+            var entry = ScatterReadValueEntry<T>.Pool.Get();
+            entry.Configure(address);
             Entries.Add(id, entry);
             return entry;
         }
 
         /// <summary>
         /// Add a scatter read array entry to this index.
-        /// Use <see cref="TryGetArray{TOut}(int, out TOut[])"/> to obtain the result."/>
+        /// Use <see cref="TryGetArray{TOut}(int, out Span{TOut})"/> to obtain the result."/>
         /// </summary>
         /// <typeparam name="T">Type to read.</typeparam>
         /// <param name="id">Unique ID for this entry.</param>
@@ -58,7 +66,8 @@ namespace VmmSharpEx.Scatter
         public ScatterReadArrayEntry<T> AddArrayEntry<T>(int id, ulong address, int count)
             where T : unmanaged
         {
-            var entry = new ScatterReadArrayEntry<T>(address, count);
+            var entry = ScatterReadArrayEntry<T>.Pool.Get();
+            entry.Configure(address, count);
             Entries.Add(id, entry);
             return entry;
         }
@@ -73,7 +82,8 @@ namespace VmmSharpEx.Scatter
         /// <param name="encoding">Encoding to decode string with.</param>
         public ScatterReadStringEntry AddStringEntry(int id, ulong address, int cb, Encoding encoding)
         {
-            var entry = new ScatterReadStringEntry(address, cb, encoding);
+            var entry = ScatterReadStringEntry.Pool.Get();
+            entry.Configure(address, cb, encoding);
             Entries.Add(id, entry);
             return entry;
         }
@@ -104,7 +114,7 @@ namespace VmmSharpEx.Scatter
         /// <param name="id">ID for entry to lookup.</param>
         /// <param name="result">Result field to populate.</param>
         /// <returns>True if successful, otherwise False.</returns>
-        public bool TryGetArray<TOut>(int id, out TOut[] result)
+        public bool TryGetArray<TOut>(int id, out Span<TOut> result)
             where TOut : unmanaged
         {
             if (Entries.TryGetValue(id, out var entry) && entry is ScatterReadArrayEntry<TOut> casted && !casted.IsFailed)
@@ -149,6 +159,17 @@ namespace VmmSharpEx.Scatter
                 return ref casted.Result;
             }
             return ref Unsafe.NullRef<TOut>();
+        }
+
+        public bool TryReset()
+        {
+            Completed = null;
+            foreach (var entry in Entries)
+            {
+                entry.Value.Return();
+            }
+            Entries.Clear();
+            return true;
         }
     }
 }

@@ -41,7 +41,7 @@ namespace VmmSharpEx_Tests
                     if (cb1.TryGetArray<byte>(1, out var bytes))
                     {
                         // Do stuff with the byte array if read is successful!
-                        Console.WriteLine($"Bytes: {BitConverter.ToString(bytes)}");
+                        Console.WriteLine($"Bytes: {BitConverter.ToString(bytes.ToArray())}");
                     }
                 };
             }

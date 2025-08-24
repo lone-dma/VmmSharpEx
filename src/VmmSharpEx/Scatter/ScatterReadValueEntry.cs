@@ -1,5 +1,6 @@
 ﻿// Original Credit to lone-dma
 
+using Microsoft.Extensions.ObjectPool;
 using System.Runtime.CompilerServices;
 
 namespace VmmSharpEx.Scatter
@@ -8,6 +9,12 @@ namespace VmmSharpEx.Scatter
         where T : unmanaged
     {
         private static readonly int _cb = Unsafe.SizeOf<T>();
+        /// <summary>
+        /// Object Pool for <see cref="ScatterReadValueEntry{T}"/>"/>
+        /// </summary>
+        internal static ObjectPool<ScatterReadValueEntry<T>> Pool { get; } = 
+            new DefaultObjectPoolProvider() { MaximumRetained = int.MaxValue - 1 }
+            .Create<ScatterReadValueEntry<T>>();
         private T _result;
         /// <summary>
         /// Result for this read. Be sure to check <see cref="IsFailed"/>
@@ -16,21 +23,17 @@ namespace VmmSharpEx.Scatter
         /// <summary>
         /// Virtual Address to read from.
         /// </summary>
-        public ulong Address { get; }
+        public ulong Address { get; private set; }
         /// <summary>
         /// Count of bytes to read.
         /// </summary>
-        public int CB { get; }
+        public int CB { get; } = _cb;
         /// <summary>
         /// True if this read has failed, otherwise False.
         /// </summary>
         public bool IsFailed { get; set; }
 
-        internal ScatterReadValueEntry(ulong address) 
-        {
-            Address = address;
-            CB = _cb;
-        }
+        public ScatterReadValueEntry() { }
 
         /// <summary>
         /// Parse the memory buffer and set the result value.
@@ -55,6 +58,24 @@ namespace VmmSharpEx.Scatter
             {
                 IsFailed = true;
             }
+        }
+
+        internal void Configure(ulong address)
+        {
+            Address = address;
+        }
+
+        public void Return()
+        {
+            Pool.Return(this);
+        }
+
+        public bool TryReset()
+        {
+            _result = default;
+            Address = default;
+            IsFailed = default;
+            return true;
         }
     }
 }

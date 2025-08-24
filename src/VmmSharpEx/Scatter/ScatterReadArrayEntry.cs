@@ -1,6 +1,9 @@
 ﻿// Original Credit to lone-dma
 
+using Microsoft.Extensions.ObjectPool;
+using System.Buffers;
 using System.Runtime.CompilerServices;
+using System.Text;
 
 namespace VmmSharpEx.Scatter
 {
@@ -8,32 +11,32 @@ namespace VmmSharpEx.Scatter
         where T : unmanaged
     {
         private static readonly int _cbSingle = Unsafe.SizeOf<T>();
-        private readonly int _count;
-        private T[] _result;
         /// <summary>
-        /// Result for this read. Be sure to check <see cref="IsFailed"/>
+        /// Object Pool for <see cref="ScatterReadArrayEntry{T}"/>"/>
         /// </summary>
-        internal T[] Result => _result;
+        internal static ObjectPool<ScatterReadArrayEntry<T>> Pool { get; } = 
+            new DefaultObjectPoolProvider() { MaximumRetained = int.MaxValue - 1 }
+            .Create<ScatterReadArrayEntry<T>>();
+        private int _count;
+        private T[] _array;
+        /// <summary>
+        /// Result for this read as <see cref="Span{T}"/>. Be sure to check <see cref="IsFailed"/>
+        /// </summary>
+        internal Span<T> Result => _array.AsSpan(0, _count);
         /// <summary>
         /// Virtual Address to read from.
         /// </summary>
-        public ulong Address { get; }
+        public ulong Address { get; private set; }
         /// <summary>
         /// Count of bytes to read.
         /// </summary>
-        public int CB { get; }
+        public int CB { get; private set; }
         /// <summary>
         /// True if this read has failed, otherwise False.
         /// </summary>
         public bool IsFailed { get; set; }
 
-        internal ScatterReadArrayEntry(ulong address, int count) 
-        {
-            ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(count, 0, nameof(count));
-            Address = address;
-            CB = count * _cbSingle;
-            _count = count;
-        }
+        public ScatterReadArrayEntry() { }
 
         /// <summary>
         /// Parse the memory buffer and set the result value.
@@ -44,20 +47,40 @@ namespace VmmSharpEx.Scatter
         {
             try
             {
-                var arr = new T[_count];
-                if (!IScatterEntry.ProcessData<T>(hScatter, Address, CB, arr))
+                if (!IScatterEntry.ProcessData<T>(hScatter, Address, CB, _array.AsSpan(0, _count)))
                 {
                     IsFailed = true;
-                }
-                else
-                {
-                    _result = arr;
                 }
             }
             catch
             {
                 IsFailed = true;
             }
+        }
+
+        internal void Configure(ulong address, int count)
+        {
+            ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(count, 0, nameof(count));
+            _array = ArrayPool<T>.Shared.Rent(count);
+            Address = address;
+            CB = count * _cbSingle;
+            _count = count;
+        }
+
+        public void Return()
+        {
+            Pool.Return(this);
+        }
+
+        public bool TryReset()
+        {
+            _count = default;
+            ArrayPool<T>.Shared.Return(_array);
+            _array = default;
+            Address = default;
+            CB = default;
+            IsFailed = default;
+            return true;
         }
     }
 }
