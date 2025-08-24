@@ -1,6 +1,5 @@
 ﻿using VmmSharpEx;
-using VmmSharpEx.Extensions;
-using VmmSharpEx.Options;
+using VmmSharpEx.Scatter;
 
 namespace VmmSharpEx_Tests;
 
@@ -17,25 +16,32 @@ internal unsafe class Program
             "-waitinitialize"
         };
         using var vmm = new Vmm(args);
-        if (!vmm.PidGetFromName("Process.exe", out uint pid))
+        if (!vmm.PidGetFromName("explorer.exe", out uint pid))
             throw new InvalidOperationException("Failed to get PID");
-        ulong addr = vmm.FindSignature(pid, "40 a6 93 aa cd 01 00 00");
-        Console.WriteLine(addr.ToString("X"));
-    }
-
-    private static void TestCb(
-        IntPtr ctxUser,
-        uint dwPID,
-        uint cpMEMs,
-        LeechCore.LcMemScatter** ppMEMs)
-    {
-        Console.WriteLine(ctxUser);
-        Console.WriteLine(dwPID);
-        Console.WriteLine(cpMEMs);
-        for (int i = 0; i < cpMEMs; i++)
+        ulong baseAddress = vmm.ProcessGetModuleBase(pid, "explorer.exe");
+        var map = new ScatterReadMap(vmm, pid);
+        var rd1 = map.AddRound();
+        var rd2 = map.AddRound(useCache: false);
+        for (int ix = 0; ix < 3; ix++)
         {
-            var mem = ppMEMs[i];
-            Console.WriteLine(mem->qwA);
+            int i = ix; // Capture
+            rd1[i].AddEntry<uint>(0, baseAddress + (uint)i * 4);
+            rd1[i].Completed += (sender, cb1) =>
+            {
+                if (cb1.TryGetResult<uint>(0, out var value))
+                {
+                    Console.WriteLine($"DWORD: {value}");
+                    rd2[i].AddEntry<byte[]>(0, baseAddress + (uint)i * 12, 12);
+                    rd2[i].Completed += (sender, cb2) =>
+                    {
+                        if (cb2.TryGetResult<byte[]>(0, out var bytes))
+                        {
+                            Console.WriteLine($"Bytes: {BitConverter.ToString(bytes)}");
+                        }
+                    };
+                }
+            };
         }
+        map.Execute();
     }
 }
