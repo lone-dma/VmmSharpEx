@@ -79,11 +79,17 @@ namespace VmmSharpEx.Scatter
             _encoding = encoding;
         }
 
+        /// <summary>
+        /// Internal Only - DO NOT CALL
+        /// </summary>
         public void Return()
         {
             Pool.Return(this);
         }
 
+        /// <summary>
+        /// Internal Only - DO NOT CALL
+        /// </summary>
         public bool TryReset()
         {
             _encoding = default;

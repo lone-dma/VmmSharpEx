@@ -123,6 +123,9 @@ namespace VmmSharpEx.Scatter
             _useCache = useCache;
         }
 
+        /// <summary>
+        /// Internal Only - DO NOT CALL
+        /// </summary>
         public bool TryReset()
         {
             _useCache = default;

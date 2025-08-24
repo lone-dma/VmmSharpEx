@@ -67,11 +67,17 @@ namespace VmmSharpEx.Scatter
             _count = count;
         }
 
+        /// <summary>
+        /// Internal Only - DO NOT CALL
+        /// </summary>
         public void Return()
         {
             Pool.Return(this);
         }
 
+        /// <summary>
+        /// Internal Only - DO NOT CALL
+        /// </summary>
         public bool TryReset()
         {
             _count = default;

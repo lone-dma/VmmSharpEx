@@ -185,6 +185,9 @@ namespace VmmSharpEx.Scatter
             return ref Unsafe.NullRef<TOut>();
         }
 
+        /// <summary>
+        /// Internal Only - DO NOT CALL
+        /// </summary>
         public bool TryReset()
         {
             Completed = null;

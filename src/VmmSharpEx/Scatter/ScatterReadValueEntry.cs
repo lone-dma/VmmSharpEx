@@ -65,11 +65,17 @@ namespace VmmSharpEx.Scatter
             Address = address;
         }
 
+        /// <summary>
+        /// Internal Only - DO NOT CALL
+        /// </summary>
         public void Return()
         {
             Pool.Return(this);
         }
 
+        /// <summary>
+        /// Internal Only - DO NOT CALL
+        /// </summary>
         public bool TryReset()
         {
             _result = default;
