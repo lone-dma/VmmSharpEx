@@ -9,6 +9,11 @@ namespace VmmSharpEx.Scatter
     public interface IScatterEntry : IResettable
     {
         /// <summary>
+        /// Maximum read size for any single entry.
+        /// DEFAULT: No Limit (<see cref="uint.MaxValue"/>)
+        /// </summary>
+        public static uint MaxReadSize { get; set; } = uint.MaxValue;
+        /// <summary>
         /// Address to read from.
         /// </summary>
         ulong Address { get; }
