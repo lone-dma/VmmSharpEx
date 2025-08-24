@@ -1,4 +1,5 @@
-﻿using VmmSharpEx;
+﻿using System.Text;
+using VmmSharpEx;
 using VmmSharpEx.Scatter;
 
 namespace VmmSharpEx_Tests;
@@ -26,6 +27,7 @@ internal unsafe class Program
         {
             int i = ix; // Capture
             rd1[i].AddValueEntry<uint>(0, baseAddress + (uint)i * 4);
+            rd1[i].AddStringEntry(1, baseAddress, 16, Encoding.ASCII);
             rd1[i].Completed += (sender, cb1) =>
             {
                 if (cb1.TryGetValue<uint>(0, out var value))
@@ -39,6 +41,10 @@ internal unsafe class Program
                             Console.WriteLine($"Bytes: {BitConverter.ToString(bytes)}");
                         }
                     };
+                }
+                if (cb1.TryGetString(1, out var str))
+                {
+                    Console.WriteLine($"String: {str}");
                 }
             };
         }

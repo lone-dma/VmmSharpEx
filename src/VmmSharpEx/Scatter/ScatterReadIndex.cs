@@ -1,6 +1,7 @@
 ﻿// Original Credit to lone-dma
 
 using System.Runtime.CompilerServices;
+using System.Text;
 
 namespace VmmSharpEx.Scatter
 {
@@ -63,6 +64,21 @@ namespace VmmSharpEx.Scatter
         }
 
         /// <summary>
+        /// Add a scatter read string entry to this index.
+        /// Use <see cref="TryGetString(int, out string)"/> to obtain the result."/>
+        /// </summary>
+        /// <param name="id">Unique ID for this entry.</param>
+        /// <param name="address">Virtual Address to read from.</param>
+        /// <param name="cb">Number of bytes to read.</param>
+        /// <param name="encoding">Encoding to decode string with.</param>
+        public ScatterReadStringEntry AddStringEntry(int id, ulong address, int cb, Encoding encoding)
+        {
+            var entry = new ScatterReadStringEntry(address, cb, encoding);
+            Entries.Add(id, entry);
+            return entry;
+        }
+
+        /// <summary>
         /// Try obtain a value result from the requested Entry ID.
         /// </summary>
         /// <typeparam name="TOut">Result Value Type <typeparamref name="TOut"/></typeparam>
@@ -92,6 +108,23 @@ namespace VmmSharpEx.Scatter
             where TOut : unmanaged
         {
             if (Entries.TryGetValue(id, out var entry) && entry is ScatterReadArrayEntry<TOut> casted && !casted.IsFailed)
+            {
+                result = casted.Result;
+                return true;
+            }
+            result = default;
+            return false;
+        }
+
+        /// <summary>
+        /// Try obtain a string result from the requested Entry ID.
+        /// </summary>
+        /// <param name="id">ID for entry to lookup.</param>
+        /// <param name="result">Result field to populate.</param>
+        /// <returns>True if successful, otherwise False.</returns>
+        public bool TryGetString(int id, out string result)
+        {
+            if (Entries.TryGetValue(id, out var entry) && entry is ScatterReadStringEntry casted && !casted.IsFailed)
             {
                 result = casted.Result;
                 return true;
