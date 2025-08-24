@@ -25,16 +25,16 @@ internal unsafe class Program
         for (int ix = 0; ix < 3; ix++)
         {
             int i = ix; // Capture
-            rd1[i].AddEntry<uint>(0, baseAddress + (uint)i * 4);
+            rd1[i].AddValueEntry<uint>(0, baseAddress + (uint)i * 4);
             rd1[i].Completed += (sender, cb1) =>
             {
-                if (cb1.TryGetResult<uint>(0, out var value))
+                if (cb1.TryGetValue<uint>(0, out var value))
                 {
                     Console.WriteLine($"DWORD: {value}");
-                    rd2[i].AddEntry<byte[]>(0, baseAddress + (uint)i * 12, 12);
+                    rd2[i].AddArrayEntry<byte>(0, baseAddress + (uint)i * 12, 12);
                     rd2[i].Completed += (sender, cb2) =>
                     {
-                        if (cb2.TryGetResult<byte[]>(0, out var bytes))
+                        if (cb2.TryGetArray<byte>(0, out var bytes))
                         {
                             Console.WriteLine($"Bytes: {BitConverter.ToString(bytes)}");
                         }

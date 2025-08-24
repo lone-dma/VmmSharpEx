@@ -32,29 +32,66 @@ namespace VmmSharpEx.Scatter
         internal ScatterReadIndex() { }
 
         /// <summary>
-        /// Add a scatter read entry to this index.
+        /// Add a scatter read value entry to this index.
+        /// Use <see cref="TryGetValue{TOut}"/> or <see cref="TryGetValue{TOut}(int, out TOut)"/> to obtain the result."/>
         /// </summary>
         /// <typeparam name="T">Type to read.</typeparam>
         /// <param name="id">Unique ID for this entry.</param>
         /// <param name="address">Virtual Address to read from.</param>
-        /// <param name="cb">(Reference Types Only) Count of bytes to read. For unmanaged structs/value types this is sized automatically.</param>
-        public ScatterReadEntry<T> AddEntry<T>(int id, ulong address, int cb = 0)
+        public ScatterReadValueEntry<T> AddValueEntry<T>(int id, ulong address)
+            where T : unmanaged
         {
-            var entry = new ScatterReadEntry<T>(address, cb);
+            var entry = new ScatterReadValueEntry<T>(address);
             Entries.Add(id, entry);
             return entry;
         }
 
         /// <summary>
-        /// Try obtain a result from the requested Entry ID.
+        /// Add a scatter read array entry to this index.
+        /// Use <see cref="TryGetArray{TOut}(int, out TOut[])"/> to obtain the result."/>
         /// </summary>
-        /// <typeparam name="TOut">Result Type <typeparamref name="TOut"/></typeparam>
+        /// <typeparam name="T">Type to read.</typeparam>
+        /// <param name="id">Unique ID for this entry.</param>
+        /// <param name="address">Virtual Address to read from.</param>
+        /// <param name="count">Number of array *elements* to read.</param>
+        public ScatterReadArrayEntry<T> AddArrayEntry<T>(int id, ulong address, int count)
+            where T : unmanaged
+        {
+            var entry = new ScatterReadArrayEntry<T>(address, count);
+            Entries.Add(id, entry);
+            return entry;
+        }
+
+        /// <summary>
+        /// Try obtain a value result from the requested Entry ID.
+        /// </summary>
+        /// <typeparam name="TOut">Result Value Type <typeparamref name="TOut"/></typeparam>
         /// <param name="id">ID for entry to lookup.</param>
         /// <param name="result">Result field to populate.</param>
         /// <returns>True if successful, otherwise False.</returns>
-        public bool TryGetResult<TOut>(int id, out TOut result)
+        public bool TryGetValue<TOut>(int id, out TOut result)
+            where TOut : unmanaged
         {
-            if (Entries.TryGetValue(id, out var entry) && entry is ScatterReadEntry<TOut> casted && !casted.IsFailed)
+            if (Entries.TryGetValue(id, out var entry) && entry is ScatterReadValueEntry<TOut> casted && !casted.IsFailed)
+            {
+                result = casted.Result;
+                return true;
+            }
+            result = default;
+            return false;
+        }
+
+        /// <summary>
+        /// Try obtain an array result from the requested Entry ID.
+        /// </summary>
+        /// <typeparam name="TOut">Result Array Type <typeparamref name="TOut"/></typeparam>
+        /// <param name="id">ID for entry to lookup.</param>
+        /// <param name="result">Result field to populate.</param>
+        /// <returns>True if successful, otherwise False.</returns>
+        public bool TryGetArray<TOut>(int id, out TOut[] result)
+            where TOut : unmanaged
+        {
+            if (Entries.TryGetValue(id, out var entry) && entry is ScatterReadArrayEntry<TOut> casted && !casted.IsFailed)
             {
                 result = casted.Result;
                 return true;
@@ -65,14 +102,16 @@ namespace VmmSharpEx.Scatter
 
         /// <summary>
         /// Try obtain a ref result from the requested Entry ID.
+        /// NOTE: Only for <see cref="ScatterReadValueEntry{T}"/>
         /// WARNING: Must check the returned ref result for NULLPTR with <see cref="Unsafe.IsNullRef"/>
         /// </summary>
         /// <typeparam name="TOut">Result Type <typeparamref name="TOut"/></typeparam>
         /// <param name="id">ID for entry to lookup.</param>
         /// <returns>Ref if successful, otherwise NULL.</returns>
-        public ref TOut GetRef<TOut>(int id)
+        public ref TOut GetValueRef<TOut>(int id)
+            where TOut : unmanaged
         {
-            if (Entries.TryGetValue(id, out var entry) && entry is ScatterReadEntry<TOut> casted && !casted.IsFailed)
+            if (Entries.TryGetValue(id, out var entry) && entry is ScatterReadValueEntry<TOut> casted && !casted.IsFailed)
             {
                 return ref casted.Result;
             }
