@@ -74,7 +74,6 @@ namespace VmmSharpEx.Scatter
                 if (!ProcessData(hScatter, buffer))
                 {
                     IsFailed = true;
-                    return;
                 }
             }
 #pragma warning restore CS8500
