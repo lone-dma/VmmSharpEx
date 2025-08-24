@@ -1,7 +1,6 @@
 ﻿// Original Credit to lone-dma
 
 using Microsoft.Extensions.ObjectPool;
-using System.IO.IsolatedStorage;
 using System.Runtime.CompilerServices;
 
 namespace VmmSharpEx.Scatter
@@ -53,7 +52,7 @@ namespace VmmSharpEx.Scatter
                     {
                         IsFailed = true;
                     }
-                    else if (_result is ScatterPointer ptr && !ptr.IsValid)
+                    else if (_result is VmmPointer ptr && !ptr.IsValid)
                     {
                         IsFailed = true; // Invalid pointer value
                     }
