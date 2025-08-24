@@ -41,6 +41,7 @@ namespace VmmSharpEx.Scatter
         {
             try
             {
+                _result = default; // init
                 fixed (void* pb = &_result)
                 {
                     var buffer = new Span<byte>(pb, CB);
