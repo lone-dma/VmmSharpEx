@@ -14,7 +14,7 @@ namespace VmmSharpEx_Tests
             var list = new List<ulong>(); // Assume this is populated with addresses to read
 
             /// Example begin
-            var map = new ScatterReadMap(vmm, pid);
+            using var map = new ScatterReadMap(vmm, pid); // MUST DISPOSE!
             var r1 = map.AddRound(useCache: true);
             var r2 = map.AddRound(useCache: false); // Example of multiple rounds if needed, use realtime reads on this one
             for (int ix = 0; ix < list.Count; ix++)
