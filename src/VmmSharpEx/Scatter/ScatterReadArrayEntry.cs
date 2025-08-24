@@ -44,10 +44,14 @@ namespace VmmSharpEx.Scatter
         {
             try
             {
-                _result = new T[_count];
+                var arr = new T[_count];
                 if (!IScatterEntry.ProcessData<T>(hScatter, Address, CB, _result))
                 {
                     IsFailed = true;
+                }
+                else
+                {
+                    _result = arr;
                 }
             }
             catch
