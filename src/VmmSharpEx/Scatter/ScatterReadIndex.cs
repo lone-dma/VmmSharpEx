@@ -50,9 +50,17 @@ namespace VmmSharpEx.Scatter
             where T : unmanaged
         {
             var entry = ScatterReadValueEntry<T>.Pool.Get();
-            entry.Configure(address);
-            Entries.Add(id, entry);
-            return entry;
+            try
+            {
+                entry.Configure(address);
+                Entries.Add(id, entry);
+                return entry;
+            }
+            catch
+            {
+                ScatterReadValueEntry<T>.Pool.Return(entry);
+                throw;
+            }
         }
 
         /// <summary>
@@ -67,9 +75,17 @@ namespace VmmSharpEx.Scatter
             where T : unmanaged
         {
             var entry = ScatterReadArrayEntry<T>.Pool.Get();
-            entry.Configure(address, count);
-            Entries.Add(id, entry);
-            return entry;
+            try
+            {
+                entry.Configure(address, count);
+                Entries.Add(id, entry);
+                return entry;
+            }
+            catch
+            {
+                ScatterReadArrayEntry<T>.Pool.Return(entry);
+                throw;
+            }
         }
 
         /// <summary>
@@ -83,9 +99,17 @@ namespace VmmSharpEx.Scatter
         public ScatterReadStringEntry AddStringEntry(int id, ulong address, int cb, Encoding encoding)
         {
             var entry = ScatterReadStringEntry.Pool.Get();
-            entry.Configure(address, cb, encoding);
-            Entries.Add(id, entry);
-            return entry;
+            try
+            {
+                entry.Configure(address, cb, encoding);
+                Entries.Add(id, entry);
+                return entry;
+            }
+            catch
+            {
+                ScatterReadStringEntry.Pool.Return(entry);
+                throw;
+            }
         }
 
         /// <summary>
