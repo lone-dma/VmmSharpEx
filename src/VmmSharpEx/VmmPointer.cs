@@ -21,6 +21,10 @@ namespace VmmSharpEx
             get => Utilities.IsValidVirtualAddress(Value);
         }
 
+        /// <summary>
+        /// Throws an <see cref="InvalidOperationException"/> if the pointer is not valid.
+        /// </summary>
+        /// <exception cref="InvalidOperationException"></exception>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void ThrowIfInvalid()
         {
