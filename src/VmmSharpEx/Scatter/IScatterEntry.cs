@@ -5,7 +5,7 @@ namespace VmmSharpEx.Scatter
     public interface IScatterEntry
     {
         /// <summary>
-        /// Virtual Address to read from.
+        /// Address to read from.
         /// </summary>
         ulong Address { get; }
         /// <summary>
