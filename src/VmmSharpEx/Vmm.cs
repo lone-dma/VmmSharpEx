@@ -416,18 +416,17 @@ public sealed class Vmm : IDisposable
     /// <param name="pid">Process ID (PID) this operation will take place within.</param>
     /// <param name="va">Memory address to read from.</param>
     /// <param name="span">Span to receive the memory read.</param>
-    /// <param name="cbRead">Number of bytes successfully read.</param>
     /// <param name="flags">Read flags.</param>
     /// <returns>
     /// True if successful, otherwise False.
     /// </returns>
-    public unsafe bool MemReadSpan<T>(uint pid, ulong va, Span<T> span, out uint cbRead, VmmFlags flags = VmmFlags.NONE)
+    public unsafe bool MemReadSpan<T>(uint pid, ulong va, Span<T> span, VmmFlags flags = VmmFlags.NONE)
         where T : unmanaged
     {
         var cb = (uint)(sizeof(T) * span.Length);
         fixed (T* pb = span)
         {
-            return Vmmi.VMMDLL_MemReadEx(_h, pid, va, (byte*)pb, cb, out cbRead, flags);
+            return Vmmi.VMMDLL_MemReadEx(_h, pid, va, (byte*)pb, cb, out var cbRead, flags) && cbRead == cb;
         }
     }
 
@@ -444,8 +443,7 @@ public sealed class Vmm : IDisposable
         VmmFlags flags = VmmFlags.NONE)
     {
         var buffer = cb <= 256 ? stackalloc byte[(int)cb] : new byte[cb];
-        if (!MemReadSpan(pid, va, buffer, out var cbRead, flags) ||
-            cbRead != cb)
+        if (!MemReadSpan(pid, va, buffer, flags))
         {
             return null;
         }
