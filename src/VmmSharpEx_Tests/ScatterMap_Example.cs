@@ -1,51 +1,45 @@
-﻿using VmmSharpEx;
+﻿using System.Text;
+using VmmSharpEx;
 using VmmSharpEx.Scatter;
 
 namespace VmmSharpEx_Tests
 {
     internal static class ScatterMap_Example
     {
-        public static void Example()
+        public static void Run(Vmm vmm)
         {
-            /// Boilerplate
-            Vmm vmm = default; // Assume this is initialized properly
-            if (!vmm!.PidGetFromName("TargetProcess.exe", out uint pid))
-                throw new InvalidOperationException("Failed to get PID!");
-            var list = new List<ulong>(); // Assume this is populated with addresses to read
-
-            /// Example begin
-            using var map = new ScatterReadMap(vmm, pid); // MUST DISPOSE!
-            var r1 = map.AddRound(useCache: true);
-            var r2 = map.AddRound(useCache: false); // Example of multiple rounds if needed, use realtime reads on this one
-            for (int ix = 0; ix < list.Count; ix++)
+            if (!vmm.PidGetFromName("explorer.exe", out uint pid))
+                throw new InvalidOperationException("Failed to get PID");
+            ulong baseAddress = vmm.ProcessGetModuleBase(pid, "explorer.exe");
+            using var map = new ScatterReadMap(vmm, pid); // MUST DISPOSE
+            var rd1 = map.AddRound();
+            var rd2 = map.AddRound(useCache: false);
+            for (int ix = 0; ix < 3; ix++)
             {
                 int i = ix; // Capture
-                r1[i].AddValueEntry<ulong>(0, list[i] + 0x10); // Read a pointer type
-                r1[i].AddArrayEntry<byte>(1, list[i] + 0x100, 64); // Read a byte array of 64 bytes
-                r1[i].Completed += (sender, cb1) =>
+                rd1[i].AddValueEntry<uint>(0, baseAddress + (uint)i * 4);
+                rd1[i].AddStringEntry(1, baseAddress, 16, Encoding.ASCII);
+                rd1[i].Completed += (sender, cb1) =>
                 {
-                    if (cb1.TryGetValue<ulong>(0, out var ptr))
+                    if (cb1.TryGetValue<uint>(0, out var value))
                     {
-                        // Do stuff with this pointer if read is successful!
-                        Console.WriteLine($"Pointer: 0x{ptr:X}");
-                        r2[i].AddValueEntry<uint>(0, ptr + 0x20); // Use this pointer in the next round to read a uint
-                        r2[i].Completed += (sender, cb2) =>
+                        Console.WriteLine($"DWORD: {value}");
+                        rd2[i].AddArrayEntry<byte>(0, baseAddress + (uint)i * 12, 12);
+                        rd2[i].Completed += (sender, cb2) =>
                         {
-                            if (cb2.TryGetValue<uint>(0, out var val))
+                            if (cb2.TryGetArray<byte>(0, out var bytes))
                             {
-                                // Do stuff with this uint if read is successful!
-                                Console.WriteLine($"Value: {val}");
+                                Console.WriteLine($"Bytes: {BitConverter.ToString(bytes.ToArray())}");
                             }
                         };
                     }
-                    if (cb1.TryGetArray<byte>(1, out var bytes))
+                    if (cb1.TryGetString(1, out var str))
                     {
-                        // Do stuff with the byte array if read is successful!
-                        Console.WriteLine($"Bytes: {BitConverter.ToString(bytes.ToArray())}");
+                        Console.WriteLine($"String: {str}");
                     }
                 };
             }
-            map.Execute(); // Begin the scatter read(s) -> The callbacks will be executed as reads complete
+            map.Execute();
         }
     }
 }
