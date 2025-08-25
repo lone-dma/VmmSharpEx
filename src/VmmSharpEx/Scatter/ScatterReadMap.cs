@@ -38,6 +38,7 @@ namespace VmmSharpEx.Scatter
         /// </summary>
         public void Execute()
         {
+            ObjectDisposedException.ThrowIf(_disposed, this);
             if (_rounds.Count == 0)
             {
                 return;
