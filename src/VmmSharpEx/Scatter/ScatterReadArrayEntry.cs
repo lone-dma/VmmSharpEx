@@ -36,7 +36,7 @@ namespace VmmSharpEx.Scatter
         /// </summary>
         public bool IsFailed { get; set; }
 
-        [Obsolete("For internal use only. Construct a ScatterMap to begin using this API.")]
+        [Obsolete("For internal use only. Construct a ScatterReadMap to begin using this API.")]
         public ScatterReadArrayEntry() { }
 
         /// <summary>

@@ -37,7 +37,7 @@ namespace VmmSharpEx.Scatter
             catch { }
         }
 
-        [Obsolete("For internal use only. Construct a ScatterMap to begin using this API.")]
+        [Obsolete("For internal use only. Construct a ScatterReadMap to begin using this API.")]
         public ScatterReadIndex() { }
 
         /// <summary>

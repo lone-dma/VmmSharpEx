@@ -21,7 +21,7 @@ namespace VmmSharpEx.Scatter
         private readonly Dictionary<int, ScatterReadIndex> _indexes = new();
         private bool _useCache;
 
-        [Obsolete("For internal use only. Construct a ScatterMap to begin using this API.")]
+        [Obsolete("For internal use only. Construct a ScatterReadMap to begin using this API.")]
         public ScatterReadRound() { }
 
         /// <summary>
