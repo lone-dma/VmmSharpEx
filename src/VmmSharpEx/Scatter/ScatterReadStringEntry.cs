@@ -45,7 +45,7 @@ namespace VmmSharpEx.Scatter
         {
             try
             {
-                Span<byte> bytes = CB <= 0x1000 ? stackalloc byte[CB] : new byte[CB];
+                Span<byte> bytes = CB <= 256 ? stackalloc byte[CB] : new byte[CB];
                 if (!IScatterEntry.ProcessData<byte>(hScatter, Address, CB, bytes))
                 {
                     IsFailed = true;
