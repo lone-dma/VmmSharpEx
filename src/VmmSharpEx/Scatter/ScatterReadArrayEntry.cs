@@ -16,12 +16,11 @@ namespace VmmSharpEx.Scatter
         internal static ObjectPool<ScatterReadArrayEntry<T>> Pool { get; } = 
             new DefaultObjectPoolProvider() { MaximumRetained = int.MaxValue - 1 }
             .Create<ScatterReadArrayEntry<T>>();
-        private int _count;
-        private T[] _array;
+        private IMemoryOwner<T> _mem;
         /// <summary>
         /// Result for this read as <see cref="Span{T}"/>. Be sure to check <see cref="IsFailed"/>
         /// </summary>
-        internal Span<T> Result => _array.AsSpan(0, _count);
+        internal Span<T> Result => _mem.Memory.Span;
         /// <summary>
         /// Virtual Address to read from.
         /// </summary>
@@ -47,7 +46,7 @@ namespace VmmSharpEx.Scatter
         {
             try
             {
-                if (!IScatterEntry.ProcessData<T>(hScatter, Address, CB, _array.AsSpan(0, _count)))
+                if (!IScatterEntry.ProcessData<T>(hScatter, Address, CB, _mem.Memory.Span))
                 {
                     IsFailed = true;
                 }
@@ -61,10 +60,9 @@ namespace VmmSharpEx.Scatter
         internal void Configure(ulong address, int count)
         {
             ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(count, 0, nameof(count));
-            _array = ArrayPool<T>.Shared.Rent(count);
+            _mem = MemoryPool<T>.Shared.Rent(count);
             Address = address;
             CB = count * _cbSingle;
-            _count = count;
         }
 
         /// <summary>
@@ -80,9 +78,8 @@ namespace VmmSharpEx.Scatter
         /// </summary>
         public bool TryReset()
         {
-            _count = default;
-            ArrayPool<T>.Shared.Return(_array);
-            _array = default;
+            _mem?.Dispose();
+            _mem = default;
             Address = default;
             CB = default;
             IsFailed = default;
