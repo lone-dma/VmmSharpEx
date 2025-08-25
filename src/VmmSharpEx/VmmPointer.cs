@@ -15,7 +15,7 @@ namespace VmmSharpEx
         /// <summary>
         /// True if the pointer is a valid virtual address, otherwise False.
         /// </summary>
-        public bool IsValid
+        public readonly bool IsValid
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get => Utilities.IsValidVirtualAddress(Value);
@@ -26,7 +26,7 @@ namespace VmmSharpEx
         /// </summary>
         /// <exception cref="InvalidOperationException"></exception>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void ThrowIfInvalid()
+        public readonly void ThrowIfInvalid()
         {
             if (!IsValid)
                 throw new InvalidOperationException($"Pointer 0x{Value:X} is not a valid x64 virtual address!");
