@@ -47,7 +47,7 @@ namespace VmmSharpEx_Tests
                     // Check our string read
                     if (cb1.TryGetString(1, out var str))
                     {
-                        Console.WriteLine($"String: {str}");
+                        Console.WriteLine($"String: {str}"); // Start of the Windows PE should be "MZ"
                     }
                 };
             }
