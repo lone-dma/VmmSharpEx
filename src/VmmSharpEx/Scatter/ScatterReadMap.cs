@@ -3,7 +3,7 @@
 namespace VmmSharpEx.Scatter
 {
     /// <summary>
-    /// Read multiple virtual addresses from a process using a custom scatter read implementation.
+    /// Read multiple virtual addresses from a Windows x64 process using a custom scatter read implementation.
     /// Results are populated in the IScatterEntry objects, and can be used to chain reads.
     /// NOTE: This API is NOT thread safe, you must keep operations synchronous.
     /// </summary>
@@ -21,7 +21,7 @@ namespace VmmSharpEx.Scatter
         private void OnCompleted() => Completed?.Invoke(this, EventArgs.Empty);
 
         /// <summary>
-        /// Read multiple virtual addresses from a process using a custom scatter read implementation.
+        /// Read multiple virtual addresses from a Windows x64 process using a custom scatter read implementation.
         /// Results are populated in the IScatterEntry objects, and can be used to chain reads.
         /// NOTE: This API is NOT thread safe, you must keep operations synchronous.
         /// </summary>

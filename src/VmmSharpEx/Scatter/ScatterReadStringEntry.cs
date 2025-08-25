@@ -65,7 +65,6 @@ namespace VmmSharpEx.Scatter
 
         internal void Configure(ulong address, int cb, Encoding encoding)
         {
-            ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(cb, 0, nameof(cb));
             ArgumentNullException.ThrowIfNull(encoding, nameof(encoding));
             Address = address;
             CB = cb;

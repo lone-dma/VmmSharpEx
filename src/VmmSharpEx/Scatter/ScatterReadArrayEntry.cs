@@ -60,7 +60,10 @@ namespace VmmSharpEx.Scatter
 
         internal void Configure(ulong address, int count)
         {
-            ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(count, 0, nameof(count));
+            if (count < 0)
+            {
+                count = 0;
+            }
             _mem = MemoryPool<T>.Shared.Rent(count);
             Address = address;
             CB = count * _cbSingle;
