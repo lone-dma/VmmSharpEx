@@ -47,7 +47,7 @@ namespace VmmSharpEx.Scatter
         {
             try
             {
-                if (!IScatterEntry.ProcessData<T>(hScatter, Address, CB, _mem.Memory.Span.Slice(0, _count)))
+                if (!IScatterEntry.ProcessData<T>(hScatter, Address, CB, Result))
                 {
                     IsFailed = true;
                 }
