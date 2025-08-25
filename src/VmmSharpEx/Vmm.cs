@@ -358,7 +358,7 @@ public sealed class Vmm : IDisposable
 
     /// <summary>
     /// Read Memory from a Virtual Address into an Array of Type <typeparamref name="T" />.
-    /// WARNING: This incurs a heap allocation for the array. Recommend using <see cref="MemReadPooledArray{T}(uint, ulong, uint, VmmFlags)"/> instead.
+    /// WARNING: This incurs a heap allocation for the array. Recommend using <see cref="MemReadPooledArray{T}(uint, ulong, uint, out Memory{T}, VmmFlags)"/> instead.
     /// </summary>
     /// <typeparam name="T">Value Type.</typeparam>
     /// <param name="pid">Process ID (PID) this operation will take place within.</param>
@@ -394,7 +394,7 @@ public sealed class Vmm : IDisposable
     /// <param name="result">Result of the memory read.</param>
     /// <param name="flags">VMM Flags.</param>
     /// <returns><see cref="IMemoryOwner{T}"/> lease, or NULL if failed.</returns>
-    public unsafe IMemoryOwner<T> MemReadPooledArray<T>(uint pid, ulong va, uint count, out Span<T> result, VmmFlags flags = VmmFlags.NONE)
+    public unsafe IMemoryOwner<T> MemReadPooledArray<T>(uint pid, ulong va, uint count, out Memory<T> result, VmmFlags flags = VmmFlags.NONE)
         where T : unmanaged
     {
         var owner = MemoryPool<T>.Shared.Rent((int)count);
@@ -408,7 +408,7 @@ public sealed class Vmm : IDisposable
                 return null;
             }
         }
-        result = owner.Memory.Span.Slice(0, (int)count);
+        result = owner.Memory.Slice(0, (int)count);
         return owner;
     }
 

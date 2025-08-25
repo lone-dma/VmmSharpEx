@@ -155,7 +155,7 @@ public sealed class LeechCore : IDisposable
 
     /// <summary>
     /// Read physical memory into an array of type <typeparamref name="T" />.
-    /// WARNING: This incurs a heap allocation for the array. Recommend using <see cref="ReadPooledArray{T}(ulong, uint)"/> instead.
+    /// WARNING: This incurs a heap allocation for the array. Recommend using <see cref="ReadPooledArray{T}(ulong, uint, out Memory{T})"/> instead.
     /// </summary>
     /// <typeparam name="T">Value Type.</typeparam>
     /// <param name="pa">Physical address to read.</param>
@@ -184,7 +184,7 @@ public sealed class LeechCore : IDisposable
     /// <param name="count">Number of elements to read.</param>
     /// <param name="result">Result of the memory read.</param>
     /// <returns><see cref="IMemoryOwner{T}"/> lease, or NULL if failed.</returns>
-    public unsafe IMemoryOwner<T> ReadPooledArray<T>(ulong pa, uint count, out Span<T> result)
+    public unsafe IMemoryOwner<T> ReadPooledArray<T>(ulong pa, uint count, out Memory<T> result)
         where T : unmanaged
     {
         var owner = MemoryPool<T>.Shared.Rent((int)count);
@@ -198,7 +198,7 @@ public sealed class LeechCore : IDisposable
                 return null;
             }
         }
-        result = owner.Memory.Span.Slice(0, (int)count);
+        result = owner.Memory.Slice(0, (int)count);
         return owner;
     }
 
