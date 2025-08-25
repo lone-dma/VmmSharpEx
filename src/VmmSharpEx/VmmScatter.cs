@@ -288,8 +288,8 @@ public sealed class VmmScatter : IDisposable
     /// <returns>C# Managed System.String. Null if failed.</returns>
     public string ReadString(ulong qwA, uint cb, Encoding encoding)
     {
-        var buffer = Read(qwA, cb);
-        if (buffer is null)
+        var buffer = cb <= 256 ? stackalloc byte[(int)cb] : new byte[cb];
+        if (!ReadSpan(qwA, buffer, out uint cbRead) || cbRead != cb)
         {
             return null;
         }
