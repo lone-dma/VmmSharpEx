@@ -15,7 +15,7 @@ namespace VmmSharpEx.Scatter
         internal static ObjectPool<ScatterReadValueEntry<T>> Pool { get; } = 
             new DefaultObjectPoolProvider() { MaximumRetained = int.MaxValue - 1 }
             .Create<ScatterReadValueEntry<T>>();
-        private T _result;
+        private T _result = default;
         /// <summary>
         /// Result for this read. Be sure to check <see cref="IsFailed"/>
         /// </summary>
@@ -45,7 +45,6 @@ namespace VmmSharpEx.Scatter
         {
             try
             {
-                _result = default; // init
                 fixed (void* pb = &_result)
                 {
                     var buffer = new Span<byte>(pb, CB);

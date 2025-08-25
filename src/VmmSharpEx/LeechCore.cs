@@ -1,7 +1,9 @@
-﻿using System.Runtime.CompilerServices;
+﻿using System.Buffers;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using VmmSharpEx.Internal;
 using VmmSharpEx.Options;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace VmmSharpEx;
 
@@ -135,18 +137,6 @@ public sealed class LeechCore : IDisposable
     //---------------------------------------------------------------------
 
     /// <summary>
-    /// Read a single physical memory range.
-    /// </summary>
-    /// <param name="pa">Physical address to read.</param>
-    /// <param name="cb">Number of bytes to read.</param>
-    /// <returns>Bytes read.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public byte[] Read(ulong pa, uint cb)
-    {
-        return ReadArray<byte>(pa, cb);
-    }
-
-    /// <summary>
     /// Read physcial memory into a nullable struct value <typeparamref name="T" />.
     /// </summary>
     /// <typeparam name="T">Value Type.</typeparam>
@@ -166,6 +156,7 @@ public sealed class LeechCore : IDisposable
 
     /// <summary>
     /// Read physical memory into an array of type <typeparamref name="T" />.
+    /// WARNING: This incurs a heap allocation for the array. Recommend using <see cref="ReadPooledArray{T}(ulong, uint)"/> instead.
     /// </summary>
     /// <typeparam name="T">Value Type.</typeparam>
     /// <param name="pa">Physical address to read.</param>
@@ -178,9 +169,31 @@ public sealed class LeechCore : IDisposable
         var data = new T[count];
         fixed (T* pb = data)
         {
-            var result = Lci.LcRead(_h, pa, cb, (byte*)pb);
-            return result ? data : null;
+            if (!Lci.LcRead(_h, pa, cb, (byte*)pb))
+                return null;
         }
+        return data;
+    }
+
+    /// <summary>
+    /// Read physical memory into a pooled array of type <typeparamref name="T" />.
+    /// NOTE: You must dispose the returned <see cref="IMemoryOwner{T}"/> when finished with it.
+    /// </summary>
+    /// <typeparam name="T">Value Type.</typeparam>
+    /// <param name="pa">Physical address to read.</param>
+    /// <param name="count">Number of elements to read.</param>
+    /// <returns>Pooled Array of type <typeparamref name="T" />. Null if read failed.</returns>
+    public unsafe IMemoryOwner<T> ReadPooledArray<T>(ulong pa, uint count)
+        where T : unmanaged
+    {
+        var owner = MemoryPool<T>.Shared.Rent((int)count);
+        var cb = (uint)sizeof(T) * count;
+        fixed (T* pb = owner.Memory.Span)
+        {
+            if (!Lci.LcRead(_h, pa, cb, (byte*)pb))
+                return null;
+        }
+        return owner;
     }
 
     /// <summary>
@@ -282,21 +295,6 @@ public sealed class LeechCore : IDisposable
         }
 
         return new LcScatterHandle(results, pppMEMs);
-    }
-
-    /// <summary>
-    /// Write a single range of physical memory.
-    /// </summary>
-    /// <param name="pa">Physical address to write</param>
-    /// <param name="data">Data to write starting at pa.</param>
-    /// <returns>
-    /// True if write successful, otherwise False. The write is best-effort and may fail. It's recommended to verify
-    /// the write with a subsequent read.
-    /// </returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool Write(ulong pa, byte[] data)
-    {
-        return WriteArray(pa, data);
     }
 
     /// <summary>

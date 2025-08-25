@@ -1,4 +1,5 @@
-﻿using System.Diagnostics.Contracts;
+﻿using System.Buffers;
+using System.Diagnostics.Contracts;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -303,21 +304,6 @@ public sealed class Vmm : IDisposable
     }
 
     /// <summary>
-    /// Read Memory from a Virtual Address into a managed byte-array.
-    /// WARNING: This incurs a heap allocation for the array. Recommend using MemReadSpan instead.
-    /// </summary>
-    /// <param name="pid">Process ID (PID) this operation will take place within.</param>
-    /// <param name="va">Virtual Address to read from.</param>
-    /// <param name="cb">Count of bytes to read.</param>
-    /// <param name="flags">VMM Flags.</param>
-    /// <returns>Managed byte array containing number of bytes read.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public byte[] MemRead(uint pid, ulong va, uint cb, VmmFlags flags = VmmFlags.NONE)
-    {
-        return MemReadArray<byte>(pid, va, cb, flags);
-    }
-
-    /// <summary>
     /// Read Memory from a Virtual Address into unmanaged memory.
     /// </summary>
     /// <param name="pid">Process ID (PID) this operation will take place within.</param>
@@ -372,35 +358,55 @@ public sealed class Vmm : IDisposable
 
     /// <summary>
     /// Read Memory from a Virtual Address into an Array of Type <typeparamref name="T" />.
-    /// WARNING: This incurs a heap allocation for the array. Recommend using MemReadSpan instead.
+    /// WARNING: This incurs a heap allocation for the array. Recommend using <see cref="MemReadPooledArray{T}(uint, ulong, uint, VmmFlags)"/> instead.
     /// </summary>
     /// <typeparam name="T">Value Type.</typeparam>
     /// <param name="pid">Process ID (PID) this operation will take place within.</param>
     /// <param name="va">Virtual Address to read from.</param>
     /// <param name="count">Number of elements to read.</param>
     /// <param name="flags">VMM Flags.</param>
-    /// <returns>Managed <typeparamref name="T" /> array containing number of elements read.</returns>
+    /// <returns>Managed <typeparamref name="T" /> array, NULL if failed.</returns>
     public unsafe T[] MemReadArray<T>(uint pid, ulong va, uint count, VmmFlags flags = VmmFlags.NONE)
         where T : unmanaged
     {
         var cb = (uint)sizeof(T) * count;
-        uint cbRead;
         var data = new T[count];
         fixed (T* pb = data)
         {
-            if (!Vmmi.VMMDLL_MemReadEx(_h, pid, va, (byte*)pb, cb, out cbRead, flags))
+            if (!Vmmi.VMMDLL_MemReadEx(_h, pid, va, (byte*)pb, cb, out var cbRead, flags) && cbRead == cb)
             {
                 return null;
             }
         }
 
-        if (cbRead != cb)
+        return data;
+    }
+
+    /// <summary>
+    /// Read Memory from a Virtual Address into a Pooled Array of Type <typeparamref name="T" />.
+    /// NOTE: You must dispose the returned <see cref="IMemoryOwner{T}"/> when finished with it.
+    /// </summary>
+    /// <typeparam name="T">Value Type.</typeparam>
+    /// <param name="pid">Process ID (PID) this operation will take place within.</param>
+    /// <param name="va">Virtual Address to read from.</param>
+    /// <param name="count">Number of elements to read.</param>
+    /// <param name="flags">VMM Flags.</param>
+    /// <returns>Pooled <typeparamref name="T" /> array, NULL if failed.</returns>
+    public unsafe IMemoryOwner<T> MemReadPooledArray<T>(uint pid, ulong va, uint count, VmmFlags flags = VmmFlags.NONE)
+        where T : unmanaged
+    {
+        var owner = MemoryPool<T>.Shared.Rent((int)count);
+        var cb = (uint)sizeof(T) * count;
+        fixed (T* pb = owner.Memory.Span)
         {
-            var partialCount = (int)cbRead / sizeof(T);
-            Array.Resize(ref data, partialCount);
+            if (!Vmmi.VMMDLL_MemReadEx(_h, pid, va, (byte*)pb, cb, out var cbRead, flags) && cbRead == cb)
+            {
+                owner.Dispose();
+                return null;
+            }
         }
 
-        return data;
+        return owner;
     }
 
     /// <summary>
@@ -414,7 +420,6 @@ public sealed class Vmm : IDisposable
     /// <param name="flags">Read flags.</param>
     /// <returns>
     /// True if successful, otherwise False.
-    /// Please be sure to also check the cbRead out value.
     /// </returns>
     public unsafe bool MemReadSpan<T>(uint pid, ulong va, Span<T> span, out uint cbRead, VmmFlags flags = VmmFlags.NONE)
         where T : unmanaged
@@ -467,19 +472,6 @@ public sealed class Vmm : IDisposable
         {
             return Vmmi.VMMDLL_MemPrefetchPages(_h, pid, (byte*)pb, (uint)va.Length);
         }
-    }
-
-    /// <summary>
-    /// Write Memory from a managed byte-array to a given Virtual Address.
-    /// </summary>
-    /// <param name="pid">Process ID (PID) this operation will take place within.</param>
-    /// <param name="va">Virtual Address to write to.</param>
-    /// <param name="data">Data to be written.</param>
-    /// <returns>True if write successful, otherwise False.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool MemWrite(uint pid, ulong va, byte[] data)
-    {
-        return MemWriteArray(pid, va, data);
     }
 
     /// <summary>

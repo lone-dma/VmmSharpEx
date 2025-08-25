@@ -119,18 +119,6 @@ public sealed class VmmScatter : IDisposable
     }
 
     /// <summary>
-    /// Prepare to write bytes to memory.
-    /// </summary>
-    /// <param name="qwA">The address where to write the data.</param>
-    /// <param name="data">The data to write to memory.</param>
-    /// <returns>true/false</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool PrepareWrite(ulong qwA, byte[] data)
-    {
-        return PrepareWriteArray(qwA, data);
-    }
-
-    /// <summary>
     /// Prepare to write an array of a certain struct to memory.
     /// </summary>
     /// <typeparam name="T">The type of struct to write.</typeparam>
@@ -191,18 +179,6 @@ public sealed class VmmScatter : IDisposable
     }
 
     /// <summary>
-    /// Read memory bytes from an address.
-    /// </summary>
-    /// <param name="qwA">Address to read from.</param>
-    /// <param name="cb">Bytes to read.</param>
-    /// <returns>The byte array on success, Null on fail.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public byte[] Read(ulong qwA, uint cb)
-    {
-        return ReadArray<byte>(qwA, cb);
-    }
-
-    /// <summary>
     /// Read memory from an address into a struct type.
     /// </summary>
     /// <typeparam name="T">The type of struct to read.</typeparam>
@@ -242,20 +218,13 @@ public sealed class VmmScatter : IDisposable
         where T : unmanaged
     {
         var cb = (uint)sizeof(T) * count;
-        uint cbRead;
         var data = new T[count];
         fixed (T* pb = data)
         {
-            if (!Vmmi.VMMDLL_Scatter_Read(_h, qwA, cb, (byte*)pb, out cbRead))
+            if (!Vmmi.VMMDLL_Scatter_Read(_h, qwA, cb, (byte*)pb, out var cbRead) || cbRead != cb)
             {
                 return null;
             }
-        }
-
-        if (cbRead != cb)
-        {
-            var partialCount = (int)cbRead / sizeof(T);
-            Array.Resize(ref data, partialCount);
         }
 
         return data;
@@ -267,15 +236,14 @@ public sealed class VmmScatter : IDisposable
     /// <typeparam name="T">The type of struct to read.</typeparam>
     /// <param name="qwA">Address to read from.</param>
     /// <param name="span">The span to read into.</param>
-    /// <param name="cbRead">The number of bytes read.</param>
     /// <returns>TRUE if successful, otherwise FALSE.</returns>
-    public unsafe bool ReadSpan<T>(ulong qwA, Span<T> span, out uint cbRead)
+    public unsafe bool ReadSpan<T>(ulong qwA, Span<T> span)
         where T : unmanaged
     {
         var cb = (uint)sizeof(T) * (uint)span.Length;
         fixed (T* pb = span)
         {
-            return Vmmi.VMMDLL_Scatter_Read(_h, qwA, cb, (byte*)pb, out cbRead);
+            return Vmmi.VMMDLL_Scatter_Read(_h, qwA, cb, (byte*)pb, out var cbRead) && cbRead == cb;
         }
     }
 
@@ -289,7 +257,7 @@ public sealed class VmmScatter : IDisposable
     public string ReadString(ulong qwA, uint cb, Encoding encoding)
     {
         var buffer = cb <= 256 ? stackalloc byte[(int)cb] : new byte[cb];
-        if (!ReadSpan(qwA, buffer, out uint cbRead) || cbRead != cb)
+        if (!ReadSpan(qwA, buffer))
         {
             return null;
         }
