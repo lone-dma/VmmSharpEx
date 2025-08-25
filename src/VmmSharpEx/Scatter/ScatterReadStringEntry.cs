@@ -45,24 +45,17 @@ namespace VmmSharpEx.Scatter
         {
             try
             {
-                var rent = ArrayPool<byte>.Shared.Rent(CB);
-                try
+                Span<byte> bytes = CB <= 0x1000 ? stackalloc byte[CB] : new byte[CB];
+                if (!IScatterEntry.ProcessData<byte>(hScatter, Address, CB, bytes))
                 {
-                    if (!IScatterEntry.ProcessData<byte>(hScatter, Address, CB, rent.AsSpan(0, CB)))
-                    {
-                        IsFailed = true;
-                    }
-                    else
-                    {
-                        var str = _encoding.GetString(rent);
-                        int nt = str.IndexOf('\0');
-                        _result = nt != -1 ?
-                            str.Substring(0, nt) : str;
-                    }
+                    IsFailed = true;
                 }
-                finally
+                else
                 {
-                    ArrayPool<byte>.Shared.Return(rent);
+                    var str = _encoding.GetString(bytes);
+                    int nt = str.IndexOf('\0');
+                    _result = nt != -1 ?
+                        str.Substring(0, nt) : str;
                 }
             }
             catch
