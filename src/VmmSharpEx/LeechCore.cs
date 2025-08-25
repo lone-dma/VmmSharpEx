@@ -191,7 +191,10 @@ public sealed class LeechCore : IDisposable
         fixed (T* pb = owner.Memory.Span)
         {
             if (!Lci.LcRead(_h, pa, cb, (byte*)pb))
+            {
+                owner.Dispose();
                 return null;
+            }
         }
         return owner;
     }
