@@ -48,7 +48,7 @@ namespace VmmSharpEx.Scatter
         /// <param name="addr">Address of read.</param>
         /// <param name="cb">Count of bytes of read.</param>
         /// <param name="result">Result buffer</param>
-        /// <exception cref="Exception"></exception>
+        /// <returns>TRUE if successful, otherwise FALSE.</returns>
         internal static bool ProcessData<TBuf>(LeechCore.LcScatterHandle hScatter, ulong addr, int cb, Span<TBuf> result)
             where TBuf : unmanaged
         {
