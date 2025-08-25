@@ -372,7 +372,7 @@ public sealed class Vmm : IDisposable
         var data = new T[count];
         fixed (T* pb = data)
         {
-            if (!Vmmi.VMMDLL_MemReadEx(_h, pid, va, (byte*)pb, cb, out var cbRead, flags) || cbRead == cb)
+            if (!Vmmi.VMMDLL_MemReadEx(_h, pid, va, (byte*)pb, cb, out var cbRead, flags) || cbRead != cb)
             {
                 return null;
             }
@@ -400,7 +400,7 @@ public sealed class Vmm : IDisposable
         var cb = (uint)sizeof(T) * count;
         fixed (T* pb = owner.Memory.Span)
         {
-            if (!Vmmi.VMMDLL_MemReadEx(_h, pid, va, (byte*)pb, cb, out var cbRead, flags) || cbRead == cb)
+            if (!Vmmi.VMMDLL_MemReadEx(_h, pid, va, (byte*)pb, cb, out var cbRead, flags) || cbRead != cb)
             {
                 owner.Dispose();
                 result = default;
