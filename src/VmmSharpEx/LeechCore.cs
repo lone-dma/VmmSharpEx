@@ -3,7 +3,6 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using VmmSharpEx.Internal;
 using VmmSharpEx.Options;
-using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace VmmSharpEx;
 
@@ -177,13 +176,15 @@ public sealed class LeechCore : IDisposable
 
     /// <summary>
     /// Read physical memory into a pooled array of type <typeparamref name="T" />.
+    /// IMPORTANT: The returned <see cref="IMemoryOwner{T}"/> may encompass more elements than requested, be sure to use the result out value for the correct sizing.
     /// NOTE: You must dispose the returned <see cref="IMemoryOwner{T}"/> when finished with it.
     /// </summary>
     /// <typeparam name="T">Value Type.</typeparam>
     /// <param name="pa">Physical address to read.</param>
     /// <param name="count">Number of elements to read.</param>
-    /// <returns>Pooled Array of type <typeparamref name="T" />. Null if read failed.</returns>
-    public unsafe IMemoryOwner<T> ReadPooledArray<T>(ulong pa, uint count)
+    /// <param name="result">Result of the memory read.</param>
+    /// <returns><see cref="IMemoryOwner{T}"/> lease, or NULL if failed.</returns>
+    public unsafe IMemoryOwner<T> ReadPooledArray<T>(ulong pa, uint count, out Span<T> result)
         where T : unmanaged
     {
         var owner = MemoryPool<T>.Shared.Rent((int)count);
@@ -193,9 +194,11 @@ public sealed class LeechCore : IDisposable
             if (!Lci.LcRead(_h, pa, cb, (byte*)pb))
             {
                 owner.Dispose();
+                result = default;
                 return null;
             }
         }
+        result = owner.Memory.Span.Slice(0, (int)count);
         return owner;
     }
 

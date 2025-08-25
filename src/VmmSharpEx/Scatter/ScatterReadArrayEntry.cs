@@ -16,11 +16,12 @@ namespace VmmSharpEx.Scatter
         internal static ObjectPool<ScatterReadArrayEntry<T>> Pool { get; } = 
             new DefaultObjectPoolProvider() { MaximumRetained = int.MaxValue - 1 }
             .Create<ScatterReadArrayEntry<T>>();
+        private int _count;
         private IMemoryOwner<T> _mem;
         /// <summary>
         /// Result for this read as <see cref="Span{T}"/>. Be sure to check <see cref="IsFailed"/>
         /// </summary>
-        internal Span<T> Result => _mem.Memory.Span;
+        internal Span<T> Result => _mem.Memory.Span.Slice(0, _count);
         /// <summary>
         /// Virtual Address to read from.
         /// </summary>
@@ -63,6 +64,7 @@ namespace VmmSharpEx.Scatter
             _mem = MemoryPool<T>.Shared.Rent(count);
             Address = address;
             CB = count * _cbSingle;
+            _count = count;
         }
 
         /// <summary>
@@ -80,6 +82,7 @@ namespace VmmSharpEx.Scatter
         {
             _mem?.Dispose();
             _mem = default;
+            _count = default;
             Address = default;
             CB = default;
             IsFailed = default;

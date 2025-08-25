@@ -384,15 +384,17 @@ public sealed class Vmm : IDisposable
 
     /// <summary>
     /// Read Memory from a Virtual Address into a Pooled Array of Type <typeparamref name="T" />.
+    /// IMPORTANT: The returned <see cref="IMemoryOwner{T}"/> may encompass more elements than requested, be sure to use the result out value for the correct sizing.
     /// NOTE: You must dispose the returned <see cref="IMemoryOwner{T}"/> when finished with it.
     /// </summary>
     /// <typeparam name="T">Value Type.</typeparam>
     /// <param name="pid">Process ID (PID) this operation will take place within.</param>
     /// <param name="va">Virtual Address to read from.</param>
     /// <param name="count">Number of elements to read.</param>
+    /// <param name="result">Result of the memory read.</param>
     /// <param name="flags">VMM Flags.</param>
-    /// <returns>Pooled <typeparamref name="T" /> array, NULL if failed.</returns>
-    public unsafe IMemoryOwner<T> MemReadPooledArray<T>(uint pid, ulong va, uint count, VmmFlags flags = VmmFlags.NONE)
+    /// <returns><see cref="IMemoryOwner{T}"/> lease, or NULL if failed.</returns>
+    public unsafe IMemoryOwner<T> MemReadPooledArray<T>(uint pid, ulong va, uint count, out Span<T> result, VmmFlags flags = VmmFlags.NONE)
         where T : unmanaged
     {
         var owner = MemoryPool<T>.Shared.Rent((int)count);
@@ -402,10 +404,11 @@ public sealed class Vmm : IDisposable
             if (!Vmmi.VMMDLL_MemReadEx(_h, pid, va, (byte*)pb, cb, out var cbRead, flags) && cbRead == cb)
             {
                 owner.Dispose();
+                result = default;
                 return null;
             }
         }
-
+        result = owner.Memory.Span.Slice(0, (int)count);
         return owner;
     }
 
