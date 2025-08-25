@@ -429,15 +429,14 @@ public sealed class Vmm : IDisposable
     /// <summary>
     /// Read Memory from a Virtual Address into a Managed String.
     /// </summary>
-    /// <param name="encoding">String Encoding for this read.</param>
     /// <param name="pid">Process ID (PID) this operation will take place within.</param>
     /// <param name="va">Virtual Address to read from.</param>
     /// <param name="cb">Number of bytes to read. Keep in mind some string encodings are 2-4 bytes per character.</param>
+    /// <param name="encoding">String Encoding for this read.</param>
     /// <param name="flags">VMM Flags.</param>
-    /// <param name="terminateOnNullChar">Terminate the string at the first occurrence of the null character.</param>
     /// <returns>C# Managed System.String. Null if failed.</returns>
-    public unsafe string MemReadString(Encoding encoding, uint pid, ulong va, uint cb,
-        VmmFlags flags = VmmFlags.NONE, bool terminateOnNullChar = true)
+    public unsafe string MemReadString(uint pid, ulong va, uint cb, Encoding encoding,
+        VmmFlags flags = VmmFlags.NONE)
     {
         var buffer = cb <= 256 ? stackalloc byte[(int)cb] : new byte[cb];
         if (!MemReadSpan(pid, va, buffer, out var cbRead, flags) ||
@@ -447,13 +446,10 @@ public sealed class Vmm : IDisposable
         }
 
         var result = encoding.GetString(buffer);
-        if (terminateOnNullChar)
+        var nullIndex = result.IndexOf('\0');
+        if (nullIndex != -1)
         {
-            var nullIndex = result.IndexOf('\0');
-            if (nullIndex != -1)
-            {
-                result = result.Substring(0, nullIndex);
-            }
+            result = result.Substring(0, nullIndex);
         }
 
         return result;

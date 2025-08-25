@@ -282,12 +282,11 @@ public sealed class VmmScatter : IDisposable
     /// <summary>
     /// Read memory from an address into a managed string.
     /// </summary>
-    /// <param name="encoding">String Encoding for this read.</param>
     /// <param name="qwA">Address to read from.</param>
     /// <param name="cb">Number of bytes to read. Keep in mind some string encodings are 2-4 bytes per character.</param>
-    /// <param name="terminateOnNullChar">Terminate the string at the first occurrence of the null character.</param>
+    /// <param name="encoding">String Encoding for this read.</param>
     /// <returns>C# Managed System.String. Null if failed.</returns>
-    public string ReadString(Encoding encoding, ulong qwA, uint cb, bool terminateOnNullChar = true)
+    public string ReadString(ulong qwA, uint cb, Encoding encoding)
     {
         var buffer = Read(qwA, cb);
         if (buffer is null)
@@ -296,13 +295,10 @@ public sealed class VmmScatter : IDisposable
         }
 
         var result = encoding.GetString(buffer);
-        if (terminateOnNullChar)
+        var nullIndex = result.IndexOf('\0');
+        if (nullIndex != -1)
         {
-            var nullIndex = result.IndexOf('\0');
-            if (nullIndex != -1)
-            {
-                result = result.Substring(0, nullIndex);
-            }
+            result = result.Substring(0, nullIndex);
         }
 
         return result;
