@@ -6,7 +6,7 @@ using VmmSharpEx.Internal;
 
 namespace VmmSharpEx.Scatter
 {
-    public interface IScatterEntry : IResettable
+    internal interface IScatterEntry : IResettable
     {
         /// <summary>
         /// Address to read from.
@@ -47,7 +47,7 @@ namespace VmmSharpEx.Scatter
         /// <param name="addr">Address of read.</param>
         /// <param name="result">Result buffer</param>
         /// <returns>TRUE if successful, otherwise FALSE.</returns>
-        internal static unsafe bool ProcessData<TBuf>(LeechCore.LcScatterHandle hScatter, ulong addr, Span<TBuf> result)
+        public static unsafe bool ProcessData<TBuf>(LeechCore.LcScatterHandle hScatter, ulong addr, Span<TBuf> result)
             where TBuf : unmanaged
         {
             var resultOut = MemoryMarshal.Cast<TBuf, byte>(result);
