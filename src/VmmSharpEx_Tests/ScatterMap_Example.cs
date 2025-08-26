@@ -18,43 +18,31 @@ namespace VmmSharpEx_Tests
             var rd2 = map.AddRound(useCache: false);
             for (int ix = 0; ix < 3; ix++) // You can use this API to iterate over collections!
             {
-                int i = ix; // Capture loop variable (IMPORTANT!)
+                int i = ix; // Capture loop variable (IMPORTANT! ix goes out of scope in subsequent callbacks)
                 // Add entries to the first round
-                rd1[i].AddValueEntry<uint>(0, baseAddress + (uint)i * 4);
-                rd1[i].AddStringEntry(1, baseAddress, 16, Encoding.ASCII);
-                rd1[i].AddArrayEntry<int>(2, baseAddress + (uint)i * 8, 8);
-                // Add a completion callback for the first round
-                rd1[i].Completed += (sender, cb1) =>
+                var pointer = rd1[i].AddValueEntry<VmmPointer>(0, baseAddress + 312); // VmmPointer is automatically validated, and can be cast to ulong
+                rd1[i].Completed += (sender, cb1) => // Executed after round 1 completes
                 {
-                    // Check if the read was successful and get the value
-                    if (cb1.TryGetValue<uint>(0, out var value))
+                    if (cb1.TryGetValue<VmmPointer>(0, out var pointer)) // Check if read succeeded
                     {
-                        // Successful do something with the value
-                        Console.WriteLine($"DWORD: {value}");
-                        // Now chain a second round after the first completes
-                        // You can do this to read successive pointers, etc.
-                        rd2[i].AddArrayEntry<byte>(0, baseAddress + (uint)i * 12, 12);
-                        // Add a completion callback for the second round
-                        rd2[i].Completed += (sender, cb2) =>
+                        // Pointer was verified to be valid, do something with it,etc....
+                        Console.WriteLine($"Validated Pointer: {(ulong)pointer:X}");
+                        rd2[i].AddArrayEntry<byte>(0, pointer, 16); // Add a byte array read in round 2 using the pointer location
+                    }
+                    // Add a string entry
+                    rd2[i].AddStringEntry(1, baseAddress, 16, Encoding.ASCII);
+                    rd2[i].Completed += (sender, cb2) => // Executed after round 2 completes
+                    {
+                        if (cb2.TryGetArray<byte>(0, out var bytes)) // Check if read succeeded
                         {
-                            // Check if the read was successful and get the byte array
-                            if (cb2.TryGetArray<byte>(0, out var bytes))
-                            {
-                                // Do something with the byte array
-                                Console.WriteLine($"Bytes: {BitConverter.ToString(bytes.ToArray())}");
-                            }
-                        };
-                    }
-                    // Check our string read
-                    if (cb1.TryGetString(1, out var str))
-                    {
-                        Console.WriteLine($"String: {str}"); // Start of the Windows PE should be "MZ"
-                    }
-                    // Check our int array read
-                    if (cb1.TryGetArray<int>(2, out var arr))
-                    {
-                        Console.WriteLine($"Int Array: {string.Join(", ", arr.ToArray())}");
-                    }
+                            // Do something with the byte array
+                            Console.WriteLine($"Bytes at pointer location: {BitConverter.ToString(bytes.ToArray())}");
+                        }
+                        if (cb2.TryGetString(1, out var str)) // Check if read succeeded
+                        {
+                            Console.WriteLine($"PE Header String: {str}"); // Start of the Windows PE should be "MZ"
+                        }
+                    };
                 };
             }
             // Execute the scatter read map as defined above

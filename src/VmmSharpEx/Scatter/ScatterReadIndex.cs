@@ -47,7 +47,7 @@ namespace VmmSharpEx.Scatter
 
         /// <summary>
         /// Add a scatter read value entry to this index.
-        /// Use <see cref="TryGetValue{TOut}"/> or <see cref="TryGetValue{TOut}(int, out TOut)"/> to obtain the result."/>
+        /// Use <see cref="TryGetValue{TOut}"/> or <see cref="GetValueRef{TOut}(int)"/> to obtain the result.
         /// </summary>
         /// <typeparam name="T">Type to read.</typeparam>
         /// <param name="id">Unique ID for this entry.</param>
@@ -56,21 +56,13 @@ namespace VmmSharpEx.Scatter
             where T : unmanaged
         {
             var entry = ScatterReadValueEntry<T>.Rent();
-            try
-            {
-                entry.Configure(address);
-                Entries.Add(id, entry);
-            }
-            catch
-            {
-                entry.Return();
-                throw;
-            }
+            entry.Configure(address);
+            Entries.Add(id, entry);
         }
 
         /// <summary>
         /// Add a scatter read array entry to this index.
-        /// Use <see cref="TryGetArray{TOut}(int, out Span{TOut})"/> to obtain the result."/>
+        /// Use <see cref="TryGetArray{TOut}(int, out Span{TOut})"/> to obtain the result.
         /// </summary>
         /// <typeparam name="T">Type to read.</typeparam>
         /// <param name="id">Unique ID for this entry.</param>
@@ -80,21 +72,13 @@ namespace VmmSharpEx.Scatter
             where T : unmanaged
         {
             var entry = ScatterReadArrayEntry<T>.Rent();
-            try
-            {
-                entry.Configure(address, count);
-                Entries.Add(id, entry);
-            }
-            catch
-            {
-                entry.Return();
-                throw;
-            }
+            entry.Configure(address, count);
+            Entries.Add(id, entry);
         }
 
         /// <summary>
         /// Add a scatter read string entry to this index.
-        /// Use <see cref="TryGetString(int, out string)"/> to obtain the result."/>
+        /// Use <see cref="TryGetString(int, out string)"/> to obtain the result.
         /// </summary>
         /// <param name="id">Unique ID for this entry.</param>
         /// <param name="address">Virtual Address to read from.</param>
@@ -103,16 +87,8 @@ namespace VmmSharpEx.Scatter
         public void AddStringEntry(int id, ulong address, int cb, Encoding encoding)
         {
             var entry = ScatterReadStringEntry.Rent();
-            try
-            {
-                entry.Configure(address, cb, encoding);
-                Entries.Add(id, entry);
-            }
-            catch
-            {
-                entry.Return();
-                throw;
-            }
+            entry.Configure(address, cb, encoding);
+            Entries.Add(id, entry);
         }
 
         /// <summary>
