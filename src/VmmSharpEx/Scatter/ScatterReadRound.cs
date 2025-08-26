@@ -89,7 +89,7 @@ namespace VmmSharpEx.Scatter
             {
                 var entry = entries[i];
 
-                if (!Utilities.IsValidVirtualAddress(entry.Address) || entry.CB <= 0 || (uint)entry.CB > IScatterEntry.MaxReadSize)
+                if (!Utilities.IsValidVirtualAddress(entry.Address) || entry.CB <= 0 || (uint)entry.CB > ScatterReadMap.MaxReadSize)
                 {
                     entry.IsFailed = true;
                     continue;

@@ -9,6 +9,12 @@ namespace VmmSharpEx.Scatter
     /// </summary>
     public sealed class ScatterReadMap : IDisposable
     {
+        /// <summary>
+        /// Maximum read size for any single entry.
+        /// DEFAULT: No Limit (<see cref="uint.MaxValue"/>)
+        /// </summary>
+        public static uint MaxReadSize { get; set; } = uint.MaxValue;
+
         private readonly Vmm _vmm;
         private readonly uint _pid;
         private readonly List<ScatterReadRound> _rounds = new(capacity: 12);

@@ -6,7 +6,7 @@ using VmmSharpEx.Internal;
 
 namespace VmmSharpEx.Scatter
 {
-    public interface IScatterEntry : IResettable
+    internal interface IScatterEntry : IResettable
     {
         /// <summary>
         /// Address to read from.
@@ -32,12 +32,6 @@ namespace VmmSharpEx.Scatter
         void Return();
 
         #region Static Interface
-
-        /// <summary>
-        /// Maximum read size for any single entry.
-        /// DEFAULT: No Limit (<see cref="uint.MaxValue"/>)
-        /// </summary>
-        public static uint MaxReadSize { get; set; } = uint.MaxValue;
 
         /// <summary>
         /// Process the Scatter Read bytes into the result buffer.
