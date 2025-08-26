@@ -6,7 +6,7 @@ using System.Text;
 
 namespace VmmSharpEx.Scatter
 {
-    public sealed class ScatterReadStringEntry : IScatterEntry
+    internal sealed class ScatterReadStringEntry : IScatterEntry
     {
         private static readonly ObjectPool<ScatterReadStringEntry> _pool = 
             new DefaultObjectPoolProvider() { MaximumRetained = int.MaxValue - 1 }

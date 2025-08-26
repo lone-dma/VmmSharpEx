@@ -52,7 +52,7 @@ namespace VmmSharpEx.Scatter
         /// <typeparam name="T">Type to read.</typeparam>
         /// <param name="id">Unique ID for this entry.</param>
         /// <param name="address">Virtual Address to read from.</param>
-        public ScatterReadValueEntry<T> AddValueEntry<T>(int id, ulong address)
+        public void AddValueEntry<T>(int id, ulong address)
             where T : unmanaged
         {
             var entry = ScatterReadValueEntry<T>.Rent();
@@ -60,7 +60,6 @@ namespace VmmSharpEx.Scatter
             {
                 entry.Configure(address);
                 Entries.Add(id, entry);
-                return entry;
             }
             catch
             {
@@ -77,7 +76,7 @@ namespace VmmSharpEx.Scatter
         /// <param name="id">Unique ID for this entry.</param>
         /// <param name="address">Virtual Address to read from.</param>
         /// <param name="count">Number of array *elements* to read.</param>
-        public ScatterReadArrayEntry<T> AddArrayEntry<T>(int id, ulong address, int count)
+        public void AddArrayEntry<T>(int id, ulong address, int count)
             where T : unmanaged
         {
             var entry = ScatterReadArrayEntry<T>.Rent();
@@ -85,7 +84,6 @@ namespace VmmSharpEx.Scatter
             {
                 entry.Configure(address, count);
                 Entries.Add(id, entry);
-                return entry;
             }
             catch
             {
@@ -102,14 +100,13 @@ namespace VmmSharpEx.Scatter
         /// <param name="address">Virtual Address to read from.</param>
         /// <param name="cb">Number of bytes to read.</param>
         /// <param name="encoding">Encoding to decode string with.</param>
-        public ScatterReadStringEntry AddStringEntry(int id, ulong address, int cb, Encoding encoding)
+        public void AddStringEntry(int id, ulong address, int cb, Encoding encoding)
         {
             var entry = ScatterReadStringEntry.Rent();
             try
             {
                 entry.Configure(address, cb, encoding);
                 Entries.Add(id, entry);
-                return entry;
             }
             catch
             {

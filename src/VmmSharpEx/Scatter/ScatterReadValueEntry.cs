@@ -5,7 +5,7 @@ using System.Runtime.CompilerServices;
 
 namespace VmmSharpEx.Scatter
 {
-    public sealed class ScatterReadValueEntry<T> : IScatterEntry
+    internal sealed class ScatterReadValueEntry<T> : IScatterEntry
         where T : unmanaged
     {
         private static readonly int _cb = Unsafe.SizeOf<T>();
