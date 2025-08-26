@@ -48,7 +48,7 @@ namespace VmmSharpEx.Scatter
                 fixed (void* pb = &_result)
                 {
                     var buffer = new Span<byte>(pb, CB);
-                    if (!IScatterEntry.ProcessData(hScatter, Address, CB, buffer))
+                    if (!IScatterEntry.ProcessData<byte>(hScatter, Address, buffer))
                     {
                         IsFailed = true;
                     }

@@ -41,24 +41,23 @@ namespace VmmSharpEx.Scatter
 
         /// <summary>
         /// Process the Scatter Read bytes into the result buffer.
-        /// *Callers should verify buffer size*
         /// </summary>
         /// <typeparam name="TBuf">Buffer type</typeparam>
         /// <param name="hScatter">Scatter read handle.</param>
         /// <param name="addr">Address of read.</param>
-        /// <param name="cb">Count of bytes of read.</param>
         /// <param name="result">Result buffer</param>
         /// <returns>TRUE if successful, otherwise FALSE.</returns>
-        internal static bool ProcessData<TBuf>(LeechCore.LcScatterHandle hScatter, ulong addr, int cb, Span<TBuf> result)
+        internal static unsafe bool ProcessData<TBuf>(LeechCore.LcScatterHandle hScatter, ulong addr, Span<TBuf> result)
             where TBuf : unmanaged
         {
+            int cbTotal = sizeof(TBuf) * result.Length;
             var resultOut = MemoryMarshal.Cast<TBuf, byte>(result);
             uint pageOffset = Utilities.BYTE_OFFSET(addr); // Get object offset from the page start address
 
             var bytesCopied = 0; // track number of bytes copied to ensure nothing is missed
-            uint cbToRead = Math.Min((uint)cb, 0x1000 - pageOffset); // bytes to read this page
+            uint cb = Math.Min((uint)cbTotal, 0x1000 - pageOffset); // bytes to read this page
 
-            uint numPages = Utilities.ADDRESS_AND_SIZE_TO_SPAN_PAGES(addr, (uint)cb); // number of pages to read from (in case result spans multiple pages)
+            uint numPages = Utilities.ADDRESS_AND_SIZE_TO_SPAN_PAGES(addr, (uint)cbTotal); // number of pages to read from (in case result spans multiple pages)
             ulong basePageAddr = Utilities.PAGE_ALIGN(addr);
 
             for (int p = 0; p < numPages; p++)
@@ -67,25 +66,25 @@ namespace VmmSharpEx.Scatter
                 if (hScatter.Results.TryGetValue(pageAddr, out var scatter)) // retrieve page of mem needed
                 {
                     scatter.Data
-                        .Slice((int)pageOffset, (int)cbToRead)
-                        .CopyTo(resultOut.Slice(bytesCopied, (int)cbToRead)); // Copy bytes to buffer
-                    bytesCopied += (int)cbToRead;
+                        .Slice((int)pageOffset, (int)cb)
+                        .CopyTo(resultOut.Slice(bytesCopied, (int)cb)); // Copy bytes to buffer
+                    bytesCopied += (int)cb;
                 }
                 else // read failed -> break
                 {
                     return false;
                 }
 
-                cbToRead = 0x1000; // set bytes to read next page
-                if (bytesCopied + cbToRead > cb) // partial chunk last page
+                cb = 0x1000; // set bytes to read next page
+                if (bytesCopied + cb > cbTotal) // partial chunk last page
                 {
-                    cbToRead = (uint)cb - (uint)bytesCopied;
+                    cb = (uint)cbTotal - (uint)bytesCopied;
                 }
 
                 pageOffset = 0x0; // Next page (if any) should start at 0x0
             }
 
-            if (bytesCopied != cb)
+            if (bytesCopied != cbTotal)
             {
                 return false;
             }
