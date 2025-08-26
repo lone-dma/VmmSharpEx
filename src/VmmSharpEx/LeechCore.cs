@@ -161,10 +161,10 @@ public sealed class LeechCore : IDisposable
     /// <param name="pa">Physical address to read.</param>
     /// <param name="count">Number of elements to read.</param>
     /// <returns>Managed Array of type <typeparamref name="T" />. Null if read failed.</returns>
-    public unsafe T[] ReadArray<T>(ulong pa, uint count)
+    public unsafe T[] ReadArray<T>(ulong pa, int count)
         where T : unmanaged
     {
-        var cb = count * (uint)sizeof(T);
+        var cb = (uint)(sizeof(T) * count);
         var data = new T[count];
         fixed (T* pb = data)
         {
@@ -184,11 +184,11 @@ public sealed class LeechCore : IDisposable
     /// <param name="count">Number of elements to read.</param>
     /// <param name="result">Result of the memory read.</param>
     /// <returns><see cref="IMemoryOwner{T}"/> lease, or NULL if failed.</returns>
-    public unsafe IMemoryOwner<T> ReadPooledArray<T>(ulong pa, uint count, out Memory<T> result)
+    public unsafe IMemoryOwner<T> ReadPooledArray<T>(ulong pa, int count, out Memory<T> result)
         where T : unmanaged
     {
-        var owner = MemoryPool<T>.Shared.Rent((int)count);
-        var cb = (uint)sizeof(T) * count;
+        var owner = MemoryPool<T>.Shared.Rent(count);
+        var cb = (uint)(sizeof(T) * count);
         fixed (T* pb = owner.Memory.Span)
         {
             if (!Lci.LcRead(_h, pa, cb, (byte*)pb))
@@ -198,7 +198,7 @@ public sealed class LeechCore : IDisposable
                 return null;
             }
         }
-        result = owner.Memory.Slice(0, (int)count);
+        result = owner.Memory.Slice(0, count);
         return owner;
     }
 

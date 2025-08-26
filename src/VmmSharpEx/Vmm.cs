@@ -365,10 +365,10 @@ public sealed class Vmm : IDisposable
     /// <param name="count">Number of elements to read.</param>
     /// <param name="flags">VMM Flags.</param>
     /// <returns>Managed <typeparamref name="T" /> array, NULL if failed.</returns>
-    public unsafe T[] MemReadArray<T>(uint pid, ulong va, uint count, VmmFlags flags = VmmFlags.NONE)
+    public unsafe T[] MemReadArray<T>(uint pid, ulong va, int count, VmmFlags flags = VmmFlags.NONE)
         where T : unmanaged
     {
-        var cb = (uint)sizeof(T) * count;
+        var cb = (uint)(sizeof(T) * count);
         var data = new T[count];
         fixed (T* pb = data)
         {
@@ -393,11 +393,11 @@ public sealed class Vmm : IDisposable
     /// <param name="result">Result of the memory read.</param>
     /// <param name="flags">VMM Flags.</param>
     /// <returns><see cref="IMemoryOwner{T}"/> lease, or NULL if failed.</returns>
-    public unsafe IMemoryOwner<T> MemReadPooledArray<T>(uint pid, ulong va, uint count, out Memory<T> result, VmmFlags flags = VmmFlags.NONE)
+    public unsafe IMemoryOwner<T> MemReadPooledArray<T>(uint pid, ulong va, int count, out Memory<T> result, VmmFlags flags = VmmFlags.NONE)
         where T : unmanaged
     {
-        var owner = MemoryPool<T>.Shared.Rent((int)count);
-        var cb = (uint)sizeof(T) * count;
+        var owner = MemoryPool<T>.Shared.Rent(count);
+        var cb = (uint)(sizeof(T) * count);
         fixed (T* pb = owner.Memory.Span)
         {
             if (!Vmmi.VMMDLL_MemReadEx(_h, pid, va, (byte*)pb, cb, out var cbRead, flags) || cbRead != cb)
@@ -407,7 +407,7 @@ public sealed class Vmm : IDisposable
                 return null;
             }
         }
-        result = owner.Memory.Slice(0, (int)count);
+        result = owner.Memory.Slice(0, count);
         return owner;
     }
 

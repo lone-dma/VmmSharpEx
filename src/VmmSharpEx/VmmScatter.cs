@@ -214,10 +214,10 @@ public sealed class VmmScatter : IDisposable
     /// <param name="qwA">Address to read from.</param>
     /// <param name="count">The number of array items to read.</param>
     /// <returns>Array of objects read. Null on fail.</returns>
-    public unsafe T[] ReadArray<T>(ulong qwA, uint count)
+    public unsafe T[] ReadArray<T>(ulong qwA, int count)
         where T : unmanaged
     {
-        var cb = (uint)sizeof(T) * count;
+        var cb = (uint)(sizeof(T) * count);
         var data = new T[count];
         fixed (T* pb = data)
         {
