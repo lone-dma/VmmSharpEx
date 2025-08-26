@@ -20,7 +20,7 @@ namespace VmmSharpEx_Tests
             {
                 int i = ix; // Capture loop variable (IMPORTANT! ix goes out of scope in subsequent callbacks)
                 // Add entries to the first round
-                var pointer = rd1[i].AddValueEntry<VmmPointer>(0, baseAddress + 312); // VmmPointer is automatically validated, and can be cast to ulong
+                rd1[i].AddValueEntry<VmmPointer>(0, baseAddress + 312); // VmmPointer is automatically validated, and can be cast to ulong
                 rd1[i].Completed += (sender, cb1) => // Executed after round 1 completes
                 {
                     if (cb1.TryGetValue<VmmPointer>(0, out var pointer)) // Check if read succeeded
