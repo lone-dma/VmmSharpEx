@@ -189,19 +189,13 @@ public sealed class VmmScatter : IDisposable
         where T : unmanaged, allows ref struct
     {
         var cb = (uint)sizeof(T);
-        uint cbRead;
         result = default;
         fixed (T* pb = &result)
         {
-            if (!Vmmi.VMMDLL_Scatter_Read(_h, qwA, cb, (byte*)pb, out cbRead))
+            if (!Vmmi.VMMDLL_Scatter_Read(_h, qwA, cb, (byte*)pb, out var cbRead) || cbRead != cb)
             {
                 return false;
             }
-        }
-
-        if (cbRead != cb)
-        {
-            return false;
         }
 
         return true;
