@@ -1,18 +1,17 @@
 ﻿// Original Credit to lone-dma
 
 using Microsoft.Extensions.ObjectPool;
+using System.Runtime.CompilerServices;
 using System.Text;
 
 namespace VmmSharpEx.Scatter
 {
     public sealed class ScatterReadStringEntry : IScatterEntry
     {
-        /// <summary>
-        /// Object Pool for <see cref="ScatterReadStringEntry"/>"/>
-        /// </summary>
-        internal static ObjectPool<ScatterReadStringEntry> Pool { get; } = 
+        private static readonly ObjectPool<ScatterReadStringEntry> _pool = 
             new DefaultObjectPoolProvider() { MaximumRetained = int.MaxValue - 1 }
             .Create<ScatterReadStringEntry>();
+
         private Encoding _encoding;
         private string _result;
         /// <summary>
@@ -34,6 +33,13 @@ namespace VmmSharpEx.Scatter
 
         [Obsolete("For internal use only. Construct a ScatterReadMap to begin using this API.")]
         public ScatterReadStringEntry() { }
+
+        /// <summary>
+        /// Rent from the Object Pool.
+        /// </summary>
+        /// <returns></returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal static ScatterReadStringEntry Rent() => _pool.Get();
 
         /// <summary>
         /// Parse the memory buffer and set the result value.
@@ -76,7 +82,7 @@ namespace VmmSharpEx.Scatter
         /// </summary>
         public void Return()
         {
-            Pool.Return(this);
+            _pool.Return(this);
         }
 
         /// <summary>

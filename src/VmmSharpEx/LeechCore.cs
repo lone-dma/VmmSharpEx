@@ -155,7 +155,7 @@ public sealed class LeechCore : IDisposable
 
     /// <summary>
     /// Read physical memory into an array of type <typeparamref name="T" />.
-    /// WARNING: This incurs a heap allocation for the array. Recommend using <see cref="ReadPooledArray{T}(ulong, uint, out Memory{T})"/> instead.
+    /// WARNING: This incurs a heap allocation for the array. Recommend using <see cref="ReadPooledArray{T}(ulong, int, out Memory{T})"/> instead.
     /// </summary>
     /// <typeparam name="T">Value Type.</typeparam>
     /// <param name="pa">Physical address to read.</param>

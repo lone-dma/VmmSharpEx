@@ -11,12 +11,10 @@ namespace VmmSharpEx.Scatter
     /// </summary>
     public sealed class ScatterReadIndex : IResettable
     {
-        /// <summary>
-        /// Object Pool for <see cref="ScatterReadIndex"/>"/>
-        /// </summary>
-        internal static ObjectPool<ScatterReadIndex> Pool { get; } =
+        private static readonly ObjectPool<ScatterReadIndex> _pool =
             new DefaultObjectPoolProvider() { MaximumRetained = int.MaxValue - 1 }
             .Create<ScatterReadIndex>();
+
         /// <summary>
         /// All read entries for this index.
         /// [KEY] = ID
@@ -41,6 +39,13 @@ namespace VmmSharpEx.Scatter
         public ScatterReadIndex() { }
 
         /// <summary>
+        /// Rent from the Object Pool.
+        /// </summary>
+        /// <returns></returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal static ScatterReadIndex Rent() => _pool.Get();
+
+        /// <summary>
         /// Add a scatter read value entry to this index.
         /// Use <see cref="TryGetValue{TOut}"/> or <see cref="TryGetValue{TOut}(int, out TOut)"/> to obtain the result."/>
         /// </summary>
@@ -50,7 +55,7 @@ namespace VmmSharpEx.Scatter
         public ScatterReadValueEntry<T> AddValueEntry<T>(int id, ulong address)
             where T : unmanaged
         {
-            var entry = ScatterReadValueEntry<T>.Pool.Get();
+            var entry = ScatterReadValueEntry<T>.Rent();
             try
             {
                 entry.Configure(address);
@@ -59,7 +64,7 @@ namespace VmmSharpEx.Scatter
             }
             catch
             {
-                ScatterReadValueEntry<T>.Pool.Return(entry);
+                entry.Return();
                 throw;
             }
         }
@@ -75,7 +80,7 @@ namespace VmmSharpEx.Scatter
         public ScatterReadArrayEntry<T> AddArrayEntry<T>(int id, ulong address, int count)
             where T : unmanaged
         {
-            var entry = ScatterReadArrayEntry<T>.Pool.Get();
+            var entry = ScatterReadArrayEntry<T>.Rent();
             try
             {
                 entry.Configure(address, count);
@@ -84,7 +89,7 @@ namespace VmmSharpEx.Scatter
             }
             catch
             {
-                ScatterReadArrayEntry<T>.Pool.Return(entry);
+                entry.Return();
                 throw;
             }
         }
@@ -99,7 +104,7 @@ namespace VmmSharpEx.Scatter
         /// <param name="encoding">Encoding to decode string with.</param>
         public ScatterReadStringEntry AddStringEntry(int id, ulong address, int cb, Encoding encoding)
         {
-            var entry = ScatterReadStringEntry.Pool.Get();
+            var entry = ScatterReadStringEntry.Rent();
             try
             {
                 entry.Configure(address, cb, encoding);
@@ -108,7 +113,7 @@ namespace VmmSharpEx.Scatter
             }
             catch
             {
-                ScatterReadStringEntry.Pool.Return(entry);
+                entry.Return();
                 throw;
             }
         }
@@ -186,15 +191,20 @@ namespace VmmSharpEx.Scatter
             return ref Unsafe.NullRef<TOut>();
         }
 
+        internal void Return()
+        {
+            _pool.Return(this);
+        }
+
         /// <summary>
         /// Internal Only - DO NOT CALL
         /// </summary>
         public bool TryReset()
         {
             Completed = null;
-            foreach (var entry in Entries)
+            foreach (var entry in Entries.Values)
             {
-                entry.Value.Return();
+                entry.Return();
             }
             Entries.Clear();
             return true;

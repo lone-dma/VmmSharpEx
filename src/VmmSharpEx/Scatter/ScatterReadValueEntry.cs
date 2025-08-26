@@ -9,12 +9,10 @@ namespace VmmSharpEx.Scatter
         where T : unmanaged
     {
         private static readonly int _cb = Unsafe.SizeOf<T>();
-        /// <summary>
-        /// Object Pool for <see cref="ScatterReadValueEntry{T}"/>"/>
-        /// </summary>
-        internal static ObjectPool<ScatterReadValueEntry<T>> Pool { get; } = 
+        private static readonly ObjectPool<ScatterReadValueEntry<T>> _pool = 
             new DefaultObjectPoolProvider() { MaximumRetained = int.MaxValue - 1 }
             .Create<ScatterReadValueEntry<T>>();
+
         private T _result = default;
         /// <summary>
         /// Result for this read. Be sure to check <see cref="IsFailed"/>
@@ -35,6 +33,13 @@ namespace VmmSharpEx.Scatter
 
         [Obsolete("For internal use only. Construct a ScatterReadMap to begin using this API.")]
         public ScatterReadValueEntry() { }
+
+        /// <summary>
+        /// Rent from the Object Pool.
+        /// </summary>
+        /// <returns></returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal static ScatterReadValueEntry<T> Rent() => _pool.Get();
 
         /// <summary>
         /// Parse the memory buffer and set the result value.
@@ -74,7 +79,7 @@ namespace VmmSharpEx.Scatter
         /// </summary>
         public void Return()
         {
-            Pool.Return(this);
+            _pool.Return(this);
         }
 
         /// <summary>

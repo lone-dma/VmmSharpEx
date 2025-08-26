@@ -58,7 +58,7 @@ namespace VmmSharpEx.Scatter
         public ScatterReadRound AddRound(bool useCache = true)
         {
             ObjectDisposedException.ThrowIf(_disposed, this);
-            var round = ScatterReadRound.Pool.Get();
+            var round = ScatterReadRound.Rent();
             round.Configure(useCache);
             _rounds.Add(round);
             return round;
@@ -70,7 +70,7 @@ namespace VmmSharpEx.Scatter
             {
                 foreach (var round in _rounds)
                 {
-                    ScatterReadRound.Pool.Return(round);
+                    round.Return();
                 }
             }
         }

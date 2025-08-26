@@ -1,6 +1,7 @@
 ﻿// Original Credit to lone-dma
 
 using Microsoft.Extensions.ObjectPool;
+using System.Runtime.CompilerServices;
 using VmmSharpEx.Internal;
 using VmmSharpEx.Options;
 
@@ -12,17 +13,22 @@ namespace VmmSharpEx.Scatter
     /// </summary>
     public sealed class ScatterReadRound : IResettable
     {
-        /// <summary>
-        /// Object Pool for <see cref="ScatterReadRound"/>"/>
-        /// </summary>
-        internal static ObjectPool<ScatterReadRound> Pool { get; } =
+        private static readonly ObjectPool<ScatterReadRound> _pool =
             new DefaultObjectPoolProvider() { MaximumRetained = int.MaxValue - 1 }
             .Create<ScatterReadRound>();
+
         private readonly Dictionary<int, ScatterReadIndex> _indexes = new();
         private bool _useCache;
 
         [Obsolete("For internal use only. Construct a ScatterReadMap to begin using this API.")]
         public ScatterReadRound() { }
+
+        /// <summary>
+        /// Rent from the Object Pool.
+        /// </summary>
+        /// <returns></returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal static ScatterReadRound Rent() => _pool.Get();
 
         /// <summary>
         /// Returns the requested ScatterReadIndex.
@@ -37,7 +43,7 @@ namespace VmmSharpEx.Scatter
                 {
                     return existing;
                 }
-                return _indexes[index] = ScatterReadIndex.Pool.Get();
+                return _indexes[index] = ScatterReadIndex.Rent();
             }
         }
 
@@ -124,15 +130,20 @@ namespace VmmSharpEx.Scatter
             _useCache = useCache;
         }
 
+        internal void Return()
+        {
+            _pool.Return(this);
+        }
+
         /// <summary>
         /// Internal Only - DO NOT CALL
         /// </summary>
         public bool TryReset()
         {
             _useCache = default;
-            foreach (var index in _indexes)
+            foreach (var index in _indexes.Values)
             {
-                ScatterReadIndex.Pool.Return(index.Value);
+                index.Return();
             }
             _indexes.Clear();
             return true;

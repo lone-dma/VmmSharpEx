@@ -1,5 +1,4 @@
 ﻿using System.Buffers;
-using System.Diagnostics.Contracts;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -357,7 +356,7 @@ public sealed class Vmm : IDisposable
 
     /// <summary>
     /// Read Memory from a Virtual Address into an Array of Type <typeparamref name="T" />.
-    /// WARNING: This incurs a heap allocation for the array. Recommend using <see cref="MemReadPooledArray{T}(uint, ulong, uint, out Memory{T}, VmmFlags)"/> instead.
+    /// WARNING: This incurs a heap allocation for the array. Recommend using <see cref="MemReadPooledArray{T}(uint, ulong, int, out Memory{T}, VmmFlags)"/> instead.
     /// </summary>
     /// <typeparam name="T">Value Type.</typeparam>
     /// <param name="pid">Process ID (PID) this operation will take place within.</param>
