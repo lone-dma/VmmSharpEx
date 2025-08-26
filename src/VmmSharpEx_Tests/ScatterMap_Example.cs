@@ -22,6 +22,7 @@ namespace VmmSharpEx_Tests
                 // Add entries to the first round
                 rd1[i].AddValueEntry<uint>(0, baseAddress + (uint)i * 4);
                 rd1[i].AddStringEntry(1, baseAddress, 16, Encoding.ASCII);
+                rd1[i].AddArrayEntry<int>(2, baseAddress + (uint)i * 8, 8);
                 // Add a completion callback for the first round
                 rd1[i].Completed += (sender, cb1) =>
                 {
@@ -48,6 +49,11 @@ namespace VmmSharpEx_Tests
                     if (cb1.TryGetString(1, out var str))
                     {
                         Console.WriteLine($"String: {str}"); // Start of the Windows PE should be "MZ"
+                    }
+                    // Check our int array read
+                    if (cb1.TryGetArray<int>(2, out var arr))
+                    {
+                        Console.WriteLine($"Int Array: {string.Join(", ", arr.ToArray())}");
                     }
                 };
             }
