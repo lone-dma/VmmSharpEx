@@ -1,6 +1,7 @@
 ﻿// Original Credit to lone-dma
 
 using Microsoft.Extensions.ObjectPool;
+using System.Net;
 using System.Runtime.CompilerServices;
 using System.Text;
 
@@ -38,8 +39,15 @@ namespace VmmSharpEx.Scatter
         /// Rent from the Object Pool.
         /// </summary>
         /// <returns></returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal static ScatterReadStringEntry Rent() => _pool.Get();
+        internal static ScatterReadStringEntry Rent(ulong address, int cb, Encoding encoding)
+        {
+            ArgumentNullException.ThrowIfNull(encoding, nameof(encoding));
+            var rented = _pool.Get();
+            rented.Address = address;
+            rented.CB = cb;
+            rented._encoding = encoding;
+            return rented;
+        }
 
         /// <summary>
         /// Parse the memory buffer and set the result value.
@@ -67,14 +75,6 @@ namespace VmmSharpEx.Scatter
             {
                 IsFailed = true;
             }
-        }
-
-        internal void Configure(ulong address, int cb, Encoding encoding)
-        {
-            ArgumentNullException.ThrowIfNull(encoding, nameof(encoding));
-            Address = address;
-            CB = cb;
-            _encoding = encoding;
         }
 
         /// <summary>

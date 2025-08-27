@@ -38,8 +38,12 @@ namespace VmmSharpEx.Scatter
         /// Rent from the Object Pool.
         /// </summary>
         /// <returns></returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal static ScatterReadValueEntry<T> Rent() => _pool.Get();
+        internal static ScatterReadValueEntry<T> Rent(ulong address)
+        {
+            var rented = _pool.Get();
+            rented.Address = address;
+            return rented;
+        }
 
         /// <summary>
         /// Parse the memory buffer and set the result value.
@@ -67,11 +71,6 @@ namespace VmmSharpEx.Scatter
             {
                 IsFailed = true;
             }
-        }
-
-        internal void Configure(ulong address)
-        {
-            Address = address;
         }
 
         /// <summary>

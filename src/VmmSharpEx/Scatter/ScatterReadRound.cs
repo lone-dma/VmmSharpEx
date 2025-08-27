@@ -27,8 +27,12 @@ namespace VmmSharpEx.Scatter
         /// Rent from the Object Pool.
         /// </summary>
         /// <returns></returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal static ScatterReadRound Rent() => _pool.Get();
+        internal static ScatterReadRound Rent(bool useCache)
+        {
+            var rented = _pool.Get();
+            rented._useCache = useCache;
+            return rented;
+        }
 
         /// <summary>
         /// Returns the requested ScatterReadIndex.
@@ -123,11 +127,6 @@ namespace VmmSharpEx.Scatter
 
                 entry.SetResult(hScatter);
             }
-        }
-
-        internal void Configure(bool useCache)
-        {
-            _useCache = useCache;
         }
 
         internal void Return()
