@@ -1,7 +1,6 @@
 ﻿// Original Credit to lone-dma
 
 using Microsoft.Extensions.ObjectPool;
-using System.Runtime.CompilerServices;
 using VmmSharpEx.Internal;
 using VmmSharpEx.Options;
 

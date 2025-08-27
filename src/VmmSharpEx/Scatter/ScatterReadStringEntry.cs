@@ -1,8 +1,6 @@
 ﻿// Original Credit to lone-dma
 
 using Microsoft.Extensions.ObjectPool;
-using System.Net;
-using System.Runtime.CompilerServices;
 using System.Text;
 
 namespace VmmSharpEx.Scatter
