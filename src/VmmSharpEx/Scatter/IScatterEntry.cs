@@ -9,7 +9,7 @@ namespace VmmSharpEx.Scatter
     internal interface IScatterEntry : IResettable
     {
         /// <summary>
-        /// Address to read from.
+        /// Virtual Address to read from.
         /// </summary>
         ulong Address { get; }
         /// <summary>
@@ -17,12 +17,12 @@ namespace VmmSharpEx.Scatter
         /// </summary>
         int CB { get; }
         /// <summary>
-        /// True if this read has failed, otherwise False.
+        /// TRUE if this read has failed, otherwise FALSE.
         /// </summary>
         bool IsFailed { get; set; }
 
         /// <summary>
-        /// Parse the memory buffer and set the result value.
+        /// Parse the Scatter Read and set the result value.
         /// </summary>
         /// <param name="hScatter">Scatter read handle.</param>
         void SetResult(LeechCore.LcScatterHandle hScatter);
