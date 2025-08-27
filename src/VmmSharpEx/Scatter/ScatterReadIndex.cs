@@ -55,7 +55,7 @@ namespace VmmSharpEx.Scatter
         public void AddValueEntry<T>(int id, ulong address)
             where T : unmanaged
         {
-            var entry = ScatterReadValueEntry<T>.Rent(address);
+            var entry = ScatterReadValueEntry<T>.Create(address);
             Entries.Add(id, entry);
         }
 
@@ -70,7 +70,7 @@ namespace VmmSharpEx.Scatter
         public void AddArrayEntry<T>(int id, ulong address, int count)
             where T : unmanaged
         {
-            var entry = ScatterReadArrayEntry<T>.Rent(address, count);
+            var entry = ScatterReadArrayEntry<T>.Create(address, count);
             Entries.Add(id, entry);
         }
 
@@ -84,7 +84,7 @@ namespace VmmSharpEx.Scatter
         /// <param name="encoding">Encoding to decode string with.</param>
         public void AddStringEntry(int id, ulong address, int cb, Encoding encoding)
         {
-            var entry = ScatterReadStringEntry.Rent(address, cb, encoding);
+            var entry = ScatterReadStringEntry.Create(address, cb, encoding);
             Entries.Add(id, entry);
         }
 

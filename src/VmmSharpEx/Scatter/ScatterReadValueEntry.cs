@@ -14,42 +14,20 @@ namespace VmmSharpEx.Scatter
             .Create<ScatterReadValueEntry<T>>();
 
         private T _result = default;
-        /// <summary>
-        /// Result for this read. Be sure to check <see cref="IsFailed"/>
-        /// </summary>
         internal ref T Result => ref _result;
-        /// <summary>
-        /// Virtual Address to read from.
-        /// </summary>
         public ulong Address { get; private set; }
-        /// <summary>
-        /// Count of bytes to read.
-        /// </summary>
         public int CB { get; } = _cb;
-        /// <summary>
-        /// True if this read has failed, otherwise False.
-        /// </summary>
         public bool IsFailed { get; set; }
 
-        [Obsolete("For internal use only. Construct a ScatterReadMap to begin using this API.")]
         public ScatterReadValueEntry() { }
 
-        /// <summary>
-        /// Rent from the Object Pool.
-        /// </summary>
-        /// <returns></returns>
-        internal static ScatterReadValueEntry<T> Rent(ulong address)
+        internal static ScatterReadValueEntry<T> Create(ulong address)
         {
             var rented = _pool.Get();
             rented.Address = address;
             return rented;
         }
 
-        /// <summary>
-        /// Parse the memory buffer and set the result value.
-        /// Only called internally via API.
-        /// </summary>
-        /// <param name="hScatter">Scatter read handle.</param>
         public unsafe void SetResult(LeechCore.LcScatterHandle hScatter)
         {
             try
@@ -73,17 +51,11 @@ namespace VmmSharpEx.Scatter
             }
         }
 
-        /// <summary>
-        /// Internal Only - DO NOT CALL
-        /// </summary>
         public void Return()
         {
             _pool.Return(this);
         }
 
-        /// <summary>
-        /// Internal Only - DO NOT CALL
-        /// </summary>
         public bool TryReset()
         {
             _result = default;
