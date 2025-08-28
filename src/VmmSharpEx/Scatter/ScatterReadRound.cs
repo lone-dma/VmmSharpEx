@@ -82,8 +82,8 @@ namespace VmmSharpEx.Scatter
 
             ReadScatter(vmm, pid, entries, _useCache);
 
-            foreach (var idx in _indexes.Values)
-                idx.OnCompleted();
+            foreach (var index in _indexes.Values)
+                index.OnCompleted();
         }
 
         [ThreadStatic]
