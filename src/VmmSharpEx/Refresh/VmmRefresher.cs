@@ -10,7 +10,7 @@ internal sealed class VmmRefresher : IDisposable
     public VmmRefresher(Vmm instance, RefreshOption option, TimeSpan interval)
     {
         ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(interval, TimeSpan.Zero, nameof(interval));
-        _ = RunAsync(instance, option, interval, _cts.Token);
+        _ = RunAsync(instance, option, interval, _cts.Token).ConfigureAwait(false);
     }
 
     private static async Task RunAsync(Vmm instance, RefreshOption option, TimeSpan interval, CancellationToken ct)
