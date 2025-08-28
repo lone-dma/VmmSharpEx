@@ -98,7 +98,7 @@ namespace VmmSharpEx.Scatter
             _pagesTls ??= new HashSet<ulong>(512);
             _pagesTls.Clear();
 
-            int i = 0;
+            int i;
             // Setup pages to read
             for (i = 0; i < entries.Length; i++)
             {
