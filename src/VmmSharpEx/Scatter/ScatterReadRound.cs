@@ -1,6 +1,7 @@
 ﻿// Original Credit to lone-dma
 
 using Microsoft.Extensions.ObjectPool;
+using System.Buffers;
 using VmmSharpEx.Internal;
 using VmmSharpEx.Options;
 
@@ -67,11 +68,21 @@ namespace VmmSharpEx.Scatter
         /// <param name="pid"></param>
         internal void Execute(Vmm vmm, uint pid)
         {
-            ReadScatter(vmm, pid, _indexes.Values.SelectMany(x => x.Entries.Values).ToArray(), _useCache);
-            foreach (var index in _indexes)
-            {
-                index.Value.OnCompleted();
-            }
+            int count = 0;
+            foreach (var index in _indexes.Values)
+                count += index.Entries.Count;
+
+            using var rented = MemoryPool<IScatterEntry>.Shared.Rent(count);
+            var entries = rented.Memory.Span.Slice(0, count);
+            int i = 0;
+            foreach (var index in _indexes.Values)
+                foreach (var e in index.Entries.Values)
+                    entries[i++] = e;
+
+            ReadScatter(vmm, pid, entries, _useCache);
+
+            foreach (var idx in _indexes.Values)
+                idx.OnCompleted();
         }
 
         [ThreadStatic]
@@ -87,8 +98,9 @@ namespace VmmSharpEx.Scatter
             _pagesTls ??= new HashSet<ulong>(512);
             _pagesTls.Clear();
 
+            int i = 0;
             // Setup pages to read
-            for (int i = 0; i < entries.Length; i++)
+            for (i = 0; i < entries.Length; i++)
             {
                 var entry = entries[i];
 
@@ -114,9 +126,14 @@ namespace VmmSharpEx.Scatter
 
             var flags = useCache ? VmmFlags.NONE : VmmFlags.NOCACHE;
             // Read pages
-            using var hScatter = vmm.MemReadScatter(pid, flags, _pagesTls.ToArray());
+            using var rented = MemoryPool<ulong>.Shared.Rent(_pagesTls.Count);
+            var pages = rented.Memory.Span.Slice(0, _pagesTls.Count);
+            i = 0;
+            foreach (var e in _pagesTls)
+                pages[i++] = e;
+            using var hScatter = vmm.MemReadScatter(pid, flags, pages);
             // Set results
-            for (int i = 0; i < entries.Length; i++)
+            for (i = 0; i < entries.Length; i++)
             {
                 var entry = entries[i];
                 if (entry.IsFailed)
