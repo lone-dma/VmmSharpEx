@@ -135,7 +135,7 @@ namespace VmmSharpEx.Scatter
 
             var flags = useCache ? VmmFlags.NONE : VmmFlags.NOCACHE;
             // Read pages
-            using var hScatter = vmm.MemReadScatter(pid, flags, CollectionsMarshal.AsSpan(_pages));
+            using var hScatter = vmm.MemReadScatter(pid, flags, CollectionsMarshal.AsSpan(_pages)); // WARNING: Do not modify _pages while this is in use. Should be safe since uses [ThreadStatic]
             // Set results
             for (i = 0; i < entries.Length; i++)
             {
