@@ -2,6 +2,7 @@
 
 using Microsoft.Extensions.ObjectPool;
 using System.Buffers;
+using System.Runtime.InteropServices;
 using VmmSharpEx.Internal;
 using VmmSharpEx.Options;
 
@@ -86,7 +87,9 @@ namespace VmmSharpEx.Scatter
         }
 
         [ThreadStatic]
-        private static HashSet<ulong> _pagesTls;
+        private static HashSet<ulong> _pagesHs;
+        [ThreadStatic]
+        private static List<ulong> _pages;
 
         private static void ReadScatter(Vmm vmm, uint pid, ReadOnlySpan<IScatterEntry> entries, bool useCache = true)
         {
@@ -95,8 +98,10 @@ namespace VmmSharpEx.Scatter
                 return;
             }
 
-            _pagesTls ??= new HashSet<ulong>(512);
-            _pagesTls.Clear();
+            _pagesHs ??= new HashSet<ulong>(512);
+            _pagesHs.Clear();
+            _pages ??= new List<ulong>(512);
+            _pages.Clear();
 
             int i;
             // Setup pages to read
@@ -115,23 +120,22 @@ namespace VmmSharpEx.Scatter
 
                 for (uint p = 0; p < numPages; p++)
                 {
-                    _pagesTls.Add(basePage + 0x1000ul * p);
+                    ulong page = basePage + 0x1000ul * p;
+                    if (_pagesHs.Add(page))
+                    {
+                        _pages.Add(page);
+                    }
                 }
             }
 
-            if (_pagesTls.Count == 0)
+            if (_pages.Count == 0)
             {
                 return;
             }
 
             var flags = useCache ? VmmFlags.NONE : VmmFlags.NOCACHE;
             // Read pages
-            using var rented = MemoryPool<ulong>.Shared.Rent(_pagesTls.Count);
-            var pages = rented.Memory.Span.Slice(0, _pagesTls.Count);
-            i = 0;
-            foreach (var e in _pagesTls)
-                pages[i++] = e;
-            using var hScatter = vmm.MemReadScatter(pid, flags, pages);
+            using var hScatter = vmm.MemReadScatter(pid, flags, CollectionsMarshal.AsSpan(_pages));
             // Set results
             for (i = 0; i < entries.Length; i++)
             {
