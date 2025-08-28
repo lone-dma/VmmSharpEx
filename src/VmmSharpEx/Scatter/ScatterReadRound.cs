@@ -103,7 +103,7 @@ namespace VmmSharpEx.Scatter
             _pages ??= new List<ulong>(512);
             _pages.Clear();
 
-            int i;
+            int i; uint p;
             // Setup pages to read
             for (i = 0; i < entries.Length; i++)
             {
@@ -118,9 +118,9 @@ namespace VmmSharpEx.Scatter
                 uint numPages = Utilities.ADDRESS_AND_SIZE_TO_SPAN_PAGES(entry.Address, (uint)entry.CB);
                 ulong basePage = Utilities.PAGE_ALIGN(entry.Address);
 
-                for (i = 0; i < numPages; i++)
+                for (p = 0; p < numPages; p++)
                 {
-                    ulong page = basePage + 0x1000ul * (uint)i;
+                    ulong page = basePage + 0x1000ul * p;
                     if (_pagesHs.Add(page))
                     {
                         _pages.Add(page);
