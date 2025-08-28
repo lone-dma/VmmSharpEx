@@ -118,9 +118,9 @@ namespace VmmSharpEx.Scatter
                 uint numPages = Utilities.ADDRESS_AND_SIZE_TO_SPAN_PAGES(entry.Address, (uint)entry.CB);
                 ulong basePage = Utilities.PAGE_ALIGN(entry.Address);
 
-                for (uint p = 0; p < numPages; p++)
+                for (i = 0; i < numPages; i++)
                 {
-                    ulong page = basePage + 0x1000ul * p;
+                    ulong page = basePage + 0x1000ul * (uint)i;
                     if (_pagesHs.Add(page))
                     {
                         _pages.Add(page);
