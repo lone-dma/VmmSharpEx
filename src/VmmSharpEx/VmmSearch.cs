@@ -106,7 +106,7 @@ public sealed unsafe class VmmSearch : IDisposable
                     _thread.Join();
                     NativeMemory.Free(_native);
                     _native = null;
-                });
+                }).ConfigureAwait(false);
             }
         }
     }
