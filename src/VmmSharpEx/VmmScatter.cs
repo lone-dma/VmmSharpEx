@@ -1,7 +1,10 @@
-﻿using System.Runtime.CompilerServices;
+﻿using System.Buffers;
+using System.Net;
+using System.Runtime.CompilerServices;
 using System.Text;
 using VmmSharpEx.Internal;
 using VmmSharpEx.Options;
+using VmmSharpEx.Scatter;
 
 namespace VmmSharpEx;
 
@@ -248,22 +251,36 @@ public sealed class VmmScatter : IDisposable
     /// <param name="cb">Number of bytes to read. Keep in mind some string encodings are 2-4 bytes per character.</param>
     /// <param name="encoding">String Encoding for this read.</param>
     /// <returns>C# Managed System.String. Null if failed.</returns>
-    public string ReadString(ulong qwA, uint cb, Encoding encoding)
+    public string ReadString(ulong qwA, int cb, Encoding encoding)
     {
-        var buffer = cb <= 256 ? stackalloc byte[(int)cb] : new byte[cb];
-        if (!ReadSpan(qwA, buffer))
+        byte[] rentedBytes = null;
+        char[] rentedChars = null;
+        try
         {
-            return null;
-        }
+            Span<byte> bytesSource = cb <= 256 ?
+                stackalloc byte[cb] : (rentedBytes = ArrayPool<byte>.Shared.Rent(cb));
+            var bytes = bytesSource.Slice(0, cb); // Rented Pool can have more than cb
+            if (!ReadSpan(qwA, bytes))
+            {
+                return null;
+            }
 
-        var result = encoding.GetString(buffer);
-        var nullIndex = result.IndexOf('\0');
-        if (nullIndex != -1)
+            int charCount = encoding.GetCharCount(bytes);
+            Span<char> charsSource = charCount <= 128 ?
+                stackalloc char[charCount] : (rentedChars = ArrayPool<char>.Shared.Rent(charCount));
+            var chars = charsSource.Slice(0, charCount);
+            encoding.GetChars(bytes, chars);
+            int nt = chars.IndexOf('\0');
+            return nt != -1 ?
+                chars.Slice(0, nt).ToString() : chars.ToString(); // Only one string allocation
+        }
+        finally
         {
-            result = result.Substring(0, nullIndex);
+            if (rentedBytes is not null)
+                ArrayPool<byte>.Shared.Return(rentedBytes);
+            if (rentedChars is not null)
+                ArrayPool<char>.Shared.Return(rentedChars);
         }
-
-        return result;
     }
 
     /// <summary>

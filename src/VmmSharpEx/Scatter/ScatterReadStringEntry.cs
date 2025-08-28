@@ -1,6 +1,7 @@
 ﻿// Original Credit to lone-dma
 
 using Microsoft.Extensions.ObjectPool;
+using System.Buffers;
 using System.Text;
 
 namespace VmmSharpEx.Scatter
@@ -32,24 +33,40 @@ namespace VmmSharpEx.Scatter
 
         public void SetResult(LeechCore.LcScatterHandle hScatter)
         {
+            byte[] rentedBytes = null;
+            char[] rentedChars = null;
             try
             {
-                Span<byte> bytes = CB <= 256 ? stackalloc byte[CB] : new byte[CB];
+                Span<byte> bytesSource = CB <= 256 ? 
+                    stackalloc byte[CB] : (rentedBytes = ArrayPool<byte>.Shared.Rent(CB));
+                var bytes = bytesSource.Slice(0, CB); // Rented Pool can have more than cb
+
                 if (!IScatterEntry.ProcessData<byte>(hScatter, Address, bytes))
                 {
                     IsFailed = true;
                 }
                 else
                 {
-                    var str = _encoding.GetString(bytes);
-                    int nt = str.IndexOf('\0');
+                    int charCount = _encoding.GetCharCount(bytes);
+                    Span<char> charsSource = charCount <= 128 ? 
+                        stackalloc char[charCount] : (rentedChars = ArrayPool<char>.Shared.Rent(charCount));
+                    var chars = charsSource.Slice(0, charCount);
+                    _encoding.GetChars(bytes, chars);
+                    int nt = chars.IndexOf('\0');
                     _result = nt != -1 ?
-                        str.Substring(0, nt) : str;
+                        chars.Slice(0, nt).ToString() : chars.ToString(); // Only one string allocation
                 }
             }
             catch
             {
                 IsFailed = true;
+            }
+            finally
+            {
+                if (rentedBytes is not null)
+                    ArrayPool<byte>.Shared.Return(rentedBytes);
+                if (rentedChars is not null)
+                    ArrayPool<char>.Shared.Return(rentedChars);
             }
         }
 
