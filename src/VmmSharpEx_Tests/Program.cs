@@ -47,7 +47,7 @@ class Program
 
     private static void RunBenchmark(Action method, string name, int count)
     {
-        var list = new List<TimeSpan>(count);
+        var runtimes = new List<TimeSpan>(count);
         for (int i = 0; i <= count; i++)
         {
             var sw = Stopwatch.StartNew();
@@ -55,7 +55,7 @@ class Program
             var elapsed = sw.Elapsed;
             if (i > 0) // Already Jitted
             {
-                list.Add(elapsed);
+                runtimes.Add(elapsed);
                 Console.WriteLine($"{name} #{i} Runtime:\n" +
                     $"• {elapsed.TotalMilliseconds} ms\n" +
                     $"• {elapsed.TotalMicroseconds} µs\n" +
@@ -63,8 +63,8 @@ class Program
             }
         }
         Console.WriteLine($"=== {name} Completed ===\n" +
-            $"• {list.Select(x => x.TotalMilliseconds).Average()} ms avg\n" +
-            $"• {list.Select(x => x.TotalMicroseconds).Average()} µs avg\n" +
-            $"• {list.Select(x => x.Ticks).Average()} ticks avg");
+            $"• {runtimes.Select(x => x.TotalMilliseconds).Average()} ms avg\n" +
+            $"• {runtimes.Select(x => x.TotalMicroseconds).Average()} µs avg\n" +
+            $"• {runtimes.Select(x => x.Ticks).Average()} ticks avg");
     }
 }
