@@ -4,7 +4,7 @@ using VmmSharpEx;
 
 namespace VmmSharpEx_Tests;
 
-internal unsafe class Program
+class Program
 {
     /// <summary>
     /// VMM Instance for this App Domain.
@@ -36,7 +36,7 @@ internal unsafe class Program
         Vmm.Dispose();
     }
 
-    private static void Main()
+   static void Main()
     {
         ScatterMap_Example.Run(Vmm);
         RunBenchmark(
