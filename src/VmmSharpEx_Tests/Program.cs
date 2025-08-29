@@ -36,7 +36,7 @@ class Program
         Vmm.Dispose();
     }
 
-   static void Main()
+    static void Main()
     {
         ScatterMap_Example.Run(Vmm);
         RunBenchmark(
