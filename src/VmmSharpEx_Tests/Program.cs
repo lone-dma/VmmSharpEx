@@ -41,7 +41,7 @@ class Program
         ScatterMap_Example.Run(Vmm);
         RunBenchmark(
             method: ScatterBenchmark.Run, 
-            name: "Scatter Benchmark", 
+            name: nameof(VmmSharpEx_Tests.ScatterBenchmark), 
             count: 10);
     }
 
