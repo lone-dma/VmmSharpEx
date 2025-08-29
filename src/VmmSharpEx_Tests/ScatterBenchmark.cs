@@ -24,7 +24,7 @@ namespace VmmSharpEx_Tests
             var rd1 = map.AddRound(useCache: true);
             for (int i = 0; i < 100; i++)
             {
-                rd1[i].AddArrayEntry<byte>(0, _baseAddress + 0x1000ul * (uint)i, 0x1000);
+                rd1[i].AddArrayEntry<byte>(0, _baseAddress + 0x1000ul * (uint)i, 0x100);
                 rd1[i].Completed += (sender, cb) =>
                 {
                     if (cb.TryGetArray<byte>(0, out var bytes))
