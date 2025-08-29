@@ -155,7 +155,7 @@ public sealed class LeechCore : IDisposable
 
     /// <summary>
     /// Read physical memory into an array of type <typeparamref name="T" />.
-    /// WARNING: This incurs a heap allocation for the array. Recommend using <see cref="ReadPooledArray{T}(ulong, int, out Memory{T})"/> instead.
+    /// WARNING: This incurs a heap allocation for the array. Recommend using <see cref="ReadPooledArray{T}(ulong, int)"/> instead.
     /// </summary>
     /// <typeparam name="T">Value Type.</typeparam>
     /// <param name="pa">Physical address to read.</param>
@@ -182,23 +182,21 @@ public sealed class LeechCore : IDisposable
     /// <typeparam name="T">Value Type.</typeparam>
     /// <param name="pa">Physical address to read.</param>
     /// <param name="count">Number of elements to read.</param>
-    /// <param name="result">Result of the memory read.</param>
-    /// <returns><see cref="IMemoryOwner{T}"/> lease, or NULL if failed.</returns>
-    public unsafe IMemoryOwner<T> ReadPooledArray<T>(ulong pa, int count, out Memory<T> result)
+    /// <returns><see cref="IMemoryOwner{T}"/> lease.</returns>
+    /// <exception cref="VmmException"></exception>
+    public unsafe IMemoryOwner<T> ReadPooledArray<T>(ulong pa, int count)
         where T : unmanaged
     {
-        var owner = MemoryPool<T>.Shared.Rent(count);
+        var owner = new PooledArray<T>(count);
         var cb = (uint)(sizeof(T) * count);
         fixed (T* pb = owner.Memory.Span)
         {
             if (!Lci.LcRead(_h, pa, cb, (byte*)pb))
             {
                 owner.Dispose();
-                result = default;
-                return null;
+                throw new VmmException("Memory Read Failed");
             }
         }
-        result = owner.Memory.Slice(0, count);
         return owner;
     }
 

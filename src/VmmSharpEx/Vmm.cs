@@ -357,7 +357,7 @@ public sealed class Vmm : IDisposable
 
     /// <summary>
     /// Read Memory from a Virtual Address into an Array of Type <typeparamref name="T" />.
-    /// WARNING: This incurs a heap allocation for the array. Recommend using <see cref="MemReadPooledArray{T}(uint, ulong, int, out Memory{T}, VmmFlags)"/> instead.
+    /// WARNING: This incurs a heap allocation for the array. Recommend using <see cref="MemReadPooledArray{T}(uint, ulong, int, VmmFlags)"/> instead.
     /// </summary>
     /// <typeparam name="T">Value Type.</typeparam>
     /// <param name="pid">Process ID (PID) this operation will take place within.</param>
@@ -390,24 +390,22 @@ public sealed class Vmm : IDisposable
     /// <param name="pid">Process ID (PID) this operation will take place within.</param>
     /// <param name="va">Virtual Address to read from.</param>
     /// <param name="count">Number of elements to read.</param>
-    /// <param name="result">Result of the memory read.</param>
     /// <param name="flags">VMM Flags.</param>
-    /// <returns><see cref="IMemoryOwner{T}"/> lease, or NULL if failed.</returns>
-    public unsafe IMemoryOwner<T> MemReadPooledArray<T>(uint pid, ulong va, int count, out Memory<T> result, VmmFlags flags = VmmFlags.NONE)
+    /// <returns><see cref="IMemoryOwner{T}"/> lease.</returns>
+    /// <exception cref="VmmException"></exception>
+    public unsafe IMemoryOwner<T> MemReadPooledArray<T>(uint pid, ulong va, int count, VmmFlags flags = VmmFlags.NONE)
         where T : unmanaged
     {
-        var owner = MemoryPool<T>.Shared.Rent(count);
+        var owner = new PooledArray<T>(count);
         var cb = (uint)(sizeof(T) * count);
         fixed (T* pb = owner.Memory.Span)
         {
             if (!Vmmi.VMMDLL_MemReadEx(_h, pid, va, (byte*)pb, cb, out var cbRead, flags) || cbRead != cb)
             {
                 owner.Dispose();
-                result = default;
-                return null;
+                throw new VmmException("Memory Read Failed");
             }
         }
-        result = owner.Memory.Slice(0, count);
         return owner;
     }
 
