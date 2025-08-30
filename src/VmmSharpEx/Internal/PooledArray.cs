@@ -1,4 +1,5 @@
 ﻿using System.Buffers;
+using System.Runtime.CompilerServices;
 
 namespace VmmSharpEx.Internal
 {
@@ -13,7 +14,11 @@ namespace VmmSharpEx.Internal
     {
         private readonly int _length;
         private T[] _array;
-        public Memory<T> Memory => _array.AsMemory(0, _length);
+        public Memory<T> Memory
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get => _array.AsMemory(0, _length);
+        }
 
         private PooledArray() { }
 
