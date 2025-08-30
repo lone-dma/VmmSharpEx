@@ -182,8 +182,7 @@ public sealed class LeechCore : IDisposable
     /// <typeparam name="T">Value Type.</typeparam>
     /// <param name="pa">Physical address to read.</param>
     /// <param name="count">Number of elements to read.</param>
-    /// <returns><see cref="IMemoryOwner{T}"/> lease.</returns>
-    /// <exception cref="VmmException"></exception>
+    /// <returns><see cref="IMemoryOwner{T}"/> lease, NULL if failed.</returns>
     public unsafe IMemoryOwner<T> ReadPooledArray<T>(ulong pa, int count)
         where T : unmanaged
     {
@@ -194,7 +193,7 @@ public sealed class LeechCore : IDisposable
             if (!Lci.LcRead(_h, pa, cb, (byte*)pb))
             {
                 owner.Dispose();
-                throw new VmmException("Memory Read Failed");
+                return null;
             }
         }
         return owner;

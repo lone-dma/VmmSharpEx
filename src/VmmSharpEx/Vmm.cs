@@ -391,8 +391,7 @@ public sealed class Vmm : IDisposable
     /// <param name="va">Virtual Address to read from.</param>
     /// <param name="count">Number of elements to read.</param>
     /// <param name="flags">VMM Flags.</param>
-    /// <returns><see cref="IMemoryOwner{T}"/> lease.</returns>
-    /// <exception cref="VmmException"></exception>
+    /// <returns><see cref="IMemoryOwner{T}"/> lease, NULL if failed.</returns>
     public unsafe IMemoryOwner<T> MemReadPooledArray<T>(uint pid, ulong va, int count, VmmFlags flags = VmmFlags.NONE)
         where T : unmanaged
     {
@@ -403,7 +402,7 @@ public sealed class Vmm : IDisposable
             if (!Vmmi.VMMDLL_MemReadEx(_h, pid, va, (byte*)pb, cb, out var cbRead, flags) || cbRead != cb)
             {
                 owner.Dispose();
-                throw new VmmException("Memory Read Failed");
+                return null;
             }
         }
         return owner;
