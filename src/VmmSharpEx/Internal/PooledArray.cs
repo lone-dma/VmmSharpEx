@@ -4,7 +4,7 @@ namespace VmmSharpEx.Internal
 {
     /// <summary>
     /// Custom pooled array implementation.
-    /// The built-in <see cref="MemoryPool{T}"/> will allocate an array that can be larger than the requester length.
+    /// The built-in <see cref="MemoryPool{T}"/> will allocate an array that can be larger than the requested length.
     /// This implementation guarantees that the exposed length is exactly the requested length.
     /// </summary>
     /// <typeparam name="T"></typeparam>
