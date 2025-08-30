@@ -31,7 +31,7 @@
 		<AssemblyVersion>$(Version)</AssemblyVersion>
 		<FileVersion>$(Version)</FileVersion>
 		<!-- Properties -->
-		<RepositoryUrl>https://github.com/boggle4539/VmmSharpEx</RepositoryUrl>
+		<RepositoryUrl>https://github.com/lone-dma/VmmSharpEx</RepositoryUrl>
 		<RepositoryType>git</RepositoryType>
 		<PackageLicenseFile>LICENSE</PackageLicenseFile>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
