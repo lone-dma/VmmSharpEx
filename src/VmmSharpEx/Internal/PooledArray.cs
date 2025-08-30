@@ -19,7 +19,7 @@ namespace VmmSharpEx.Internal
 
         public PooledArray(int length)
         {
-            ArgumentOutOfRangeException.ThrowIfLessThan(length, 0);
+            ArgumentOutOfRangeException.ThrowIfLessThan(length, 0, nameof(length));
             _length = length;
             _array = ArrayPool<T>.Shared.Rent(length);
         }
