@@ -176,7 +176,6 @@ public sealed class LeechCore : IDisposable
 
     /// <summary>
     /// Read physical memory into a pooled array of type <typeparamref name="T" />.
-    /// IMPORTANT: The returned <see cref="IMemoryOwner{T}"/> may encompass more elements than requested, be sure to use the result out value for the correct sizing.
     /// NOTE: You must dispose the returned <see cref="IMemoryOwner{T}"/> when finished with it.
     /// </summary>
     /// <typeparam name="T">Value Type.</typeparam>
