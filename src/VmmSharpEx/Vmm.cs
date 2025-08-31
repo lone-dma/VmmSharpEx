@@ -231,7 +231,7 @@ public sealed class Vmm : IDisposable
         var sb = new StringBuilder();
         for (var i = 0; i < map.Length; i++)
         {
-            sb.AppendLine($"{map[i].pa:x16} - {(map[i].pa + map[i].cb - 1):x16}");
+            sb.AppendLine($"{map[i].pa:X16} - {(map[i].pa + map[i].cb - 1):X16}");
         }
 
         string strMap = sb.ToString();
