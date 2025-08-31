@@ -58,13 +58,11 @@ class Program
                 runtimes.Add(elapsed);
                 Console.WriteLine($"{name} #{i} Runtime:\n" +
                     $"• {elapsed.TotalMilliseconds} ms\n" +
-                    $"• {elapsed.TotalMicroseconds} µs\n" +
                     $"• {elapsed.Ticks} ticks");
             }
         }
         Console.WriteLine($"=== {name} Completed ===\n" +
             $"• {runtimes.Select(x => x.TotalMilliseconds).Average()} ms avg\n" +
-            $"• {runtimes.Select(x => x.TotalMicroseconds).Average()} µs avg\n" +
             $"• {runtimes.Select(x => x.Ticks).Average()} ticks avg");
     }
 }
