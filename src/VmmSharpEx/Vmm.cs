@@ -54,7 +54,7 @@ public sealed class Vmm : IDisposable
     /// <returns></returns>
     public override string ToString()
     {
-        return _h == IntPtr.Zero ? "Vmm:NULL" : $"Vmm:{_h.ToString("X")}";
+        return _h == IntPtr.Zero ? "Vmm:NULL" : $"Vmm:{_h:X}";
     }
 
     /// <summary>
@@ -229,12 +229,9 @@ public sealed class Vmm : IDisposable
         }
 
         var sb = new StringBuilder();
-        var leftLength = map.Max(x => x.pa).ToString("x").Length;
         for (var i = 0; i < map.Length; i++)
         {
-            sb.AppendFormat($"{{0,{-leftLength}}}", map[i].pa.ToString("x"))
-                .Append($" - {(map[i].pa + map[i].cb - 1).ToString("x")}")
-                .AppendLine();
+            sb.AppendLine($"{map[i].pa:x16} - {(map[i].pa + map[i].cb - 1):x16}");
         }
 
         string strMap = sb.ToString();
