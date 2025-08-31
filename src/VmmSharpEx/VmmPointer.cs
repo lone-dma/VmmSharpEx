@@ -22,14 +22,14 @@ namespace VmmSharpEx
         }
 
         /// <summary>
-        /// Throws an <see cref="InvalidOperationException"/> if the pointer is not valid.
+        /// Throws an <see cref="VmmException"/> if the pointer is not valid.
         /// </summary>
-        /// <exception cref="InvalidOperationException"></exception>
+        /// <exception cref="VmmException"></exception>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public readonly void ThrowIfInvalid()
         {
             if (!IsValid)
-                throw new InvalidOperationException($"Pointer 0x{Value:X} is not a valid x64 virtual address!");
+                throw new VmmException($"Pointer 0x{Value:X} is not a valid x64 virtual address!");
         }
     }
 }
