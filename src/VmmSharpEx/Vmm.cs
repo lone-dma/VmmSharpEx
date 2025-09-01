@@ -2827,7 +2827,7 @@ public sealed class Vmm : IDisposable
             {
                 result =
                     Vmmi.VMMDLL_Map_GetPfn(_h, (byte*)pbPfns, (uint)pfns.Length, null, ref cbPfns) &&
-                    Vmmi.VMMDLL_Map_GetPfn(_h, (byte*), (uint)pfns.Length, pb, ref cbPfns);
+                    Vmmi.VMMDLL_Map_GetPfn(_h, (byte*)pbPfns, (uint)pfns.Length, pb, ref cbPfns);
                 if (!result)
                 {
                     return Array.Empty<PfnEntry>();
