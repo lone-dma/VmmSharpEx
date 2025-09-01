@@ -471,13 +471,13 @@ public sealed class Vmm : IDisposable
     /// Prefetch pages into the MemProcFS internal cache.
     /// </summary>
     /// <param name="pid">Process ID (PID) this operation will take place within.</param>
-    /// <param name="va">An array of the virtual addresses to prefetch.</param>
+    /// <param name="vas">An array of the virtual addresses to prefetch.</param>
     /// <returns></returns>
-    public unsafe bool MemPrefetchPages(uint pid, ulong[] va)
+    public unsafe bool MemPrefetchPages(uint pid, params Span<ulong> vas)
     {
-        fixed (void* pb = va)
+        fixed (void* pb = vas)
         {
-            return Vmmi.VMMDLL_MemPrefetchPages(_h, pid, (byte*)pb, (uint)va.Length);
+            return Vmmi.VMMDLL_MemPrefetchPages(_h, pid, (byte*)pb, (uint)vas.Length);
         }
     }
 
