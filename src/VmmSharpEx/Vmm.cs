@@ -2809,7 +2809,7 @@ public sealed class Vmm : IDisposable
     /// </summary>
     /// <param name="pfns">the pfn numbers of the pfns to retrieve.</param>
     /// <returns></returns>
-    public unsafe PfnEntry[] Map_GetPfn(params uint[] pfns)
+    public unsafe PfnEntry[] Map_GetPfn(params Span<uint> pfns)
     {
         bool result;
         uint cbPfns;
@@ -2820,16 +2820,14 @@ public sealed class Vmm : IDisposable
             return Array.Empty<PfnEntry>();
         }
 
-        var dataPfns = new byte[pfns.Length * sizeof(uint)];
-        Buffer.BlockCopy(pfns, 0, dataPfns, 0, dataPfns.Length);
-        fixed (byte* pbPfns = dataPfns)
+        fixed (void* pbPfns = pfns)
         {
             cbPfns = (uint)(cbMAP + pfns.Length * cbENTRY);
             fixed (byte* pb = new byte[cbPfns])
             {
                 result =
-                    Vmmi.VMMDLL_Map_GetPfn(_h, pbPfns, (uint)pfns.Length, null, ref cbPfns) &&
-                    Vmmi.VMMDLL_Map_GetPfn(_h, pbPfns, (uint)pfns.Length, pb, ref cbPfns);
+                    Vmmi.VMMDLL_Map_GetPfn(_h, (byte*)pbPfns, (uint)pfns.Length, null, ref cbPfns) &&
+                    Vmmi.VMMDLL_Map_GetPfn(_h, (byte*), (uint)pfns.Length, pb, ref cbPfns);
                 if (!result)
                 {
                     return Array.Empty<PfnEntry>();
