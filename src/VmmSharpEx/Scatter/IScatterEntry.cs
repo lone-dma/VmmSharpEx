@@ -52,9 +52,9 @@ namespace VmmSharpEx.Scatter
             int numPages = (int)Utilities.ADDRESS_AND_SIZE_TO_SPAN_PAGES(addr, (uint)cbTotal); // number of pages to read from (in case result spans multiple pages)
             ulong basePageAddr = Utilities.PAGE_ALIGN(addr);
 
-            for (int p = 0; p < numPages; p++)
+            for (uint p = 0; p < numPages; p++)
             {
-                ulong pageAddr = basePageAddr + 0x1000 * (uint)p; // get current page addr
+                ulong pageAddr = basePageAddr + 0x1000 * p; // get current page addr
                 if (hScatter.Results.TryGetValue(pageAddr, out var scatter)) // retrieve page of mem needed
                 {
                     scatter.Data
