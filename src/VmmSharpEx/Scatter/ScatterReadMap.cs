@@ -1,6 +1,4 @@
-﻿// Original Credit to lone-dma
-
-namespace VmmSharpEx.Scatter
+﻿namespace VmmSharpEx.Scatter
 {
     /// <summary>
     /// Read multiple virtual addresses from a Windows x64 process using a custom scatter read implementation.

@@ -1,6 +1,4 @@
-﻿// Original Credit to lone-dma
-
-using Microsoft.Extensions.ObjectPool;
+﻿using Microsoft.Extensions.ObjectPool;
 using System.Buffers;
 using System.Runtime.InteropServices;
 using VmmSharpEx.Internal;
@@ -89,7 +87,7 @@ namespace VmmSharpEx.Scatter
 
         private static void ReadScatter(Vmm vmm, uint pid, ReadOnlySpan<IScatterEntry> entries, bool useCache = true)
         {
-            if (entries.Length == 0)
+            if (entries.IsEmpty)
             {
                 return;
             }
@@ -99,12 +97,10 @@ namespace VmmSharpEx.Scatter
             _pages ??= new List<ulong>(512);
             _pages.Clear();
 
-            int i; uint p;
             // Setup pages to read
-            for (i = 0; i < entries.Length; i++)
+            uint p;
+            foreach (var entry in entries)
             {
-                var entry = entries[i];
-
                 if (!Utilities.IsValidVirtualAddress(entry.Address) || entry.CB <= 0 || (uint)entry.CB > ScatterReadMap.MaxReadSize)
                 {
                     entry.IsFailed = true;
@@ -133,9 +129,8 @@ namespace VmmSharpEx.Scatter
             // Read pages
             using var hScatter = vmm.MemReadScatter(pid, flags, CollectionsMarshal.AsSpan(_pages)); // WARNING: Do not modify _pages while this is in use. Should be safe since uses [ThreadStatic]
             // Set results
-            for (i = 0; i < entries.Length; i++)
+            foreach (var entry in entries)
             {
-                var entry = entries[i];
                 if (entry.IsFailed)
                 {
                     continue;
