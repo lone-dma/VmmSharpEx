@@ -24,11 +24,7 @@ namespace VmmSharpEx.Scatter
         [Obsolete("For internal use only. Construct a ScatterReadMap to begin using this API.")]
         public ScatterReadRound() { }
 
-        /// <summary>
-        /// Rent from the Object Pool.
-        /// </summary>
-        /// <returns></returns>
-        internal static ScatterReadRound Rent(bool useCache)
+        internal static ScatterReadRound Create(bool useCache)
         {
             var rented = _pool.Get();
             rented._useCache = useCache;
@@ -48,7 +44,7 @@ namespace VmmSharpEx.Scatter
                 {
                     return existing;
                 }
-                return _indexes[index] = ScatterReadIndex.Rent();
+                return _indexes[index] = ScatterReadIndex.Create();
             }
         }
 

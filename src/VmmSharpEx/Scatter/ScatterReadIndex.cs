@@ -38,12 +38,8 @@ namespace VmmSharpEx.Scatter
         [Obsolete("For internal use only. Construct a ScatterReadMap to begin using this API.")]
         public ScatterReadIndex() { }
 
-        /// <summary>
-        /// Rent from the Object Pool.
-        /// </summary>
-        /// <returns></returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal static ScatterReadIndex Rent() => _pool.Get();
+        internal static ScatterReadIndex Create() => _pool.Get();
 
         /// <summary>
         /// Add a scatter read value entry to this index.
