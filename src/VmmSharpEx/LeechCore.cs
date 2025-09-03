@@ -446,7 +446,9 @@ public sealed class LeechCore : IDisposable
         private readonly PooledDictionary<ulong, ScatterData> _results;
         private IntPtr _mems;
 
-        public LcScatterHandle(PooledDictionary<ulong, ScatterData> results, IntPtr mems)
+        private LcScatterHandle() { }
+
+        internal LcScatterHandle(PooledDictionary<ulong, ScatterData> results, IntPtr mems)
         {
             _results = results;
             _mems = mems;
@@ -496,7 +498,7 @@ public sealed class LeechCore : IDisposable
         private readonly IntPtr _pb;
         private readonly int _cb;
 
-        public ScatterData(IntPtr pb, uint cb)
+        internal ScatterData(IntPtr pb, uint cb)
         {
             _pb = pb;
             _cb = (int)cb;
