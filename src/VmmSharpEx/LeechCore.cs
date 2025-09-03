@@ -1,4 +1,5 @@
-﻿using System.Buffers;
+﻿using Collections.Pooled;
+using System.Buffers;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using VmmSharpEx.Internal;
@@ -284,8 +285,7 @@ public sealed class LeechCore : IDisposable
             var pMEM = ppMEMs[i];
             pMEM->qwA = pas[i] & ~(ulong)0xfff;
         }
-
-        var results = new Dictionary<ulong, ScatterData>(pas.Length);
+        var results = new PooledDictionary<ulong, ScatterData>(capacity: pas.Length);
         Lci.LcReadScatter(_h, (uint)pas.Length, pppMEMs);
         for (var i = 0; i < pas.Length; i++)
         {
@@ -443,11 +443,12 @@ public sealed class LeechCore : IDisposable
     /// </summary>
     public sealed class LcScatterHandle : IDisposable
     {
+        private readonly PooledDictionary<ulong, ScatterData> _results;
         private IntPtr _mems;
 
-        public LcScatterHandle(Dictionary<ulong, ScatterData> results, IntPtr mems)
+        public LcScatterHandle(PooledDictionary<ulong, ScatterData> results, IntPtr mems)
         {
-            Results = results;
+            _results = results;
             _mems = mems;
         }
 
@@ -457,7 +458,7 @@ public sealed class LeechCore : IDisposable
         /// KEY: Page-aligned Memory Address.
         /// VALUE: SCATTER_PAGE containing the page data.
         /// </summary>
-        public IReadOnlyDictionary<ulong, ScatterData> Results { get; }
+        public IReadOnlyDictionary<ulong, ScatterData> Results => _results;
 
         #region IDisposable
 
@@ -474,14 +475,15 @@ public sealed class LeechCore : IDisposable
         {
             if (Interlocked.Exchange(ref _mems, IntPtr.Zero) is IntPtr h && h != IntPtr.Zero)
             {
+                if (disposing)
+                {
+                    _results.Dispose();
+                }
                 Lci.LcMemFree(h);
             }
         }
 
-        ~LcScatterHandle()
-        {
-            Dispose(false);
-        }
+        ~LcScatterHandle() => Dispose(false);
 
         #endregion
     }

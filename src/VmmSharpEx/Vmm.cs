@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Collections.Pooled;
+using System;
 using System.Buffers;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -286,7 +287,7 @@ public sealed class Vmm : IDisposable
             pMEM->qwA = vas[i] & ~(ulong)0xfff;
         }
 
-        var results = new Dictionary<ulong, LeechCore.ScatterData>(vas.Length);
+        var results = new PooledDictionary<ulong, LeechCore.ScatterData>(capacity: vas.Length);
         _ = Vmmi.VMMDLL_MemReadScatter(_h, pid, pppMEMs, (uint)vas.Length, flags);
         for (var i = 0; i < vas.Length; i++)
         {

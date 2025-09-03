@@ -42,6 +42,10 @@ namespace VmmSharpEx.Scatter
         internal static unsafe bool ProcessData<TBuf>(LeechCore.LcScatterHandle hScatter, ulong addr, Span<TBuf> result)
             where TBuf : unmanaged
         {
+            if (result.IsEmpty)
+            {
+                return true;
+            }
             var resultOut = MemoryMarshal.Cast<TBuf, byte>(result);
             int cbTotal = resultOut.Length; // After casting Length will be adjusted to number of byte elements for our total count of bytes
             int pageOffset = (int)Utilities.BYTE_OFFSET(addr); // Get object offset from the page start address

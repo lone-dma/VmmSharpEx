@@ -1,4 +1,6 @@
-﻿namespace VmmSharpEx.Scatter
+﻿using Collections.Pooled;
+
+namespace VmmSharpEx.Scatter
 {
     /// <summary>
     /// Read multiple virtual addresses from a Windows x64 process using a custom scatter read implementation.
@@ -15,7 +17,7 @@
 
         private readonly Vmm _vmm;
         private readonly uint _pid;
-        private readonly List<ScatterReadRound> _rounds = new(capacity: 12);
+        private readonly PooledList<ScatterReadRound> _rounds = new(capacity: 12);
         private bool _disposed;
 
         /// <summary>
@@ -75,6 +77,7 @@
                 {
                     round.Return();
                 }
+                _rounds.Dispose();
             }
         }
     }
