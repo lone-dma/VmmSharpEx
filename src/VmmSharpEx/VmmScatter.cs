@@ -1,10 +1,7 @@
 ﻿using System.Buffers;
-using System.Net;
-using System.Runtime.CompilerServices;
 using System.Text;
 using VmmSharpEx.Internal;
 using VmmSharpEx.Options;
-using VmmSharpEx.Scatter;
 
 namespace VmmSharpEx;
 
