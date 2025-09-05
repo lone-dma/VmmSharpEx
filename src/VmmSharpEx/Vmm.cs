@@ -287,8 +287,9 @@ public sealed class Vmm : IDisposable
             pMEM->qwA = vas[i] & ~(ulong)0xfff;
         }
 
-        var results = new PooledDictionary<ulong, LeechCore.ScatterData>(capacity: vas.Length);
         _ = Vmmi.VMMDLL_MemReadScatter(_h, pid, pppMEMs, (uint)vas.Length, flags);
+
+        var results = new PooledDictionary<ulong, LeechCore.ScatterData>(capacity: vas.Length);
         for (var i = 0; i < vas.Length; i++)
         {
             var pMEM = ppMEMs[i];

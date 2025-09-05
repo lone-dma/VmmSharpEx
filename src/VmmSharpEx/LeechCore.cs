@@ -285,8 +285,10 @@ public sealed class LeechCore : IDisposable
             var pMEM = ppMEMs[i];
             pMEM->qwA = pas[i] & ~(ulong)0xfff;
         }
-        var results = new PooledDictionary<ulong, ScatterData>(capacity: pas.Length);
+
         Lci.LcReadScatter(_h, (uint)pas.Length, pppMEMs);
+
+        var results = new PooledDictionary<ulong, ScatterData>(capacity: pas.Length);
         for (var i = 0; i < pas.Length; i++)
         {
             var pMEM = ppMEMs[i];

@@ -12,8 +12,7 @@ namespace VmmSharpEx.Scatter
     /// </summary>
     public sealed class ScatterReadRound : IResettable
     {
-        private static readonly ObjectPool<ScatterReadRound> _pool =
-            new DefaultObjectPoolProvider() { MaximumRetained = int.MaxValue - 1 }
+        private static readonly ObjectPool<ScatterReadRound> _pool = ScatterReadMap.ObjectPoolProvider
             .Create<ScatterReadRound>();
 
         private readonly Dictionary<int, ScatterReadIndex> _indexes = new();

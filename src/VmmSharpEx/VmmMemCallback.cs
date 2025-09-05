@@ -5,7 +5,7 @@ using VmmSharpEx.Options;
 namespace VmmSharpEx
 {
     /// <summary>
-    /// Wrapper for VMM memory callbacks. Disposes of the callback when no longer needed via <see cref="Unregister"/> or <see cref="Dispose"/>.
+    /// Wrapper for VMM memory callbacks. Disposes of the callback when no longer needed via <see cref="Unregister"/> or <see cref="Dispose()"/>.
     /// Can only have one callback of each type registered at a time.
     /// </summary>
     public sealed class VmmMemCallback : IDisposable

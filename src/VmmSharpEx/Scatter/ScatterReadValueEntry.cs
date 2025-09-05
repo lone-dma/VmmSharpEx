@@ -7,8 +7,7 @@ namespace VmmSharpEx.Scatter
         where T : unmanaged
     {
         private static readonly int _cb = Unsafe.SizeOf<T>();
-        private static readonly ObjectPool<ScatterReadValueEntry<T>> _pool = 
-            new DefaultObjectPoolProvider() { MaximumRetained = int.MaxValue - 1 }
+        private static readonly ObjectPool<ScatterReadValueEntry<T>> _pool = ScatterReadMap.ObjectPoolProvider
             .Create<ScatterReadValueEntry<T>>();
 
         private T _result = default;
@@ -32,8 +31,8 @@ namespace VmmSharpEx.Scatter
             {
                 fixed (void* pb = &_result)
                 {
-                    var buffer = new Span<byte>(pb, CB);
-                    if (!IScatterEntry.ProcessData<byte>(hScatter, Address, buffer))
+                    var data = new Span<byte>(pb, CB);
+                    if (!IScatterEntry.ProcessData<byte>(hScatter, Address, data))
                     {
                         IsFailed = true;
                     }

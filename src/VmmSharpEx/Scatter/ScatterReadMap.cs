@@ -1,4 +1,5 @@
 ﻿using Collections.Pooled;
+using Microsoft.Extensions.ObjectPool;
 
 namespace VmmSharpEx.Scatter
 {
@@ -10,10 +11,18 @@ namespace VmmSharpEx.Scatter
     public sealed class ScatterReadMap : IDisposable
     {
         /// <summary>
-        /// Maximum read size for any single entry.
-        /// DEFAULT: No Limit (<see cref="uint.MaxValue"/>)
+        /// Internal Object Pool Provider for Scatter API implementations.
         /// </summary>
-        public static uint MaxReadSize { get; set; } = uint.MaxValue;
+        internal static ObjectPoolProvider ObjectPoolProvider { get; } = new DefaultObjectPoolProvider()
+        {
+            MaximumRetained = int.MaxValue - 1
+        };
+
+        /// <summary>
+        /// Maximum read size in bytes for any single entry.
+        /// DEFAULT: No Limit (<see cref="int.MaxValue"/>)
+        /// </summary>
+        public static int MaxReadSize { get; set; } = int.MaxValue; // Buffer Spans/Arrays are limited to int.MaxValue anyway.
 
         private readonly Vmm _vmm;
         private readonly uint _pid;

@@ -9,8 +9,7 @@ namespace VmmSharpEx.Scatter
     /// </summary>
     public sealed class ScatterReadIndex : IResettable
     {
-        private static readonly ObjectPool<ScatterReadIndex> _pool =
-            new DefaultObjectPoolProvider() { MaximumRetained = int.MaxValue - 1 }
+        private static readonly ObjectPool<ScatterReadIndex> _pool = ScatterReadMap.ObjectPoolProvider
             .Create<ScatterReadIndex>();
 
         /// <summary>
