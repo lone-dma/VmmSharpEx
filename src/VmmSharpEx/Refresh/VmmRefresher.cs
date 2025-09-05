@@ -10,13 +10,13 @@ internal sealed class VmmRefresher : IDisposable
     public VmmRefresher(Vmm instance, RefreshOption option, TimeSpan interval)
     {
         ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(interval, TimeSpan.Zero, nameof(interval));
-        _ = RunAsync(instance, option, interval, _cts.Token).ConfigureAwait(false);
+        _ = Task.Run(() => RunAsync(instance, option, interval, _cts.Token));
     }
 
     private static async Task RunAsync(Vmm instance, RefreshOption option, TimeSpan interval, CancellationToken ct)
     {
         using var timer = new PeriodicTimer(interval);
-        while (await timer.WaitForNextTickAsync(ct).ConfigureAwait(false))
+        while (await timer.WaitForNextTickAsync(ct))
         {
             if (!instance.ConfigSet((VmmOption)option, 1))
                 instance.Log($"WARNING: {option} Auto Refresh Failed!", Vmm.LogLevel.Warning);
