@@ -189,7 +189,7 @@ public sealed class LeechCore : IDisposable
     {
         var arr = new VmmPooledArray<T>(count);
         var cb = (uint)(sizeof(T) * count);
-        fixed (T* pb = arr.Memory.Span)
+        fixed (T* pb = arr.Span)
         {
             if (!Lci.LcRead(_h, pa, cb, (byte*)pb))
             {

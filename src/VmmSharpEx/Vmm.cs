@@ -396,7 +396,7 @@ public sealed class Vmm : IDisposable
     {
         var arr = new VmmPooledArray<T>(count);
         var cb = (uint)(sizeof(T) * count);
-        fixed (T* pb = arr.Memory.Span)
+        fixed (T* pb = arr.Span)
         {
             if (!Vmmi.VMMDLL_MemReadEx(_h, pid, va, (byte*)pb, cb, out var cbRead, flags) || cbRead != cb)
             {
