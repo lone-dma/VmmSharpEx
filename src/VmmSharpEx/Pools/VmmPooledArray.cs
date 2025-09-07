@@ -1,7 +1,8 @@
 ﻿using System.Buffers;
+using System.Collections;
 using System.Runtime.CompilerServices;
 
-namespace VmmSharpEx.Internal
+namespace VmmSharpEx.Pools
 {
     /// <summary>
     /// Custom pooled array implementation.
@@ -9,7 +10,7 @@ namespace VmmSharpEx.Internal
     /// This implementation guarantees that the exposed length is exactly the requested length.
     /// </summary>
     /// <typeparam name="T"></typeparam>
-    internal sealed class PooledArray<T> : IMemoryOwner<T>
+    internal sealed class VmmPooledArray<T> : IVmmPooledArray<T>
         where T : unmanaged
     {
         private readonly int _length;
@@ -19,10 +20,19 @@ namespace VmmSharpEx.Internal
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get => _array.AsMemory(0, _length);
         }
+        public Span<T> Span
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get => _array.AsSpan(0, _length);
+        }
 
-        private PooledArray() { }
+        public int Count => _length;
 
-        public PooledArray(int length)
+        public T this[int index] => Span[index];
+
+        private VmmPooledArray() { }
+
+        public VmmPooledArray(int length)
         {
             ArgumentOutOfRangeException.ThrowIfLessThan(length, 0, nameof(length));
             _length = length;
@@ -34,6 +44,25 @@ namespace VmmSharpEx.Internal
             if (Interlocked.Exchange(ref _array, null) is T[] array)
             {
                 ArrayPool<T>.Shared.Return(array);
+            }
+        }
+
+        public Span<T>.Enumerator GetEnumerator() => Span.GetEnumerator();
+
+        IEnumerator<T> IEnumerable<T>.GetEnumerator()
+        {
+            var mem = Memory;
+            for (int i = 0; i < mem.Length; i++)
+            {
+                yield return mem.Span[i];
+            }
+        }
+        IEnumerator IEnumerable.GetEnumerator()
+        {
+            var mem = Memory;
+            for (int i = 0; i < mem.Length; i++)
+            {
+                yield return mem.Span[i];
             }
         }
     }

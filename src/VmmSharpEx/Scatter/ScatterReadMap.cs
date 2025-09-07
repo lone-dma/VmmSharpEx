@@ -11,14 +11,6 @@ namespace VmmSharpEx.Scatter
     public sealed class ScatterReadMap : IDisposable
     {
         /// <summary>
-        /// Internal Object Pool Provider for Scatter API implementations.
-        /// </summary>
-        internal static ObjectPoolProvider ObjectPoolProvider { get; } = new DefaultObjectPoolProvider()
-        {
-            MaximumRetained = int.MaxValue - 1
-        };
-
-        /// <summary>
         /// Maximum read size in bytes for any single entry.
         /// DEFAULT: No Limit (<see cref="int.MaxValue"/>)
         /// </summary>

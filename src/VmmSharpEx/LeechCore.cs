@@ -4,6 +4,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using VmmSharpEx.Internal;
 using VmmSharpEx.Options;
+using VmmSharpEx.Pools;
 
 namespace VmmSharpEx;
 
@@ -177,26 +178,26 @@ public sealed class LeechCore : IDisposable
 
     /// <summary>
     /// Read physical memory into a pooled array of type <typeparamref name="T" />.
-    /// NOTE: You must dispose the returned <see cref="IMemoryOwner{T}"/> when finished with it.
+    /// NOTE: You must dispose the returned <see cref="IVmmPooledArray{T}"/> when finished with it.
     /// </summary>
     /// <typeparam name="T">Value Type.</typeparam>
     /// <param name="pa">Physical address to read.</param>
     /// <param name="count">Number of elements to read.</param>
-    /// <returns><see cref="IMemoryOwner{T}"/> lease, NULL if failed.</returns>
-    public unsafe IMemoryOwner<T> ReadPooledArray<T>(ulong pa, int count)
+    /// <returns><see cref="IVmmPooledArray{T}"/> lease, NULL if failed.</returns>
+    public unsafe IVmmPooledArray<T> ReadPooledArray<T>(ulong pa, int count)
         where T : unmanaged
     {
-        var owner = new PooledArray<T>(count);
+        var arr = new VmmPooledArray<T>(count);
         var cb = (uint)(sizeof(T) * count);
-        fixed (T* pb = owner.Memory.Span)
+        fixed (T* pb = arr.Memory.Span)
         {
             if (!Lci.LcRead(_h, pa, cb, (byte*)pb))
             {
-                owner.Dispose();
+                arr.Dispose();
                 return null;
             }
         }
-        return owner;
+        return arr;
     }
 
     /// <summary>

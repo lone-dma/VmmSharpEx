@@ -1,6 +1,7 @@
 ﻿using Microsoft.Extensions.ObjectPool;
 using System.Runtime.CompilerServices;
 using System.Text;
+using VmmSharpEx.Pools;
 
 namespace VmmSharpEx.Scatter
 {
@@ -9,7 +10,7 @@ namespace VmmSharpEx.Scatter
     /// </summary>
     public sealed class ScatterReadIndex : IResettable
     {
-        private static readonly ObjectPool<ScatterReadIndex> _pool = ScatterReadMap.ObjectPoolProvider
+        private static readonly ObjectPool<ScatterReadIndex> _pool = VmmPoolManager.ObjectPoolProvider
             .Create<ScatterReadIndex>();
 
         /// <summary>

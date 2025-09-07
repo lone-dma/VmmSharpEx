@@ -1,5 +1,6 @@
 ﻿using Microsoft.Extensions.ObjectPool;
 using System.Runtime.CompilerServices;
+using VmmSharpEx.Pools;
 
 namespace VmmSharpEx.Scatter
 {
@@ -7,7 +8,7 @@ namespace VmmSharpEx.Scatter
         where T : unmanaged
     {
         private static readonly int _cb = Unsafe.SizeOf<T>();
-        private static readonly ObjectPool<ScatterReadValueEntry<T>> _pool = ScatterReadMap.ObjectPoolProvider
+        private static readonly ObjectPool<ScatterReadValueEntry<T>> _pool = VmmPoolManager.ObjectPoolProvider
             .Create<ScatterReadValueEntry<T>>();
 
         private T _result = default;

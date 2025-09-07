@@ -3,6 +3,7 @@ using System.Buffers;
 using System.Runtime.InteropServices;
 using VmmSharpEx.Internal;
 using VmmSharpEx.Options;
+using VmmSharpEx.Pools;
 
 namespace VmmSharpEx.Scatter
 {
@@ -12,7 +13,7 @@ namespace VmmSharpEx.Scatter
     /// </summary>
     public sealed class ScatterReadRound : IResettable
     {
-        private static readonly ObjectPool<ScatterReadRound> _pool = ScatterReadMap.ObjectPoolProvider
+        private static readonly ObjectPool<ScatterReadRound> _pool = VmmPoolManager.ObjectPoolProvider
             .Create<ScatterReadRound>();
 
         private readonly Dictionary<int, ScatterReadIndex> _indexes = new();

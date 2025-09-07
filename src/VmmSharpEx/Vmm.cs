@@ -6,6 +6,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 using VmmSharpEx.Internal;
 using VmmSharpEx.Options;
+using VmmSharpEx.Pools;
 using VmmSharpEx.Refresh;
 
 namespace VmmSharpEx;
@@ -382,28 +383,28 @@ public sealed class Vmm : IDisposable
 
     /// <summary>
     /// Read Memory from a Virtual Address into a Pooled Array of Type <typeparamref name="T" />.
-    /// NOTE: You must dispose the returned <see cref="IMemoryOwner{T}"/> when finished with it.
+    /// NOTE: You must dispose the returned <see cref="IVmmPooledArray{T}"/> when finished with it.
     /// </summary>
     /// <typeparam name="T">Value Type.</typeparam>
     /// <param name="pid">Process ID (PID) this operation will take place within.</param>
     /// <param name="va">Virtual Address to read from.</param>
     /// <param name="count">Number of elements to read.</param>
     /// <param name="flags">VMM Flags.</param>
-    /// <returns><see cref="IMemoryOwner{T}"/> lease, NULL if failed.</returns>
-    public unsafe IMemoryOwner<T> MemReadPooledArray<T>(uint pid, ulong va, int count, VmmFlags flags = VmmFlags.NONE)
+    /// <returns><see cref="IVmmPooledArray{T}"/> lease, NULL if failed.</returns>
+    public unsafe IVmmPooledArray<T> MemReadPooledArray<T>(uint pid, ulong va, int count, VmmFlags flags = VmmFlags.NONE)
         where T : unmanaged
     {
-        var owner = new PooledArray<T>(count);
+        var arr = new VmmPooledArray<T>(count);
         var cb = (uint)(sizeof(T) * count);
-        fixed (T* pb = owner.Memory.Span)
+        fixed (T* pb = arr.Memory.Span)
         {
             if (!Vmmi.VMMDLL_MemReadEx(_h, pid, va, (byte*)pb, cb, out var cbRead, flags) || cbRead != cb)
             {
-                owner.Dispose();
+                arr.Dispose();
                 return null;
             }
         }
-        return owner;
+        return arr;
     }
 
     /// <summary>

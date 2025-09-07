@@ -1,12 +1,13 @@
 ﻿using Microsoft.Extensions.ObjectPool;
 using System.Buffers;
 using System.Text;
+using VmmSharpEx.Pools;
 
 namespace VmmSharpEx.Scatter
 {
     internal sealed class ScatterReadStringEntry : IScatterEntry
     {
-        private static readonly ObjectPool<ScatterReadStringEntry> _pool = ScatterReadMap.ObjectPoolProvider
+        private static readonly ObjectPool<ScatterReadStringEntry> _pool = VmmPoolManager.ObjectPoolProvider
             .Create<ScatterReadStringEntry>();
 
         private Encoding _encoding;
