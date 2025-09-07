@@ -383,7 +383,7 @@ public sealed class Vmm : IDisposable
 
     /// <summary>
     /// Read Memory from a Virtual Address into a Pooled Array of Type <typeparamref name="T" />.
-    /// NOTE: You must dispose the returned <see cref="IVmmPooledArray{T}"/> when finished with it.
+    /// NOTE: You must dispose the returned <see cref="PooledMemory{T}"/> when finished with it.
     /// </summary>
     /// <typeparam name="T">Value Type.</typeparam>
     /// <param name="pid">Process ID (PID) this operation will take place within.</param>
