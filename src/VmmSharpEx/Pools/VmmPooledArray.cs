@@ -51,18 +51,16 @@ namespace VmmSharpEx.Pools
 
         IEnumerator<T> IEnumerable<T>.GetEnumerator()
         {
-            var mem = Memory;
-            for (int i = 0; i < mem.Length; i++)
+            for (int i = 0; i < Count; i++)
             {
-                yield return mem.Span[i];
+                yield return _array[i];
             }
         }
         IEnumerator IEnumerable.GetEnumerator()
         {
-            var mem = Memory;
-            for (int i = 0; i < mem.Length; i++)
+            for (int i = 0; i < Count; i++)
             {
-                yield return mem.Span[i];
+                yield return _array[i];
             }
         }
     }
