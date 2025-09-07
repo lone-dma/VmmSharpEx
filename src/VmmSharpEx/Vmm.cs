@@ -109,7 +109,7 @@ public sealed class Vmm : IDisposable
     {
         _h = Create(out configErrorInfo, args);
         LeechCore = new LeechCore(this);
-        Log("VmmSharpEx Initialized.");
+        Log($"VmmSharpEx Initialized ({_h:X16}).");
     }
 
     /// <summary>
