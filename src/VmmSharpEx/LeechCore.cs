@@ -178,16 +178,16 @@ public sealed class LeechCore : IDisposable
 
     /// <summary>
     /// Read physical memory into a pooled array of type <typeparamref name="T" />.
-    /// NOTE: You must dispose the returned <see cref="IVmmPooledArray{T}"/> when finished with it.
+    /// NOTE: You must dispose the returned <see cref="PooledMemory{T}"/> when finished with it.
     /// </summary>
     /// <typeparam name="T">Value Type.</typeparam>
     /// <param name="pa">Physical address to read.</param>
     /// <param name="count">Number of elements to read.</param>
-    /// <returns><see cref="IVmmPooledArray{T}"/> lease, NULL if failed.</returns>
-    public unsafe IVmmPooledArray<T> ReadPooledArray<T>(ulong pa, int count)
+    /// <returns><see cref="PooledMemory{T}"/> lease, NULL if failed.</returns>
+    public unsafe PooledMemory<T> ReadPooledArray<T>(ulong pa, int count)
         where T : unmanaged
     {
-        var arr = new VmmPooledArray<T>(count);
+        var arr = new PooledMemory<T>(count);
         var cb = (uint)(sizeof(T) * count);
         fixed (T* pb = arr.Span)
         {
