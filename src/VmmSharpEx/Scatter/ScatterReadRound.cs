@@ -63,7 +63,7 @@ namespace VmmSharpEx.Scatter
         /// <param name="pid"></param>
         internal void Execute(Vmm vmm, uint pid)
         {
-            using var rented = new PooledList<IScatterEntry>(capacity: _indexes.Count * 4); // Estimate Capacity based on number of indexes
+            using var rented = new PooledList<IScatterEntry>(capacity: checked(_indexes.Count * 4)); // Estimate Capacity based on number of indexes
             foreach (var index in _indexes.Values)
                 foreach (var e in index.Entries.Values)
                     rented.Add(e);
@@ -101,7 +101,7 @@ namespace VmmSharpEx.Scatter
                     continue;
                 }
 
-                uint numPages = Utilities.ADDRESS_AND_SIZE_TO_SPAN_PAGES(entry.Address, (uint)entry.CB);
+                ulong numPages = Utilities.ADDRESS_AND_SIZE_TO_SPAN_PAGES(entry.Address, (uint)entry.CB);
                 ulong basePage = Utilities.PAGE_ALIGN(entry.Address);
 
                 for (p = 0; p < numPages; p++)

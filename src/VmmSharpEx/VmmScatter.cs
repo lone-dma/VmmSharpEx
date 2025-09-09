@@ -212,8 +212,8 @@ public sealed class VmmScatter : IDisposable
     public unsafe T[] ReadArray<T>(ulong qwA, int count)
         where T : unmanaged
     {
-        uint cb = checked(SizeCache<T>.SizeU * (uint)count);
         var data = new T[count];
+        uint cb = checked(SizeCache<T>.SizeU * (uint)count);
         fixed (T* pb = data)
         {
             if (!Vmmi.VMMDLL_Scatter_Read(_h, qwA, cb, (byte*)pb, out var cbRead) || cbRead != cb)

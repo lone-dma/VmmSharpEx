@@ -164,8 +164,8 @@ public sealed class LeechCore : IDisposable
     public unsafe T[] ReadArray<T>(ulong pa, int count)
         where T : unmanaged
     {
-		uint cb = checked(SizeCache<T>.SizeU * (uint)count);
-		var data = new T[count];
+        var data = new T[count];
+        uint cb = checked(SizeCache<T>.SizeU * (uint)count);
         fixed (T* pb = data)
         {
             if (!Lci.LcRead(_h, pa, cb, (byte*)pb))
@@ -430,7 +430,7 @@ public sealed class LeechCore : IDisposable
         dataOut = new byte[cbDataOut];
         if (cbDataOut > 0)
         {
-            var src = new ReadOnlySpan<byte>(pbDataOut.ToPointer(), (int)cbDataOut);
+            var src = new ReadOnlySpan<byte>(pbDataOut.ToPointer(), checked((int)cbDataOut));
             src.CopyTo(dataOut);
             Lci.LcMemFree(pbDataOut);
         }
@@ -502,7 +502,7 @@ public sealed class LeechCore : IDisposable
         internal ScatterData(IntPtr pb, uint cb)
         {
             _pb = pb;
-            _cb = (int)cb;
+            _cb = checked((int)cb); // fail if cb > int.MaxValue
         }
 
         /// <summary>
@@ -564,7 +564,7 @@ public sealed class LeechCore : IDisposable
         /// DANGER: Do not access this memory after the memory is freed via <see cref="Lci.LcMemFree(nint)"/>!
         /// </summary>
         public readonly unsafe ReadOnlySpan<byte> Data =>
-            new ReadOnlySpan<byte>(pb.ToPointer(), (int)cb);
+            new ReadOnlySpan<byte>(pb.ToPointer(), checked((int)cb));
     }
 
     [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Ansi)]

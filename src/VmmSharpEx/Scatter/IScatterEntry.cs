@@ -53,7 +53,7 @@ namespace VmmSharpEx.Scatter
             int cb = Math.Min(cbTotal, 0x1000 - pageOffset); // bytes to read current page
             int cbRead = 0; // track number of bytes copied to ensure nothing is missed
 
-            uint numPages = Utilities.ADDRESS_AND_SIZE_TO_SPAN_PAGES(addr, (uint)cbTotal); // number of pages to read from (in case result spans multiple pages)
+            ulong numPages = Utilities.ADDRESS_AND_SIZE_TO_SPAN_PAGES(addr, (uint)cbTotal); // number of pages to read from (in case result spans multiple pages)
             ulong basePageAddr = Utilities.PAGE_ALIGN(addr);
 
             for (ulong p = 0; p < numPages; p++)
