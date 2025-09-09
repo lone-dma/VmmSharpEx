@@ -92,7 +92,7 @@ namespace VmmSharpEx.Scatter
             _pages.Clear();
 
             // Setup pages to read
-            uint p;
+            ulong p;
             foreach (var entry in entries)
             {
                 if (!Utilities.IsValidVirtualAddress(entry.Address) || entry.CB <= 0 || entry.CB > ScatterReadMap.MaxReadSize)
@@ -106,7 +106,6 @@ namespace VmmSharpEx.Scatter
 
                 for (p = 0; p < numPages; p++)
                 {
-                    // Use 64-bit shift before addition and checked() to surface overflow.
                     ulong page = checked(basePage + (p << 12));
                     if (_pagesHs.Add(page))
                     {
