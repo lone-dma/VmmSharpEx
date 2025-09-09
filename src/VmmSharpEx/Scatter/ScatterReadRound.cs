@@ -1,5 +1,5 @@
-﻿using Microsoft.Extensions.ObjectPool;
-using System.Buffers;
+﻿using Collections.Pooled;
+using Microsoft.Extensions.ObjectPool;
 using System.Runtime.InteropServices;
 using VmmSharpEx.Internal;
 using VmmSharpEx.Options;
@@ -63,18 +63,12 @@ namespace VmmSharpEx.Scatter
         /// <param name="pid"></param>
         internal void Execute(Vmm vmm, uint pid)
         {
-            int count = 0;
-            foreach (var index in _indexes.Values)
-                count += index.Entries.Count;
-
-            using var rented = MemoryPool<IScatterEntry>.Shared.Rent(count);
-            var entries = rented.Memory.Span.Slice(0, count);
-            int i = 0;
+            using var rented = new PooledList<IScatterEntry>(capacity: _indexes.Count * 4); // Estimate Capacity based on number of indexes
             foreach (var index in _indexes.Values)
                 foreach (var e in index.Entries.Values)
-                    entries[i++] = e;
+                    rented.Add(e);
 
-            ReadScatter(vmm, pid, entries, _useCache);
+            ReadScatter(vmm, pid, rented.Span, _useCache);
 
             foreach (var index in _indexes.Values)
                 index.OnCompleted();
@@ -92,16 +86,16 @@ namespace VmmSharpEx.Scatter
                 return;
             }
 
-            _pagesHs ??= new HashSet<ulong>(512);
+            _pagesHs ??= new HashSet<ulong>(capacity: 512);
             _pagesHs.Clear();
-            _pages ??= new List<ulong>(512);
+            _pages ??= new List<ulong>(capacity: 512);
             _pages.Clear();
 
             // Setup pages to read
             uint p;
             foreach (var entry in entries)
             {
-                if (!Utilities.IsValidVirtualAddress(entry.Address) || entry.CB <= 0 || (uint)entry.CB > ScatterReadMap.MaxReadSize)
+                if (!Utilities.IsValidVirtualAddress(entry.Address) || entry.CB <= 0 || entry.CB > ScatterReadMap.MaxReadSize)
                 {
                     entry.IsFailed = true;
                     continue;
@@ -112,7 +106,8 @@ namespace VmmSharpEx.Scatter
 
                 for (p = 0; p < numPages; p++)
                 {
-                    ulong page = basePage + 0x1000ul * p;
+                    // Use 64-bit shift before addition and checked() to surface overflow.
+                    ulong page = checked(basePage + (p << 12));
                     if (_pagesHs.Add(page))
                     {
                         _pages.Add(page);

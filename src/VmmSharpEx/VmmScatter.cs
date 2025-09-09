@@ -100,7 +100,7 @@ public sealed class VmmScatter : IDisposable
     public unsafe bool PrepareReadValue<T>(ulong qwA)
         where T : unmanaged, allows ref struct
     {
-        var cb = (uint)sizeof(T);
+        var cb = SizeCache<T>.SizeU;
         return Vmmi.VMMDLL_Scatter_Prepare(_h, qwA, cb);
     }
 
@@ -114,7 +114,8 @@ public sealed class VmmScatter : IDisposable
     public unsafe bool PrepareReadContiguous<T>(ulong qwA, int count)
         where T : unmanaged
     {
-        var cb = (uint)(sizeof(T) * count);
+        ArgumentOutOfRangeException.ThrowIfNegative(count, nameof(count));
+        uint cb = checked(SizeCache<T>.SizeU * (uint)count);
         return Vmmi.VMMDLL_Scatter_Prepare(_h, qwA, cb);
     }
 
@@ -129,7 +130,7 @@ public sealed class VmmScatter : IDisposable
         where T : unmanaged
     {
         _vmm.ThrowIfMemWritesDisabled();
-        var cb = (uint)(sizeof(T) * data.Length);
+        uint cb = checked(SizeCache<T>.SizeU * (uint)data.Length);
         fixed (T* pb = data)
         {
             return Vmmi.VMMDLL_Scatter_PrepareWrite(_h, qwA, (byte*)pb, cb);
@@ -147,7 +148,7 @@ public sealed class VmmScatter : IDisposable
         where T : unmanaged
     {
         _vmm.ThrowIfMemWritesDisabled();
-        var cb = (uint)(sizeof(T) * data.Length);
+        uint cb = checked(SizeCache<T>.SizeU * (uint)data.Length);
         fixed (T* pb = data)
         {
             return Vmmi.VMMDLL_Scatter_PrepareWrite(_h, qwA, (byte*)pb, cb);
@@ -165,7 +166,7 @@ public sealed class VmmScatter : IDisposable
         where T : unmanaged, allows ref struct
     {
         _vmm.ThrowIfMemWritesDisabled();
-        var cb = (uint)sizeof(T);
+        var cb = SizeCache<T>.SizeU;
         return Vmmi.VMMDLL_Scatter_PrepareWrite(_h, qwA, (byte*)&value, cb);
     }
 
@@ -188,7 +189,7 @@ public sealed class VmmScatter : IDisposable
     public unsafe bool ReadValue<T>(ulong qwA, out T result)
         where T : unmanaged, allows ref struct
     {
-        var cb = (uint)sizeof(T);
+        var cb = SizeCache<T>.SizeU;
         result = default;
         fixed (T* pb = &result)
         {
@@ -211,7 +212,7 @@ public sealed class VmmScatter : IDisposable
     public unsafe T[] ReadArray<T>(ulong qwA, int count)
         where T : unmanaged
     {
-        var cb = (uint)(sizeof(T) * count);
+        uint cb = checked(SizeCache<T>.SizeU * (uint)count);
         var data = new T[count];
         fixed (T* pb = data)
         {
@@ -220,7 +221,6 @@ public sealed class VmmScatter : IDisposable
                 return null;
             }
         }
-
         return data;
     }
 
@@ -234,7 +234,7 @@ public sealed class VmmScatter : IDisposable
     public unsafe bool ReadSpan<T>(ulong qwA, Span<T> span)
         where T : unmanaged
     {
-        var cb = (uint)sizeof(T) * (uint)span.Length;
+        uint cb = checked(SizeCache<T>.SizeU * (uint)span.Length);
         fixed (T* pb = span)
         {
             return Vmmi.VMMDLL_Scatter_Read(_h, qwA, cb, (byte*)pb, out var cbRead) && cbRead == cb;

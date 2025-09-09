@@ -1,6 +1,6 @@
 ﻿using Microsoft.Extensions.ObjectPool;
 using System.Buffers;
-using System.Runtime.CompilerServices;
+using VmmSharpEx.Internal;
 using VmmSharpEx.Pools;
 
 namespace VmmSharpEx.Scatter
@@ -8,7 +8,6 @@ namespace VmmSharpEx.Scatter
     internal sealed class ScatterReadArrayEntry<T> : IScatterEntry
         where T : unmanaged
     {
-        private static readonly int _cbSingle = Unsafe.SizeOf<T>();
         private static readonly ObjectPool<ScatterReadArrayEntry<T>> _pool = VmmPoolManager.ObjectPoolProvider
             .Create<ScatterReadArrayEntry<T>>();
 
@@ -23,14 +22,15 @@ namespace VmmSharpEx.Scatter
 
         internal static ScatterReadArrayEntry<T> Create(ulong address, int count)
         {
-            var rented = _pool.Get();
-            if (count < 0)
+            if (count < 0) // Don't throw exceptions in this path
             {
                 count = 0;
             }
+            int cb = checked(count * SizeCache<T>.Size);
+            var rented = _pool.Get();
+            rented.CB = cb;
             rented._array = ArrayPool<T>.Shared.Rent(count);
             rented.Address = address;
-            rented.CB = count * _cbSingle;
             rented._count = count;
             return rented;
         }

@@ -1,12 +1,10 @@
 ﻿using Collections.Pooled;
-using System;
 using System.Buffers;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
 using VmmSharpEx.Internal;
 using VmmSharpEx.Options;
-using VmmSharpEx.Pools;
 using VmmSharpEx.Refresh;
 
 namespace VmmSharpEx;
@@ -285,7 +283,7 @@ public sealed class Vmm : IDisposable
         for (var i = 0; i < vas.Length; i++)
         {
             var pMEM = ppMEMs[i];
-            pMEM->qwA = vas[i] & ~(ulong)0xfff;
+            pMEM->qwA = vas[i] & ~0xffful;
         }
 
         _ = Vmmi.VMMDLL_MemReadScatter(_h, pid, pppMEMs, (uint)vas.Length, flags);
@@ -347,8 +345,8 @@ public sealed class Vmm : IDisposable
     public unsafe bool MemReadValue<T>(uint pid, ulong va, out T result, VmmFlags flags = VmmFlags.NONE)
         where T : unmanaged, allows ref struct
     {
-        var cb = (uint)sizeof(T);
-        result = default;
+        var cb = SizeCache<T>.SizeU;
+		result = default;
         fixed (void* pb = &result)
         {
             return Vmmi.VMMDLL_MemReadEx(_h, pid, va, (byte*)pb, cb, out var cbRead, flags) && cbRead == cb;
@@ -368,7 +366,7 @@ public sealed class Vmm : IDisposable
     public unsafe T[] MemReadArray<T>(uint pid, ulong va, int count, VmmFlags flags = VmmFlags.NONE)
         where T : unmanaged
     {
-        var cb = (uint)(sizeof(T) * count);
+        uint cb = checked(SizeCache<T>.SizeU * (uint)count);
         var data = new T[count];
         fixed (T* pb = data)
         {
@@ -395,7 +393,7 @@ public sealed class Vmm : IDisposable
         where T : unmanaged
     {
         var arr = new PooledMemory<T>(count);
-        var cb = (uint)(sizeof(T) * count);
+        uint cb = checked(SizeCache<T>.SizeU * (uint)count);
         fixed (T* pb = arr.Span)
         {
             if (!Vmmi.VMMDLL_MemReadEx(_h, pid, va, (byte*)pb, cb, out var cbRead, flags) || cbRead != cb)
@@ -421,8 +419,8 @@ public sealed class Vmm : IDisposable
     public unsafe bool MemReadSpan<T>(uint pid, ulong va, Span<T> span, VmmFlags flags = VmmFlags.NONE)
         where T : unmanaged
     {
-        var cb = (uint)(sizeof(T) * span.Length);
-        fixed (T* pb = span)
+		uint cb = checked(SizeCache<T>.SizeU * (uint)span.Length);
+		fixed (T* pb = span)
         {
             return Vmmi.VMMDLL_MemReadEx(_h, pid, va, (byte*)pb, cb, out var cbRead, flags) && cbRead == cb;
         }
@@ -525,8 +523,8 @@ public sealed class Vmm : IDisposable
         where T : unmanaged, allows ref struct
     {
         ThrowIfMemWritesDisabled();
-        var cb = (uint)sizeof(T);
-        return Vmmi.VMMDLL_MemWrite(_h, pid, va, (byte*)&value, cb);
+        var cb = SizeCache<T>.SizeU;
+		return Vmmi.VMMDLL_MemWrite(_h, pid, va, (byte*)&value, cb);
     }
 
     /// <summary>
@@ -541,8 +539,8 @@ public sealed class Vmm : IDisposable
         where T : unmanaged
     {
         ThrowIfMemWritesDisabled();
-        var cb = (uint)sizeof(T) * (uint)data.Length;
-        fixed (T* pb = data)
+		uint cb = checked(SizeCache<T>.SizeU * (uint)data.Length);
+		fixed (T* pb = data)
         {
             return Vmmi.VMMDLL_MemWrite(_h, pid, va, (byte*)pb, cb);
         }
@@ -560,8 +558,8 @@ public sealed class Vmm : IDisposable
         where T : unmanaged
     {
         ThrowIfMemWritesDisabled();
-        var cb = (uint)(sizeof(T) * span.Length);
-        fixed (T* pb = span)
+		uint cb = checked(SizeCache<T>.SizeU * (uint)span.Length);
+		fixed (T* pb = span)
         {
             return Vmmi.VMMDLL_MemWrite(_h, pid, va, (byte*)pb, cb);
         }

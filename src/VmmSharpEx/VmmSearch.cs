@@ -36,7 +36,7 @@ public sealed unsafe class VmmSearch : IDisposable
         _pid = pid;
         _managed.AddrMin = addr_min;
         _managed.AddrMax = addr_max;
-        _native = (Vmmi.VMMDLL_MEM_SEARCH_CONTEXT*)NativeMemory.Alloc((nuint)sizeof(Vmmi.VMMDLL_MEM_SEARCH_CONTEXT) + 8);
+        _native = (Vmmi.VMMDLL_MEM_SEARCH_CONTEXT*)NativeMemory.Alloc((nuint)SizeCache<Vmmi.VMMDLL_MEM_SEARCH_CONTEXT>.SizeU + 8);
         _searchResultCallback = SearchResultCallback;
         *_native = new Vmmi.VMMDLL_MEM_SEARCH_CONTEXT
         {

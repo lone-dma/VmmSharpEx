@@ -53,25 +53,26 @@ namespace VmmSharpEx.Scatter
             int cb = Math.Min(cbTotal, 0x1000 - pageOffset); // bytes to read current page
             int cbRead = 0; // track number of bytes copied to ensure nothing is missed
 
-            int numPages = (int)Utilities.ADDRESS_AND_SIZE_TO_SPAN_PAGES(addr, (uint)cbTotal); // number of pages to read from (in case result spans multiple pages)
+            uint numPages = Utilities.ADDRESS_AND_SIZE_TO_SPAN_PAGES(addr, (uint)cbTotal); // number of pages to read from (in case result spans multiple pages)
             ulong basePageAddr = Utilities.PAGE_ALIGN(addr);
 
             for (uint p = 0; p < numPages; p++)
             {
-                ulong pageAddr = basePageAddr + 0x1000 * p; // get current page addr
+                // Ensure 64-bit shift before addition; original shift was on uint which could theoretically wrap before promotion.
+                ulong pageAddr = checked(basePageAddr + (p << 12)); // get current page addr
                 if (hScatter.Results.TryGetValue(pageAddr, out var scatter)) // retrieve page of mem needed
                 {
                     scatter.Data
                         .Slice(pageOffset, cb)
                         .CopyTo(resultOut.Slice(cbRead, cb)); // Copy bytes to buffer
-                    cbRead += cb;
+                    checked { cbRead += cb; }
                 }
                 else // read failed -> break
                 {
                     return false;
                 }
 
-                cb = Math.Clamp(cbTotal - cbRead, 0, 0x1000); // Size the next read
+                cb = Math.Clamp(checked(cbTotal - cbRead), 0, 0x1000); // Size the next read
                 pageOffset = 0x0; // Next page (if any) should start at 0x0
             }
 

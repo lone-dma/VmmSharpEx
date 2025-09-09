@@ -1,10 +1,8 @@
 ﻿using Collections.Pooled;
-using System.Buffers;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using VmmSharpEx.Internal;
 using VmmSharpEx.Options;
-using VmmSharpEx.Pools;
 
 namespace VmmSharpEx;
 
@@ -147,8 +145,8 @@ public sealed class LeechCore : IDisposable
     public unsafe bool ReadValue<T>(ulong pa, out T result)
         where T : unmanaged, allows ref struct
     {
-        var cb = (uint)sizeof(T);
-        result = default;
+        var cb = SizeCache<T>.SizeU;
+		result = default;
         fixed (void* pb = &result)
         {
             return Lci.LcRead(_h, pa, cb, (byte*)pb);
@@ -166,8 +164,8 @@ public sealed class LeechCore : IDisposable
     public unsafe T[] ReadArray<T>(ulong pa, int count)
         where T : unmanaged
     {
-        var cb = (uint)(sizeof(T) * count);
-        var data = new T[count];
+		uint cb = checked(SizeCache<T>.SizeU * (uint)count);
+		var data = new T[count];
         fixed (T* pb = data)
         {
             if (!Lci.LcRead(_h, pa, cb, (byte*)pb))
@@ -188,7 +186,7 @@ public sealed class LeechCore : IDisposable
         where T : unmanaged
     {
         var arr = new PooledMemory<T>(count);
-        var cb = (uint)(sizeof(T) * count);
+        uint cb = checked(SizeCache<T>.SizeU * (uint)count);
         fixed (T* pb = arr.Span)
         {
             if (!Lci.LcRead(_h, pa, cb, (byte*)pb))
@@ -210,8 +208,8 @@ public sealed class LeechCore : IDisposable
     public unsafe bool ReadSpan<T>(ulong pa, Span<T> span)
         where T : unmanaged
     {
-        var cb = (uint)(sizeof(T) * span.Length);
-        fixed (T* pb = span)
+		uint cb = checked(SizeCache<T>.SizeU * (uint)span.Length);
+		fixed (T* pb = span)
         {
             return Lci.LcRead(_h, pa, cb, (byte*)pb);
         }
@@ -228,8 +226,8 @@ public sealed class LeechCore : IDisposable
         where T : unmanaged
     {
         _parent?.ThrowIfMemWritesDisabled();
-        var cb = (uint)(sizeof(T) * span.Length);
-        fixed (T* pb = span)
+		uint cb = checked(SizeCache<T>.SizeU * (uint)span.Length);
+		fixed (T* pb = span)
         {
             return Lci.LcWrite(_h, pa, cb, (byte*)pb);
         }
@@ -316,8 +314,8 @@ public sealed class LeechCore : IDisposable
         where T : unmanaged, allows ref struct
     {
         _parent?.ThrowIfMemWritesDisabled();
-        var cb = (uint)sizeof(T);
-        return Lci.LcWrite(_h, pa, cb, (byte*)&value);
+        var cb = SizeCache<T>.SizeU;
+		return Lci.LcWrite(_h, pa, cb, (byte*)&value);
     }
 
     /// <summary>
@@ -334,8 +332,8 @@ public sealed class LeechCore : IDisposable
         where T : unmanaged
     {
         _parent?.ThrowIfMemWritesDisabled();
-        var cb = (uint)sizeof(T) * (uint)data.Length;
-        fixed (T* pb = data)
+		uint cb = checked(SizeCache<T>.SizeU * (uint)data.Length);
+		fixed (T* pb = data)
         {
             return Lci.LcWrite(_h, pa, cb, (byte*)pb);
         }
