@@ -71,7 +71,7 @@ namespace VmmSharpEx.Scatter
                     return false;
                 }
 
-                cb = Math.Clamp(checked(cbTotal - cbRead), 0, 0x1000); // Size the next read
+                cb = Math.Clamp(cbTotal - cbRead, 0, 0x1000); // Size the next read
                 pageOffset = 0x0; // Next page (if any) should start at 0x0
             }
 
