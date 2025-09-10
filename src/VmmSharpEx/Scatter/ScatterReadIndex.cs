@@ -12,13 +12,9 @@ namespace VmmSharpEx.Scatter
     {
         private static readonly ObjectPool<ScatterReadIndex> _pool = VmmPoolManager.ObjectPoolProvider
             .Create<ScatterReadIndex>();
+        internal readonly Dictionary<int, IScatterEntry> _entries = new();
+        private ScatterReadRound _parent;
 
-        /// <summary>
-        /// All read entries for this index.
-        /// [KEY] = ID
-        /// [VALUE] = IScatterEntry
-        /// </summary>
-        internal Dictionary<int, IScatterEntry> Entries { get; } = new();
         /// <summary>
         /// Event is fired after the completion of all reads within this index and it's parent round.
         /// NOTE: Exception(s) that occur within subscriber code are caught and ignored.
@@ -33,11 +29,16 @@ namespace VmmSharpEx.Scatter
             catch { }
         }
 
-        [Obsolete("For internal use only. Construct a ScatterReadMap to begin using this API.")]
+        [Obsolete("For internal use only. Construct a ScatterReadMap to begin using this API.", true)]
         public ScatterReadIndex() { }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal static ScatterReadIndex Create() => _pool.Get();
+        internal static ScatterReadIndex Create(ScatterReadRound parent)
+        {
+            var index = _pool.Get();
+            index._parent = parent;
+            return index;
+        }
 
         /// <summary>
         /// Add a scatter read value entry to this index.
@@ -50,7 +51,8 @@ namespace VmmSharpEx.Scatter
             where T : unmanaged
         {
             var entry = ScatterReadValueEntry<T>.Create(address);
-            Entries.Add(id, entry);
+            _entries.Add(id, entry);
+            _parent._flat.Add(entry);
         }
 
         /// <summary>
@@ -65,7 +67,8 @@ namespace VmmSharpEx.Scatter
             where T : unmanaged
         {
             var entry = ScatterReadArrayEntry<T>.Create(address, count);
-            Entries.Add(id, entry);
+            _entries.Add(id, entry);
+            _parent._flat.Add(entry);
         }
 
         /// <summary>
@@ -79,7 +82,8 @@ namespace VmmSharpEx.Scatter
         public void AddStringEntry(int id, ulong address, int cb, Encoding encoding)
         {
             var entry = ScatterReadStringEntry.Create(address, cb, encoding);
-            Entries.Add(id, entry);
+            _entries.Add(id, entry);
+            _parent._flat.Add(entry);
         }
 
         /// <summary>
@@ -92,9 +96,9 @@ namespace VmmSharpEx.Scatter
         public bool TryGetValue<TOut>(int id, out TOut result)
             where TOut : unmanaged
         {
-            if (Entries.TryGetValue(id, out var entry) && entry is ScatterReadValueEntry<TOut> casted && !casted.IsFailed)
+            if (_entries.TryGetValue(id, out var entry) && entry is ScatterReadValueEntry<TOut> casted && !casted.IsFailed)
             {
-                result = casted.Result;
+                result = casted._result;
                 return true;
             }
             result = default;
@@ -111,7 +115,7 @@ namespace VmmSharpEx.Scatter
         public bool TryGetArray<TOut>(int id, out Span<TOut> result)
             where TOut : unmanaged
         {
-            if (Entries.TryGetValue(id, out var entry) && entry is ScatterReadArrayEntry<TOut> casted && !casted.IsFailed)
+            if (_entries.TryGetValue(id, out var entry) && entry is ScatterReadArrayEntry<TOut> casted && !casted.IsFailed)
             {
                 result = casted.Result;
                 return true;
@@ -128,9 +132,9 @@ namespace VmmSharpEx.Scatter
         /// <returns>True if successful, otherwise False.</returns>
         public bool TryGetString(int id, out string result)
         {
-            if (Entries.TryGetValue(id, out var entry) && entry is ScatterReadStringEntry casted && !casted.IsFailed)
+            if (_entries.TryGetValue(id, out var entry) && entry is ScatterReadStringEntry casted && !casted.IsFailed)
             {
-                result = casted.Result;
+                result = casted._result;
                 return true;
             }
             result = default;
@@ -148,9 +152,9 @@ namespace VmmSharpEx.Scatter
         public ref TOut GetValueRef<TOut>(int id)
             where TOut : unmanaged
         {
-            if (Entries.TryGetValue(id, out var entry) && entry is ScatterReadValueEntry<TOut> casted && !casted.IsFailed)
+            if (_entries.TryGetValue(id, out var entry) && entry is ScatterReadValueEntry<TOut> casted && !casted.IsFailed)
             {
-                return ref casted.Result;
+                return ref casted._result;
             }
             return ref Unsafe.NullRef<TOut>();
         }
@@ -160,17 +164,16 @@ namespace VmmSharpEx.Scatter
             _pool.Return(this);
         }
 
-        /// <summary>
-        /// Internal Only - DO NOT CALL
-        /// </summary>
+        [Obsolete("For internal use only.", true)]
         public bool TryReset()
         {
             Completed = null;
-            foreach (var entry in Entries.Values)
+            _parent = null;
+            foreach (var entry in _entries.Values)
             {
                 entry.Return();
             }
-            Entries.Clear();
+            _entries.Clear();
             return true;
         }
     }

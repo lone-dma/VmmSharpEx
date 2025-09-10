@@ -11,8 +11,7 @@ namespace VmmSharpEx.Scatter
             .Create<ScatterReadStringEntry>();
 
         private Encoding _encoding;
-        private string _result;
-        internal string Result => _result;
+        internal string _result;
         public ulong Address { get; private set; }
         public int CB { get; private set; }
         public bool IsFailed { get; set; }

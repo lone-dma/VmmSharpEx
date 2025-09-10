@@ -1,5 +1,4 @@
-﻿using Collections.Pooled;
-using Microsoft.Extensions.ObjectPool;
+﻿using Microsoft.Extensions.ObjectPool;
 using System.Runtime.InteropServices;
 using VmmSharpEx.Internal;
 using VmmSharpEx.Options;
@@ -15,11 +14,11 @@ namespace VmmSharpEx.Scatter
     {
         private static readonly ObjectPool<ScatterReadRound> _pool = VmmPoolManager.ObjectPoolProvider
             .Create<ScatterReadRound>();
-
         private readonly Dictionary<int, ScatterReadIndex> _indexes = new();
+        internal readonly List<IScatterEntry> _flat = new();
         private bool _useCache;
 
-        [Obsolete("For internal use only. Construct a ScatterReadMap to begin using this API.")]
+        [Obsolete("For internal use only. Construct a ScatterReadMap to begin using this API.", true)]
         public ScatterReadRound() { }
 
         internal static ScatterReadRound Create(bool useCache)
@@ -42,7 +41,7 @@ namespace VmmSharpEx.Scatter
                 {
                     return existing;
                 }
-                return _indexes[index] = ScatterReadIndex.Create();
+                return _indexes[index] = ScatterReadIndex.Create(this);
             }
         }
 
@@ -63,12 +62,7 @@ namespace VmmSharpEx.Scatter
         /// <param name="pid"></param>
         internal void Execute(Vmm vmm, uint pid)
         {
-            using var list = new PooledList<IScatterEntry>(capacity: _indexes.Count * 4); // Estimate Capacity based on number of indexes
-            foreach (var index in _indexes.Values)
-                foreach (var e in index.Entries.Values)
-                    list.Add(e);
-
-            ReadScatter(vmm, pid, list.Span, _useCache);
+            ReadScatter(vmm, pid, CollectionsMarshal.AsSpan(_flat), _useCache);
 
             foreach (var index in _indexes.Values)
                 index.OnCompleted();
@@ -139,9 +133,7 @@ namespace VmmSharpEx.Scatter
             _pool.Return(this);
         }
 
-        /// <summary>
-        /// Internal Only - DO NOT CALL
-        /// </summary>
+        [Obsolete("For internal use only.", true)]
         public bool TryReset()
         {
             _useCache = default;
@@ -150,6 +142,7 @@ namespace VmmSharpEx.Scatter
                 index.Return();
             }
             _indexes.Clear();
+            _flat.Clear();
             return true;
         }
 

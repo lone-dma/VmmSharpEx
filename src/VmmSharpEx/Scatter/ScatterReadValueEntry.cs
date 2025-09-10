@@ -10,8 +10,7 @@ namespace VmmSharpEx.Scatter
         private static readonly ObjectPool<ScatterReadValueEntry<T>> _pool = VmmPoolManager.ObjectPoolProvider
             .Create<ScatterReadValueEntry<T>>();
 
-        private T _result = default;
-        internal ref T Result => ref _result;
+        internal T _result = default;
         public ulong Address { get; private set; }
         public int CB { get; } = SizeCache<T>.Size;
         public bool IsFailed { get; set; }
