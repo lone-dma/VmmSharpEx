@@ -62,7 +62,7 @@ namespace VmmSharpEx.Scatter
         /// <param name="pid"></param>
         internal void Execute(Vmm vmm, uint pid)
         {
-            ReadScatter(vmm, pid, CollectionsMarshal.AsSpan(_flat), _useCache);
+            ReadScatter(vmm, pid, CollectionsMarshal.AsSpan(_flat), _useCache); // If _flat is modified while this is in use, it could cause issues. Should be safe since we tell users this isn't thread safe ;)
 
             foreach (var index in _indexes.Values)
                 index.OnCompleted();

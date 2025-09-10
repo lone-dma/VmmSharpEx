@@ -1,12 +1,11 @@
 ﻿using Collections.Pooled;
-using Microsoft.Extensions.ObjectPool;
 
 namespace VmmSharpEx.Scatter
 {
     /// <summary>
     /// Read multiple virtual addresses from a Windows x64 process using a custom scatter read implementation.
     /// Results are populated in the IScatterEntry objects, and can be used to chain reads.
-    /// NOTE: This API is NOT thread safe, you must keep operations synchronous.
+    /// NOTE: This API is **NOT THREAD SAFE**, you must keep operations synchronous or undefined behavior may occur.
     /// </summary>
     public sealed class ScatterReadMap : IDisposable
     {
