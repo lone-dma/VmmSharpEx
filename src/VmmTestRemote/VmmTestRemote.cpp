@@ -1,3 +1,6 @@
+// Dummy shell program to act as a target for unit tests
+// Run on target system, and is connected to via DMA
+
 #include <iostream>
 #include <Windows.h>
 
