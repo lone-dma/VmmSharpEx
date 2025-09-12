@@ -4,7 +4,8 @@ using VmmSharpEx_Tests.Fixtures;
 
 namespace VmmSharpEx_Tests
 {
-    public class VmmSharpEx_BasicTests : IClassFixture<VmmFixture>
+    [Collection(nameof(VmmCollection))]
+    public class VmmSharpEx_BasicTests
     {
         private readonly VmmFixture _fixture;
         private readonly Vmm _vmm;
