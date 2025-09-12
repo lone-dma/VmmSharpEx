@@ -38,6 +38,7 @@ namespace VmmSharpEx_Tests.Fixtures
                     "-waitinitialize"
                 };
                 Vmm = new Vmm(args);
+                _ = Vmm.GetMemoryMap(applyMap: true);
                 if (!Vmm.PidGetFromName(TargetProcess, out uint pid))
                     throw new InvalidOperationException($"Unable to find target process '{TargetProcess}'");
                 PID = pid;
@@ -49,7 +50,7 @@ namespace VmmSharpEx_Tests.Fixtures
                 string result = Vmm.MemReadString(PID, codeCave, 24, Encoding.Unicode);
                 if (!result?.StartsWith("hello :)", StringComparison.OrdinalIgnoreCase) ?? false)
                     throw new InvalidOperationException("Target process code cave memory is not initialized correctly!");
-                CodeCave = (codeCave & ~(0x1000ul - 1)) + 0x1000; // Align to next page
+                CodeCave = (codeCave + 0x1000) & ~0xffful; // Align to next page
             }
             catch (Exception ex)
             {
