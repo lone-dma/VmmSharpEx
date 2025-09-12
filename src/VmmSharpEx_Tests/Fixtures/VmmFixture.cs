@@ -59,10 +59,6 @@ namespace VmmSharpEx_Tests.Fixtures
 
         public void Dispose()
         {
-            // Tell target process to exit via shellcode injection
-            var shellcode = new byte[] { 0x31, 0xC0, 0x48, 0x83, 0xC4, 0x20, 0x5B, 0xC3 }; // xor eax,eax; add rsp,20; pop rbx; ret
-            Vmm.MemWriteSpan(PID, ModuleBase + 0x1423, shellcode.AsSpan());
-            // Cleanup Vmm native handle
             Vmm.Dispose();
             GC.SuppressFinalize(this);
         }

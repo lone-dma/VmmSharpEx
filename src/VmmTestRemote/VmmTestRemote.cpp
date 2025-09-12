@@ -20,12 +20,12 @@ int main()
         std::cerr << "static_cast failed" << std::endl;
         return 1;
     }
-    std::cout << "This window will close automatically when testing has completed." << std::endl;
-    for (;;) { // 0x1423
+    std::cout << "Ready. Close this window when testing has completed." << std::endl;
+    for (;;) {
         for (SIZE_T i = 0; i < 1024ull * 1024 * 1024; i += 4096) {
-            volatile char tmp = pBuffer[i]; // force a read from each page
+            volatile char hi = pBuffer[i]; // force a read from each page
 		}
-        Sleep(1);
+        Sleep(100);
     }
     return 0;
 }
