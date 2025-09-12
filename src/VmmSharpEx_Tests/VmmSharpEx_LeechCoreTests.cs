@@ -6,25 +6,25 @@ using VmmSharpEx_Tests.Fixtures;
 
 namespace VmmSharpEx_Tests;
 
+// Physical memory may not necessarily be contiguous so tests should avoid large buffers.
+// Check each virtual address directly with MemVirt2Phys to ensure it is mapped.
+// For safety we only work within a single page of memory at the base of the code cave.
+
 [Collection(nameof(VmmCollection))]
-public class VmmSharpEx_LeechCoreTests
+public unsafe class VmmSharpEx_LeechCoreTests
 {
     private readonly VmmFixture _fixture;
     private readonly LeechCore _lc;
-    private readonly ulong _paBase;
+    private readonly ulong _pa;
 
     public VmmSharpEx_LeechCoreTests(VmmFixture fixture)
     {
         _fixture = fixture;
         _lc = fixture.Vmm.LeechCore;
-
-        // Only used to obtain a starting physical address for the test region.
-        _paBase = fixture.Vmm.MemVirt2Phys(_fixture.PID, fixture.CodeCave);
-        if (_paBase == 0)
-            throw new InvalidOperationException("Failed to translate code cave virtual address to physical address!");
+        _pa = fixture.Vmm.MemVirt2Phys(fixture.PID, fixture.CodeCave);
+        if (_pa == 0)
+            throw new InvalidOperationException("Unable to map virtual address of Code Cave to Physical Memory!");
     }
-
-    private ulong PA(ulong off) => _paBase + off;
 
     private struct TestStruct
     {
@@ -36,11 +36,12 @@ public class VmmSharpEx_LeechCoreTests
     [Fact]
     public void LeechCore_WriteReadValue_RoundTrip()
     {
-        var pa = PA(0x1000);
         var input = new TestStruct { A = 0x0123456789ABCDEFUL, B = 0xAABBCCDDu, C = unchecked((short)0xFEDC) };
+        int cb = sizeof(TestStruct);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(cb, 0x1000, nameof(cb)); // Ensure we don't exceed a page
 
-        Assert.True(_lc.WriteValue(pa, input));
-        Assert.True(_lc.ReadValue<TestStruct>(pa, out var got));
+        Assert.True(_lc.WriteValue(_pa, input));
+        Assert.True(_lc.ReadValue<TestStruct>(_pa, out var got));
         Assert.Equal(input.A, got.A);
         Assert.Equal(input.B, got.B);
         Assert.Equal(input.C, got.C);
@@ -49,11 +50,12 @@ public class VmmSharpEx_LeechCoreTests
     [Fact]
     public void LeechCore_WriteReadArray_RoundTrip()
     {
-        var pa = PA(0x3000);
-        var input = Enumerable.Range(0, 512).Select(i => (ushort)(i ^ 0x55AA)).ToArray();
+        var input = Enumerable.Range(0, 64).Select(i => (ushort)(i ^ 0x55AA)).ToArray();
+        int cb = input.Length * sizeof(ushort);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(cb, 0x1000, nameof(cb)); // Ensure we don't exceed a page
 
-        Assert.True(_lc.WriteArray(pa, input));
-        var got = _lc.ReadArray<ushort>(pa, input.Length);
+        Assert.True(_lc.WriteArray(_pa, input));
+        var got = _lc.ReadArray<ushort>(_pa, input.Length);
         Assert.NotNull(got);
         Assert.True(input.AsSpan().SequenceEqual(got));
     }
@@ -61,22 +63,24 @@ public class VmmSharpEx_LeechCoreTests
     [Fact]
     public void LeechCore_WriteReadSpan_RoundTrip()
     {
-        var pa = PA(0x5000);
-        Span<byte> input = stackalloc byte[1024];
+        Span<byte> input = stackalloc byte[256];
         for (int i = 0; i < input.Length; i++) input[i] = (byte)(i * 3);
 
-        Assert.True(_lc.WriteSpan(pa, input));
+        int cb = input.Length * sizeof(byte);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(cb, 0x1000, nameof(cb)); // Ensure we don't exceed a page
+
+        Assert.True(_lc.WriteSpan(_pa, input));
 
         Span<byte> output = stackalloc byte[input.Length];
-        Assert.True(_lc.ReadSpan(pa, output));
+        Assert.True(_lc.ReadSpan(_pa, output));
         Assert.True(input.SequenceEqual(output));
     }
 
     [Fact]
     public unsafe void LeechCore_WriteRead_RawPointer_RoundTrip()
     {
-        var pa = PA(0x7000);
-        int cb = 4096;
+        const int cb = 256;
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(cb, 0x1000, nameof(cb)); // Ensure we don't exceed a page
 
         var src = Marshal.AllocHGlobal(cb);
         var dst = Marshal.AllocHGlobal(cb);
@@ -85,8 +89,8 @@ public class VmmSharpEx_LeechCoreTests
             var srcSpan = new Span<byte>((void*)src, cb);
             for (int i = 0; i < cb; i++) srcSpan[i] = (byte)(255 - (i & 0xFF));
 
-            Assert.True(_lc.Write(pa, src, (uint)cb));
-            Assert.True(_lc.Read(pa, (void*)dst, (uint)cb));
+            Assert.True(_lc.Write(_pa, src, (uint)cb));
+            Assert.True(_lc.Read(_pa, (void*)dst, (uint)cb));
 
             var dstSpan = new ReadOnlySpan<byte>((void*)dst, cb);
             Assert.True(srcSpan.SequenceEqual(dstSpan));
@@ -101,36 +105,15 @@ public class VmmSharpEx_LeechCoreTests
     [Fact]
     public void LeechCore_ReadPooledArray_Smoke()
     {
-        var pa = PA(0x9000);
-        var input = Enumerable.Range(0, 256).Select(i => (int)(i * i)).ToArray();
-        Assert.True(_lc.WriteArray(pa, input));
+        var input = Enumerable.Range(0, 64).Select(i => (int)(i * i)).ToArray();
+        int cb = input.Length * sizeof(int);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(cb, 0x1000, nameof(cb)); // Ensure we don't exceed a page
+        Assert.True(_lc.WriteArray(_pa, input));
 
-        using var lease = _lc.ReadPooledArray<int>(pa, input.Length);
+        using var lease = _lc.ReadPooledArray<int>(_pa, input.Length);
         Assert.NotNull(lease);
         Assert.Equal(input.Length, lease.Span.Length);
         Assert.True(input.AsSpan().SequenceEqual(lease.Span));
-    }
-
-    [Fact]
-    public void LeechCore_ReadScatter_Pages()
-    {
-        var page0 = PA(0xB000) & ~0xfffUL;
-        var page1 = page0 + 0x1000;
-
-        var buf0 = Enumerable.Range(0, 4096).Select(i => (byte)(i & 0xFF)).ToArray();
-        var buf1 = Enumerable.Range(0, 4096).Select(i => (byte)((i * 5) & 0xFF)).ToArray();
-
-        Assert.True(_lc.WriteSpan(page0, buf0.AsSpan()));
-        Assert.True(_lc.WriteSpan(page1, buf1.AsSpan()));
-
-        Span<ulong> pas = stackalloc ulong[2] { page0, page1 };
-        using var sh = _lc.ReadScatter(pas);
-
-        Assert.True(sh.Results.TryGetValue(page0, out var s0));
-        Assert.True(sh.Results.TryGetValue(page1, out var s1));
-
-        Assert.True(buf0.AsSpan().SequenceEqual(s0.Data));
-        Assert.True(buf1.AsSpan().SequenceEqual(s1.Data));
     }
 
     [Fact]
@@ -156,13 +139,14 @@ public class VmmSharpEx_LeechCoreTests
     [Fact]
     public void LeechCore_WriteRead_StringUnicode_RoundTrip_PhysOnly()
     {
-        var pa = PA(0xD000);
         var s = "LeechCore-Σ-OK";
         var bytes = Encoding.Unicode.GetBytes(s);
+        int cb = bytes.Length * sizeof(byte);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(cb, 0x1000, nameof(cb)); // Ensure we don't exceed a page
 
-        Assert.True(_lc.WriteArray(pa, bytes));
+        Assert.True(_lc.WriteArray(_pa, bytes));
 
-        var gotBytes = _lc.ReadArray<byte>(pa, bytes.Length);
+        var gotBytes = _lc.ReadArray<byte>(_pa, bytes.Length);
         Assert.NotNull(gotBytes);
         var read = Encoding.Unicode.GetString(gotBytes);
         Assert.Equal(s, read);
