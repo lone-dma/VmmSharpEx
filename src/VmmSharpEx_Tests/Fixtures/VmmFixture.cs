@@ -49,7 +49,7 @@ namespace VmmSharpEx_Tests.Fixtures
                 string result = Vmm.MemReadString(PID, codeCave, 24, Encoding.Unicode);
                 if (!result?.StartsWith("hello :)", StringComparison.OrdinalIgnoreCase) ?? false)
                     throw new InvalidOperationException("Target process code cave memory is not initialized correctly!");
-                CodeCave = codeCave;
+                CodeCave = (codeCave & ~(0x1000ul - 1)) + 0x1000; // Align to next page
             }
             catch (Exception ex)
             {
