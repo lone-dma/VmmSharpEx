@@ -4,11 +4,11 @@ Custom Vmmsharp fork targeting bleeding edge .NET Core for Windows x64. Also inc
 
 ```
 VmmSharpEx_Tests
-  Tests in group: 10
-   Total Duration: 27 ms
+  Tests in group: 33
+   Total Duration: 176 ms
 
 Outcomes
-   10 Passed
+   33 Passed
 ```
 
 ## Getting Started
