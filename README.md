@@ -2,6 +2,15 @@
 
 Custom Vmmsharp fork targeting bleeding edge .NET Core for Windows x64. Also includes the Native Libraries in the build process so you don't need to hunt them down (all files digitally signed).
 
+```
+VmmSharpEx_Tests
+  Tests in group: 10
+   Total Duration: 27 ms
+
+Outcomes
+   10 Passed
+```
+
 ## Getting Started
 [Get it on NuGet!](https://www.nuget.org/packages/VmmSharpEx)
 ```csharp
