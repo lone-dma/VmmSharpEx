@@ -833,7 +833,7 @@ public sealed class Vmm : IDisposable
         }
         for (var i = 0; i < procInfo.Length; i++)
         {
-            if (procInfo[i].sName.Equals(sProcName, StringComparison.OrdinalIgnoreCase))
+            if (procInfo[i].sNameLong.Equals(sProcName, StringComparison.OrdinalIgnoreCase))
             {
                 pids.Add(procInfo[i].dwPID);
             }
