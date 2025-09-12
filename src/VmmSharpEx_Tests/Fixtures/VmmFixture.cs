@@ -1,4 +1,5 @@
-﻿using VmmSharpEx;
+﻿using System.Text;
+using VmmSharpEx;
 
 namespace VmmSharpEx_Tests.Fixtures
 {
@@ -45,6 +46,9 @@ namespace VmmSharpEx_Tests.Fixtures
                     throw new InvalidOperationException($"Unable to find target process module base '{TargetProcess}'");
                 if (!Vmm.MemReadValue<VmmPointer>(PID, ModuleBase + 0x40A0, out var codeCave) || !codeCave.IsValid)
                     throw new InvalidOperationException("Unable to read target process code cave address");
+                string result = Vmm.MemReadString(PID, codeCave, 24, Encoding.Unicode);
+                if (!result?.StartsWith("hello :)", StringComparison.OrdinalIgnoreCase) ?? false)
+                    throw new InvalidOperationException("Target process code cave memory is not initialized correctly!");
                 CodeCave = codeCave;
             }
             catch (Exception ex)
@@ -55,8 +59,12 @@ namespace VmmSharpEx_Tests.Fixtures
 
         public void Dispose()
         {
-            // cleanup after all tests finish
+            // Tell target process to exit via shellcode injection
+            var shellcode = new byte[] { 0x31, 0xC0, 0x48, 0x83, 0xC4, 0x20, 0x5B, 0xC3 }; // xor eax,eax; add rsp,20; pop rbx; ret
+            Vmm.MemWriteSpan(PID, ModuleBase + 0x1423, shellcode.AsSpan());
+            // Cleanup Vmm native handle
             Vmm.Dispose();
+            GC.SuppressFinalize(this);
         }
     }
 }

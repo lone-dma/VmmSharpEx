@@ -8,7 +8,6 @@ LPVOID pvBuffer = nullptr; // 0x40A0
 
 int main()
 {
-    std::cout << "Close this window when testing is completed." << std::endl;
     pvBuffer = VirtualAlloc(NULL, 1024ull * 1024 * 1024, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
     if (!pvBuffer) {
         std::cerr << "VirtualAlloc failed: " << GetLastError() << std::endl;
@@ -16,14 +15,15 @@ int main()
 	}
     const wchar_t msg[] = L"hello :)";
     memcpy(pvBuffer, msg, sizeof(msg));
-    volatile char* pCharBuffer = static_cast<volatile char*>(pvBuffer);
-    if (!pCharBuffer) {
+    const char* pBuffer = static_cast<char*>(pvBuffer);
+    if (!pBuffer) {
         std::cerr << "static_cast failed" << std::endl;
         return 1;
     }
-    for (;;) {
+    std::cout << "This window will close automatically when testing has completed." << std::endl;
+    for (;;) { // 0x1423
         for (SIZE_T i = 0; i < 1024ull * 1024 * 1024; i += 4096) {
-            volatile char tmp = pCharBuffer[i]; // force a read from each page
+            volatile char tmp = pBuffer[i]; // force a read from each page
 		}
         Sleep(1);
     }
