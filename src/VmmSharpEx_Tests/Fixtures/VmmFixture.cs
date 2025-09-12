@@ -1,6 +1,6 @@
 ﻿using VmmSharpEx;
 
-namespace VmmSharpEx_Tests.State
+namespace VmmSharpEx_Tests.Fixtures
 {
     public class VmmFixture : IDisposable
     {

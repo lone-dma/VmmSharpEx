@@ -1,6 +1,6 @@
 using System.Text;
 using VmmSharpEx;
-using VmmSharpEx_Tests.State;
+using VmmSharpEx_Tests.Fixtures;
 
 namespace VmmSharpEx_Tests
 {
