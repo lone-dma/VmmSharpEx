@@ -6,13 +6,13 @@ using VmmSharpEx_Tests.Fixtures;
 namespace VmmSharpEx_Tests;
 
 [Collection(nameof(VmmCollection))]
-public class ScatterReadMap_Tests
+public class VmmSharpEx_ScatterTests
 {
     private readonly Vmm _vmm;
     private readonly uint _pid;
     private readonly ulong _codeCave;
 
-    public ScatterReadMap_Tests(VmmFixture fixture)
+    public VmmSharpEx_ScatterTests(VmmFixture fixture)
     {
         _vmm = fixture.Vmm;
         _pid = fixture.PID;
