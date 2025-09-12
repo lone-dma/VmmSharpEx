@@ -2,25 +2,24 @@ using System.Text;
 using VmmSharpEx;
 using VmmSharpEx_Tests.Fixtures;
 
-namespace VmmSharpEx_Tests
+namespace VmmSharpEx_Tests;
+
+[Collection(nameof(VmmCollection))]
+public class VmmSharpEx_BasicTests
 {
-    [Collection(nameof(VmmCollection))]
-    public class VmmSharpEx_BasicTests
+    private readonly VmmFixture _fixture;
+    private readonly Vmm _vmm;
+
+    public VmmSharpEx_BasicTests(VmmFixture fixture)
     {
-        private readonly VmmFixture _fixture;
-        private readonly Vmm _vmm;
+        _fixture = fixture;
+        _vmm = fixture.Vmm; // Shortcut
+    }
 
-        public VmmSharpEx_BasicTests(VmmFixture fixture)
-        {
-            _fixture = fixture;
-            _vmm = fixture.Vmm; // Shortcut
-        }
-
-        [Fact]
-        public void CodeCave_ReadHello()
-        {
-            string result = _vmm.MemReadString(_fixture.PID, _fixture.CodeCave, 24, Encoding.Unicode);
-            Assert.StartsWith("hello :)", result, StringComparison.OrdinalIgnoreCase);
-        }
+    [Fact]
+    public void CodeCave_ReadHello()
+    {
+        string result = _vmm.MemReadString(_fixture.PID, _fixture.CodeCave, 24, Encoding.Unicode);
+        Assert.StartsWith("hello :)", result, StringComparison.OrdinalIgnoreCase);
     }
 }
