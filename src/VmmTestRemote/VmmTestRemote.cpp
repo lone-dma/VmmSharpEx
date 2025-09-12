@@ -11,6 +11,8 @@ int main()
         std::cerr << "VirtualAlloc failed: " << GetLastError() << std::endl;
         return 1;
 	}
+    const wchar_t msg[] = L"hello :)";
+    memcpy(pvBuffer, msg, sizeof(msg));
     volatile char* pCharBuffer = static_cast<volatile char*>(pvBuffer);
     if (!pCharBuffer) {
         std::cerr << "static_cast failed" << std::endl;
