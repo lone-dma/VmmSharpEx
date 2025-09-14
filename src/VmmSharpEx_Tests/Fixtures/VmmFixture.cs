@@ -23,6 +23,7 @@ namespace VmmSharpEx_Tests.Fixtures
         public ulong ModuleBase { get; }
         /// <summary>
         /// Memory address of the R/W Memory Region in Target Process (16 Pages, Aligned)
+        /// Maximum Offset 0xFFFF
         /// </summary>
         public ulong CodeCave { get; }
 
