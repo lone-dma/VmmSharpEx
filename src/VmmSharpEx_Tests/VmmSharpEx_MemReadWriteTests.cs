@@ -35,7 +35,7 @@ public class VmmSharpEx_MemReadWriteTests
 
         Assert.True(_vmm.MemWriteValue(_pid, addr, input));
 
-        Assert.True(_vmm.MemReadValue<TestStruct>(_pid, addr, out var output));
+        Assert.True(_vmm.MemReadValue<TestStruct>(_pid, addr, out var output, VmmSharpEx.Options.VmmFlags.NOCACHE));
         Assert.Equal(input.X, output.X);
         Assert.Equal(input.Y, output.Y);
         Assert.Equal(input.Z, output.Z);
@@ -49,7 +49,7 @@ public class VmmSharpEx_MemReadWriteTests
 
         Assert.True(_vmm.MemWriteArray(_pid, addr, input));
 
-        var output = _vmm.MemReadArray<int>(_pid, addr, input.Length);
+        var output = _vmm.MemReadArray<int>(_pid, addr, input.Length, VmmSharpEx.Options.VmmFlags.NOCACHE);
         Assert.NotNull(output);
         Assert.Equal(input.Length, output.Length);
         Assert.True(input.SequenceEqual(output));
@@ -65,7 +65,7 @@ public class VmmSharpEx_MemReadWriteTests
         Assert.True(_vmm.MemWriteSpan(_pid, addr, input));
 
         Span<byte> output = stackalloc byte[input.Length];
-        Assert.True(_vmm.MemReadSpan(_pid, addr, output));
+        Assert.True(_vmm.MemReadSpan(_pid, addr, output, VmmSharpEx.Options.VmmFlags.NOCACHE));
         Assert.True(input.SequenceEqual(output.ToArray()));
     }
 
@@ -77,7 +77,7 @@ public class VmmSharpEx_MemReadWriteTests
 
         Assert.True(_vmm.MemWriteArray(_pid, addr, input));
 
-        using var lease = _vmm.MemReadPooledArray<ushort>(_pid, addr, input.Length);
+        using var lease = _vmm.MemReadPooledArray<ushort>(_pid, addr, input.Length, VmmSharpEx.Options.VmmFlags.NOCACHE);
         Assert.NotNull(lease);
         Assert.Equal(input.Length, lease.Span.Length);
         Assert.True(input.AsSpan().SequenceEqual(lease.Span));
@@ -92,7 +92,7 @@ public class VmmSharpEx_MemReadWriteTests
 
         Assert.True(_vmm.MemWriteArray(_pid, addr, bytes));
 
-        var read = _vmm.MemReadString(_pid, addr, bytes.Length, Encoding.Unicode);
+        var read = _vmm.MemReadString(_pid, addr, bytes.Length, Encoding.Unicode, VmmSharpEx.Options.VmmFlags.NOCACHE);
         Assert.NotNull(read);
         Assert.Equal(s, read);
     }

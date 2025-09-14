@@ -48,7 +48,7 @@ namespace VmmSharpEx_Tests.Fixtures
                     throw new InvalidOperationException($"Unable to find target process module base '{TargetProcess}'");
                 if (!Vmm.MemReadValue<VmmPointer>(PID, ModuleBase + 0x40A0, out var codeCave) || !codeCave.IsValid)
                     throw new InvalidOperationException("Unable to read target process code cave address");
-                string result = Vmm.MemReadString(PID, codeCave, 24, Encoding.Unicode);
+                string result = Vmm.MemReadString(PID, codeCave, 24, Encoding.Unicode, VmmSharpEx.Options.VmmFlags.NOCACHE);
                 if (!result?.StartsWith("hello :)", StringComparison.OrdinalIgnoreCase) ?? false)
                     throw new InvalidOperationException("Target process code cave memory is not initialized correctly!");
                 CodeCave = (codeCave + 0x1000) & ~0xffful; // Buffer has 17 pages, align working area to the next page boundary (total 16 pages)

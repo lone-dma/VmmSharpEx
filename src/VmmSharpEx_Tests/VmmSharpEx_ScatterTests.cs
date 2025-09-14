@@ -42,7 +42,7 @@ public class VmmSharpEx_ScatterTests
 
         // Act via ScatterReadMap
         using var map = new ScatterReadMap(_vmm, _pid);
-        var round = map.AddRound();
+        var round = map.AddRound(useCache: false);
 
         // entries
         round[0].AddValueEntry<ulong>(0, addrValue);
@@ -86,7 +86,7 @@ public class VmmSharpEx_ScatterTests
         var expected = twoPages.AsSpan(0x700, length).ToArray();
 
         using var map = new ScatterReadMap(_vmm, _pid);
-        var round = map.AddRound();
+        var round = map.AddRound(useCache: false);
 
         round[0].AddArrayEntry<byte>(0, start, length);
 
@@ -115,7 +115,7 @@ public class VmmSharpEx_ScatterTests
         Assert.True(_vmm.MemWriteValue(_pid, addrPtr, addrBuf)); // write pointer value (VA)
 
         using var map = new ScatterReadMap(_vmm, _pid);
-        var rd1 = map.AddRound();
+        var rd1 = map.AddRound(useCache: false);
         var rd2 = map.AddRound(useCache: false);
 
         bool s1 = false, s2 = false;
@@ -175,7 +175,7 @@ public class VmmSharpEx_ScatterTests
         }
 
         using var map = new ScatterReadMap(_vmm, _pid);
-        var rd = map.AddRound();
+        var rd = map.AddRound(useCache: false);
 
         var seen = new bool[n];
 
@@ -231,7 +231,7 @@ public class VmmSharpEx_ScatterTests
         }
 
         using var map = new ScatterReadMap(_vmm, _pid);
-        var rd = map.AddRound();
+        var rd = map.AddRound(useCache: false);
 
         var seen = new bool[n];
 
@@ -274,7 +274,7 @@ public class VmmSharpEx_ScatterTests
         }
 
         using var map = new ScatterReadMap(_vmm, _pid);
-        var rd1 = map.AddRound();
+        var rd1 = map.AddRound(useCache: false);
         var rd2 = map.AddRound(useCache: false);
 
         var seen1 = new bool[n];
