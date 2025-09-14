@@ -3,7 +3,7 @@
 	<PropertyGroup>
 		<RootNamespace>VmmSharpEx</RootNamespace>
 		<LangVersion>latest</LangVersion>
-		<TargetFramework>net9.0-windows</TargetFramework>
+		<TargetFrameworks>net9.0-windows;net10.0-windows</TargetFrameworks>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>warnings</Nullable>
 		<Platforms>x64</Platforms>
@@ -27,7 +27,7 @@
 		<Copyright>©2025 AGPL-3.0</Copyright>
 		<Description>Custom Vmmsharp fork targeting bleeding edge .NET Core for Windows x64.</Description>
 		<!-- Auto Versioning -->
-		<Version>2.5.$([System.DateTimeOffset]::UtcNow.Subtract($([System.DateTimeOffset]::Parse('2000-01-01Z'))).Days).$([System.Convert]::ToInt32($([System.Math]::Floor($([System.DateTimeOffset]::UtcNow.TimeOfDay.TotalMinutes)))))</Version>
+		<Version>3.0.$([System.DateTimeOffset]::UtcNow.Subtract($([System.DateTimeOffset]::Parse('2000-01-01Z'))).Days).$([System.Convert]::ToInt32($([System.Math]::Floor($([System.DateTimeOffset]::UtcNow.TimeOfDay.TotalMinutes)))))</Version>
 		<AssemblyVersion>$(Version)</AssemblyVersion>
 		<FileVersion>$(Version)</FileVersion>
 		<!-- Properties -->

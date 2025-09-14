@@ -4,11 +4,11 @@ Custom Vmmsharp fork targeting bleeding edge .NET Core for Windows x64. Also inc
 
 ```
 VmmSharpEx_Tests
-  Tests in group: 33
-   Total Duration: 176 ms
+  Tests in group: 26
+   Total Duration: 120 ms
 
 Outcomes
-   33 Passed
+   26 Passed
 ```
 
 ## Getting Started
@@ -19,8 +19,10 @@ Install-Package VmmSharpEx
 This library is **Windows Only** so make sure your solution is targeting a Windows TFM like `net9.0-windows`, etc.
 
 ## Changelog
+- Version 3.0
+  - Added .NET 10 Support
 - Initial Release
-  - .NET 9  
+  - .NET 9
   - MemProcFS 5.15.3
 
 ## License
