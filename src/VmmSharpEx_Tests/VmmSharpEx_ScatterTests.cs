@@ -24,10 +24,10 @@ public class VmmSharpEx_ScatterTests
     [Fact]
     public void ScatterReadMap_Basic_Value_Array_String()
     {
-        // Arrange distinct regions
-        var addrValue = Region(0x60000);
-        var addrArray = Region(0x61000);
-        var addrString = Region(0x62000);
+        // Arrange distinct regions (within 0x0000..0xFFFF)
+        var addrValue = Region(0x6000);
+        var addrArray = Region(0x7000);
+        var addrString = Region(0x8000);
 
         // Prepare memory contents
         var value = 0xDEADBEEFCAFEBABEUL;
@@ -74,11 +74,11 @@ public class VmmSharpEx_ScatterTests
     public void ScatterReadMap_CrossPage_Array_Reads()
     {
         // Create a buffer that spans page boundary: start near end of page
-        var page = Region(0x70000) & ~0xfffUL;
+        var page = Region(0x9000);
         var start = page + 0x700; // 0x700 into page
         var length = 3000;        // crosses into next page (0x700 + 3000 > 4096)
 
-        // Prepare 2 pages of patterned data
+        // Prepare 2 pages of patterned data (0x9000..0xAFFF)
         var twoPages = Enumerable.Range(0, 8192).Select(i => (byte)(i * 3)).ToArray();
         Assert.True(_vmm.MemWriteArray(_pid, page, twoPages));
 
@@ -107,8 +107,8 @@ public class VmmSharpEx_ScatterTests
     public void ScatterReadMap_MultiRound_Dependent_Reads()
     {
         // Round 1 writes a pointer, Round 2 uses it to fetch data
-        var addrPtr = Region(0x80000);
-        var addrBuf = Region(0x81000);
+        var addrPtr = Region(0xA000);
+        var addrBuf = Region(0xB000);
         var buf = Enumerable.Range(0, 64).Select(i => (byte)(255 - i)).ToArray();
 
         Assert.True(_vmm.MemWriteArray(_pid, addrBuf, buf));
@@ -139,29 +139,33 @@ public class VmmSharpEx_ScatterTests
         Assert.True(s2);
     }
 
-    [InlineData(100)]
-    [InlineData(6)]
-    [InlineData(0)]
-    [Theory]
-    public void ScatterReadMap_MultiIndex_Value_Array_String_Loop(int count)
+    [Fact]
+    public void ScatterReadMap_MultiIndex_Value_Array_String_Loop()
     {
-        // Prepare expected data per index
-        var values = new ulong[count];
-        var arrays = new byte[count][];
-        var strings = new string[count];
-        var addrValue = new ulong[count];
-        var addrArray = new ulong[count];
-        var addrString = new ulong[count];
+        // Fit within 0xC000..0xFFFF (16KB) using 0x100 stride per index => max 16 indices
+        const int n = 16;
 
-        for (int ix = 0; ix < count; ix++)
+        var values = new ulong[n];
+        var arrays = new byte[n][];
+        var strings = new string[n];
+        var addrValue = new ulong[n];
+        var addrArray = new ulong[n];
+        var addrString = new ulong[n];
+
+        const ulong baseStart = 0xC000;
+        const ulong stride = 0x100;
+
+        for (int ix = 0; ix < n; ix++)
         {
             int i = ix;
-            addrValue[i] = Region(0x90000 + (ulong)(i * 0x3000));
-            addrArray[i] = Region(0x90000 + (ulong)(i * 0x3000) + 0x800);
-            addrString[i] = Region(0x90000 + (ulong)(i * 0x3000) + 0x1000);
+            ulong baseOff = baseStart + (ulong)i * stride;
+
+            addrValue[i] = Region(baseOff + 0x00);
+            addrArray[i] = Region(baseOff + 0x20);
+            addrString[i] = Region(baseOff + 0x80);
 
             values[i] = 0xABCDEF0000000000UL + (ulong)i;
-            arrays[i] = Enumerable.Range(0, 64 + i).Select(b => (byte)((b + i) ^ 0x5A)).ToArray();
+            arrays[i] = Enumerable.Range(0, 64 + i).Select(b => (byte)((b + i) ^ 0x5A)).ToArray(); // <= 127 B max
             strings[i] = $"ScatterIdx-{i:00}";
             var strBytes = Encoding.ASCII.GetBytes(strings[i] + "\0");
 
@@ -173,9 +177,9 @@ public class VmmSharpEx_ScatterTests
         using var map = new ScatterReadMap(_vmm, _pid);
         var rd = map.AddRound();
 
-        var seen = new bool[count];
+        var seen = new bool[n];
 
-        for (int ix = 0; ix < count; ix++)
+        for (int ix = 0; ix < n; ix++)
         {
             int i = ix; // capture
             rd[i].AddValueEntry<ulong>(0, addrValue[i]);
@@ -202,20 +206,20 @@ public class VmmSharpEx_ScatterTests
         Assert.All(seen, b => Assert.True(b));
     }
 
-    [InlineData(11)]
-    [InlineData(5)]
-    [InlineData(0)]
-    [Theory]
-    public void ScatterReadMap_MultiIndex_CrossPage_Loop(int count)
+    [Fact]
+    public void ScatterReadMap_MultiIndex_CrossPage_Loop()
     {
-        var starts = new ulong[count];
-        var lens = new int[count];
-        var expected = new byte[count][];
+        // Each entry uses 2 pages starting at 0x0000, 0x4000, 0x8000, 0xC000 => max 4 entries
+        const int n = 4;
 
-        for (int ix = 0; ix < count; ix++)
+        var starts = new ulong[n];
+        var lens = new int[n];
+        var expected = new byte[n][];
+
+        for (int ix = 0; ix < n; ix++)
         {
             int i = ix;
-            var basePage = Region(0xA0000 + (ulong)(i * 0x4000)) & ~0xfffUL;
+            var basePage = Region((ulong)(i * 0x4000)) & ~0xfffUL; // 0x0000,0x4000,0x8000,0xC000
             var pattern = Enumerable.Range(0, 8192).Select(x => (byte)((x + i) * 7)).ToArray();
             Assert.True(_vmm.MemWriteArray(_pid, basePage, pattern)); // 2 pages
 
@@ -229,9 +233,9 @@ public class VmmSharpEx_ScatterTests
         using var map = new ScatterReadMap(_vmm, _pid);
         var rd = map.AddRound();
 
-        var seen = new bool[count];
+        var seen = new bool[n];
 
-        for (int ix = 0; ix < count; ix++)
+        for (int ix = 0; ix < n; ix++)
         {
             int i = ix;
             rd[i].AddArrayEntry<byte>(0, starts[i], lens[i]);
@@ -248,21 +252,21 @@ public class VmmSharpEx_ScatterTests
         Assert.All(seen, b => Assert.True(b));
     }
 
-    [InlineData(100)]
-    [InlineData(4)]
-    [InlineData(0)]
-    [Theory]
-    public void ScatterReadMap_MultiRound_MultiIndex_Dependent_Loop(int count)
+    [Fact]
+    public void ScatterReadMap_MultiRound_MultiIndex_Dependent_Loop()
     {
-        var ptrAddrs = new ulong[count];
-        var bufAddrs = new ulong[count];
-        var bufs = new byte[count][];
+        // Layout fits up to 5 indices: i in [0..4]
+        const int n = 5;
 
-        for (int ix = 0; ix < count; ix++)
+        var ptrAddrs = new ulong[n];
+        var bufAddrs = new ulong[n];
+        var bufs = new byte[n][];
+
+        for (int ix = 0; ix < n; ix++)
         {
             int i = ix;
-            ptrAddrs[i] = Region(0xB0000 + (ulong)(i * 0x3000));
-            bufAddrs[i] = Region(0xB0000 + (ulong)(i * 0x3000) + 0x1000);
+            ptrAddrs[i] = Region(0x1000 + (ulong)(i * 0x3000));             // 0x1000,0x4000,0x7000,0xA000,0xD000
+            bufAddrs[i] = Region(0x2000 + (ulong)(i * 0x3000) + 0x1000);     // 0x3000,0x6000,0x9000,0xC000,0xF000
             bufs[i] = Enumerable.Range(0, 96 + (i * 7)).Select(x => (byte)(255 - ((x + i) & 0xFF))).ToArray();
 
             Assert.True(_vmm.MemWriteArray(_pid, bufAddrs[i], bufs[i]));
@@ -273,10 +277,10 @@ public class VmmSharpEx_ScatterTests
         var rd1 = map.AddRound();
         var rd2 = map.AddRound(useCache: false);
 
-        var seen1 = new bool[count];
-        var seen2 = new bool[count];
+        var seen1 = new bool[n];
+        var seen2 = new bool[n];
 
-        for (int ix = 0; ix < count; ix++)
+        for (int ix = 0; ix < n; ix++)
         {
             int i = ix;
             rd1[i].AddValueEntry<ulong>(0, ptrAddrs[i]);

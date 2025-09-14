@@ -22,7 +22,7 @@ namespace VmmSharpEx_Tests.Fixtures
         /// </summary>
         public ulong ModuleBase { get; }
         /// <summary>
-        /// Memory address of the ~1GB memory buffer in target process
+        /// Memory address of the R/W Memory Region in Target Process (16 Pages, Aligned)
         /// </summary>
         public ulong CodeCave { get; }
 
@@ -50,7 +50,7 @@ namespace VmmSharpEx_Tests.Fixtures
                 string result = Vmm.MemReadString(PID, codeCave, 24, Encoding.Unicode);
                 if (!result?.StartsWith("hello :)", StringComparison.OrdinalIgnoreCase) ?? false)
                     throw new InvalidOperationException("Target process code cave memory is not initialized correctly!");
-                CodeCave = (codeCave + 0x1000) & ~0xffful; // Align to next page
+                CodeCave = (codeCave + 0x1000) & ~0xffful; // Buffer has 17 pages, align working area to the next page boundary (total 16 pages)
             }
             catch (Exception ex)
             {

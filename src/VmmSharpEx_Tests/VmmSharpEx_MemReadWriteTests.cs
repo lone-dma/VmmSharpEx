@@ -30,7 +30,7 @@ public class VmmSharpEx_MemReadWriteTests
     [Fact]
     public unsafe void WriteRead_Value_RoundTrip()
     {
-        var addr = Region(0x10000);
+        var addr = Region(0x1000);
         var input = new TestStruct { X = 0x1122334455667788UL, Y = 0xAABBCCDDu, Z = unchecked((short)0xFEDC) };
 
         Assert.True(_vmm.MemWriteValue(_pid, addr, input));
@@ -44,7 +44,7 @@ public class VmmSharpEx_MemReadWriteTests
     [Fact]
     public unsafe void WriteRead_Array_RoundTrip()
     {
-        var addr = Region(0x20000);
+        var addr = Region(0x2000);
         var input = Enumerable.Range(0, 256).Select(i => i * 7).ToArray();
 
         Assert.True(_vmm.MemWriteArray(_pid, addr, input));
@@ -58,7 +58,7 @@ public class VmmSharpEx_MemReadWriteTests
     [Fact]
     public unsafe void WriteRead_Span_RoundTrip()
     {
-        var addr = Region(0x30000);
+        var addr = Region(0x3000);
         var inputArr = Enumerable.Range(0, 512).Select(i => (byte)(i & 0xFF)).ToArray();
         var input = inputArr.AsSpan();
 
@@ -72,7 +72,7 @@ public class VmmSharpEx_MemReadWriteTests
     [Fact]
     public unsafe void WriteRead_PooledArray_RoundTrip()
     {
-        var addr = Region(0x40000);
+        var addr = Region(0x4000);
         var input = Enumerable.Range(0, 1024).Select(i => (ushort)(i ^ 0x55AA)).ToArray();
 
         Assert.True(_vmm.MemWriteArray(_pid, addr, input));
@@ -86,7 +86,7 @@ public class VmmSharpEx_MemReadWriteTests
     [Fact]
     public unsafe void WriteRead_RawBytes_And_ReadString_Unicode()
     {
-        var addr = Region(0x50000);
+        var addr = Region(0x5000);
         var s = "UnitTest-Σ🚀";
         var bytes = Encoding.Unicode.GetBytes(s + "\0"); // NT-terminated
 
@@ -103,9 +103,9 @@ public class VmmSharpEx_MemReadWriteTests
         // Prefetch three pages near our CodeCave working regions
         Span<ulong> vas =
         [
-            Region(0x10000) & ~0xfffUL,
-            Region(0x20000) & ~0xfffUL,
-            Region(0x30000) & ~0xfffUL,
+            Region(0x1000),
+            Region(0x2000),
+            Region(0x3000),
         ];
         Assert.True(_vmm.MemPrefetchPages(_pid, vas));
     }
