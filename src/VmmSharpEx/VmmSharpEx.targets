@@ -2,7 +2,7 @@
 	<ItemGroup>
 		<None Include="$(MSBuildThisFileDirectory)**\*.dll">
 			<Visible>false</Visible>
-			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
 		</None>
 	</ItemGroup>
 </Project>

@@ -12,7 +12,7 @@
 
 	<ItemGroup Label="NuGet Pack">
 		<None Include="VmmSharpEx.targets" Pack="true" PackagePath="build\" />
-		<None Include="..\..\native\**\*" Pack="true" PackagePath="build\" Visible="false" CopyToOutputDirectory="PreserveNewest" />
+		<None Include="..\..\native\**\*" Pack="true" PackagePath="build\" Visible="false" CopyToOutputDirectory="Always" />
 		<None Include="..\..\LICENSE" Pack="true" PackagePath="" Visible="false" />
 		<None Include="..\..\logo.png" Pack="true" PackagePath="" Visible="false" />
 		<None Include="..\..\README.md" Pack="true" PackagePath="" />
@@ -27,7 +27,7 @@
 		<Copyright>©2025 AGPL-3.0</Copyright>
 		<Description>Custom Vmmsharp fork targeting bleeding edge .NET Core for Windows x64.</Description>
 		<!-- Auto Versioning -->
-		<Version>3.0.$([System.DateTimeOffset]::UtcNow.Subtract($([System.DateTimeOffset]::Parse('2000-01-01Z'))).Days).$([System.Convert]::ToInt32($([System.Math]::Floor($([System.DateTimeOffset]::UtcNow.TimeOfDay.TotalMinutes)))))</Version>
+		<Version>3.50.$([System.DateTimeOffset]::UtcNow.Subtract($([System.DateTimeOffset]::Parse('2000-01-01Z'))).Days).$([System.Convert]::ToInt32($([System.Math]::Floor($([System.DateTimeOffset]::UtcNow.TimeOfDay.TotalMinutes)))))</Version>
 		<AssemblyVersion>$(Version)</AssemblyVersion>
 		<FileVersion>$(Version)</FileVersion>
 		<!-- Properties -->
