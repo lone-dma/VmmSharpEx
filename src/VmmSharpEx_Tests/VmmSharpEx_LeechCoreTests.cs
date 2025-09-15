@@ -1,4 +1,9 @@
-﻿using System.Runtime.InteropServices;
+﻿/*  
+ *  VmmSharpEx by Lone (Lone DMA)
+ *  Copyright (C) 2025 AGPL-3.0
+*/
+
+using System.Runtime.InteropServices;
 using System.Text;
 using VmmSharpEx;
 using VmmSharpEx.Options;

@@ -30,7 +30,6 @@ This library is **Windows Only** so make sure your solution is targeting a Windo
 
 ## License
 ```
-Forked off https://github.com/ufrisk/MemProcFS in compliance with AGPL-3.0 license.
 Changes documented in git.
 /*  
  *  C# API wrapper 'vmmsharp' for MemProcFS 'vmm.dll' and LeechCore 'leechcore.dll' APIs.
@@ -43,4 +42,9 @@ Changes documented in git.
  *  Author: Ulf Frisk, pcileech@frizk.net
  *  
  */
+
+/*  
+ *  VmmSharpEx by Lone (Lone DMA)
+ *  Copyright (C) 2025 AGPL-3.0
+*/
 ```

@@ -1,4 +1,9 @@
-﻿using System.Collections.Concurrent;
+﻿/*  
+ *  VmmSharpEx by Lone (Lone DMA)
+ *  Copyright (C) 2025 AGPL-3.0
+*/
+
+using System.Collections.Concurrent;
 
 namespace VmmSharpEx.Refresh;
 

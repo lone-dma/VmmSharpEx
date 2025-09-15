@@ -1,4 +1,8 @@
-﻿using System.Diagnostics;
+﻿/*  
+ *  VmmSharpEx by Lone (Lone DMA)
+ *  Copyright (C) 2025 AGPL-3.0
+*/
+
 using System.Text;
 using VmmSharpEx.Options;
 

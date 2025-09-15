@@ -1,4 +1,9 @@
-﻿using Collections.Pooled;
+﻿/*  
+ *  VmmSharpEx by Lone (Lone DMA)
+ *  Copyright (C) 2025 AGPL-3.0
+*/
+
+using Collections.Pooled;
 
 namespace VmmSharpEx.Scatter
 {

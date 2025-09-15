@@ -1,4 +1,9 @@
-﻿using VmmSharpEx.Options;
+﻿/*  
+ *  VmmSharpEx by Lone (Lone DMA)
+ *  Copyright (C) 2025 AGPL-3.0
+*/
+
+using VmmSharpEx.Options;
 
 namespace VmmSharpEx.Refresh;
 

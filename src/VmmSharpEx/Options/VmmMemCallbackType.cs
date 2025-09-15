@@ -1,4 +1,9 @@
-﻿namespace VmmSharpEx.Options
+﻿/*  
+ *  VmmSharpEx by Lone (Lone DMA)
+ *  Copyright (C) 2025 AGPL-3.0
+*/
+
+namespace VmmSharpEx.Options
 {
     /// <summary>
     /// Callback types for VMM memory callbacks.

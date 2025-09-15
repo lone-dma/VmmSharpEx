@@ -1,4 +1,21 @@
-﻿using System.Runtime.InteropServices;
+﻿/*  
+*  C# API wrapper 'vmmsharp' for MemProcFS 'vmm.dll' and LeechCore 'leechcore.dll' APIs.
+*  
+*  Please see the example project in vmmsharp_example for additional information.
+*  
+*  Please consult the C/C++ header files vmmdll.h and leechcore.h for information about parameters and API usage.
+*  
+*  (c) Ulf Frisk, 2020-2025
+*  Author: Ulf Frisk, pcileech@frizk.net
+*  
+*/
+
+/*  
+ *  VmmSharpEx by Lone (Lone DMA)
+ *  Copyright (C) 2025 AGPL-3.0
+*/
+
+using System.Runtime.InteropServices;
 using VmmSharpEx.Options;
 
 namespace VmmSharpEx.Internal;
