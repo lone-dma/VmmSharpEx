@@ -30,7 +30,6 @@ This library is **Windows Only** so make sure your solution is targeting a Windo
 
 ## License
 ```
-Changes documented in git.
 /*  
  *  C# API wrapper 'vmmsharp' for MemProcFS 'vmm.dll' and LeechCore 'leechcore.dll' APIs.
  *  
