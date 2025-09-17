@@ -16,7 +16,10 @@
 */
 
 using System.Runtime.InteropServices;
+using System.Runtime.Versioning;
 using VmmSharpEx.Options;
+
+[assembly: SupportedOSPlatform("Windows")]
 
 namespace VmmSharpEx.Internal;
 
@@ -1492,13 +1495,13 @@ internal static partial class Vmmi
         [MarshalAs(UnmanagedType.LPStr)] string uszFormat,
         [MarshalAs(UnmanagedType.LPUTF8Str)] string uszTextToLog);
 
-    #endregion
-
     [LibraryImport("vmm.dll", EntryPoint = "VMMDLL_MemCallback")]
     [return: MarshalAs(UnmanagedType.Bool)]
     public static unsafe partial bool VMMDLL_MemCallback(
-     IntPtr hVMM,
-     VmmMemCallbackType tp,
-     IntPtr ctxUser,
-     IntPtr pfnCB);
+        IntPtr hVMM,
+        VmmMemCallbackType tp,
+        IntPtr ctxUser,
+        IntPtr pfnCB);
+
+    #endregion
 }

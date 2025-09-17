@@ -16,7 +16,10 @@
 */
 
 using System.Runtime.InteropServices;
+using System.Runtime.Versioning;
 using VmmSharpEx.Options;
+
+[assembly: SupportedOSPlatform("Windows")]
 
 namespace VmmSharpEx.Internal;
 

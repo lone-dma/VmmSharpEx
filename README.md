@@ -16,7 +16,7 @@ Outcomes
 ```csharp
 Install-Package VmmSharpEx
 ```
-This library is **Windows Only** so make sure your solution is targeting a Windows TFM like `net9.0-windows`, etc.
+This library is **Windows Only**, and only bundles/targets the Windows x64 native libraries.
 
 ## Changelog
 - Version 3.50
