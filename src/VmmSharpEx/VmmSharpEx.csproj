@@ -31,8 +31,8 @@
 		<AssemblyVersion>$(Version)</AssemblyVersion>
 		<FileVersion>$(Version)</FileVersion>
 		<!-- Properties -->
-		<PackageProjectUrl>https://gitlab.com/lone-dma/vmmsharpex</PackageProjectUrl>
-		<RepositoryUrl>https://gitlab.com/lone-dma/vmmsharpex.git</RepositoryUrl>
+		<PackageProjectUrl>https://github.com/lone-dma/VmmSharpEx</PackageProjectUrl>
+		<RepositoryUrl>https://github.com/lone-dma/VmmSharpEx.git</RepositoryUrl>
 		<RepositoryType>git</RepositoryType>
 		<PackageLicenseFile>LICENSE</PackageLicenseFile>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
