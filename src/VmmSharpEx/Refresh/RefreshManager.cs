@@ -3,8 +3,6 @@
  *  Copyright (C) 2025 AGPL-3.0
 */
 
-using System.Collections.Concurrent;
-
 namespace VmmSharpEx.Refresh;
 
 /// <summary>
@@ -12,7 +10,8 @@ namespace VmmSharpEx.Refresh;
 /// </summary>
 internal static class RefreshManager
 {
-    private static readonly ConcurrentDictionary<Vmm, ConcurrentDictionary<RefreshOption, VmmRefresher>> _refreshers = new();
+    private static readonly Lock _lock = new();
+    private static readonly Dictionary<Vmm, Dictionary<RefreshOption, VmmRefresher>> _refreshers = new();
 
     /// <summary>
     /// Register a refresher for the given Vmm instance and refresh option.
@@ -23,14 +22,16 @@ internal static class RefreshManager
     /// <exception cref="VmmException"></exception>
     public static void Register(Vmm instance, RefreshOption option, TimeSpan interval)
     {
-        var dict = _refreshers.GetOrAdd(instance, new ConcurrentDictionary<RefreshOption, VmmRefresher>());
-        if (dict.ContainsKey(option))
+        lock (_lock)
         {
-            throw new VmmException("Refresher already registered for this option!");
+            if (!_refreshers.TryGetValue(instance, out var dict))
+                _refreshers[instance] = dict = new Dictionary<RefreshOption, VmmRefresher>();
+            if (dict.ContainsKey(option))
+            {
+                throw new VmmException("Refresher already registered for this option!");
+            }
+            dict[option] = new VmmRefresher(instance, option, interval);
         }
-
-        var refresher = new VmmRefresher(instance, option, interval);
-        dict[option] = refresher;
     }
 
     /// <summary>
@@ -40,9 +41,13 @@ internal static class RefreshManager
     /// <param name="option"></param>
     public static void Unregister(Vmm instance, RefreshOption option)
     {
-        if (_refreshers.TryGetValue(instance, out var dict) && dict.TryRemove(option, out var refresher))
+        lock (_lock)
         {
-            refresher.Dispose();
+            if (_refreshers.TryGetValue(instance, out var dict) && dict.TryGetValue(option, out var refresher))
+            {
+                refresher.Dispose();
+                _ = dict.Remove(option);
+            }
         }
     }
 
@@ -53,11 +58,15 @@ internal static class RefreshManager
     /// <param name="instance"></param>
     public static void UnregisterAll(Vmm instance)
     {
-        if (_refreshers.TryRemove(instance, out var dict))
+        lock (_lock)
         {
-            foreach (var refresher in dict.Values)
+            if (_refreshers.TryGetValue(instance, out var dict))
             {
-                refresher.Dispose();
+                foreach (var refresher in dict.Values)
+                {
+                    refresher.Dispose();
+                }
+                _ = _refreshers.Remove(instance);
             }
         }
     }
