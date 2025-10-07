@@ -5,6 +5,7 @@
 
 using Microsoft.Extensions.ObjectPool;
 using System.Buffers;
+using System.Runtime.CompilerServices;
 using VmmSharpEx.Internal;
 using VmmSharpEx.Pools;
 
@@ -31,7 +32,7 @@ namespace VmmSharpEx.Scatter
             {
                 count = 0;
             }
-            int cb = checked(count * SizeCache<T>.Size);
+            int cb = checked(count * Unsafe.SizeOf<T>());
             var rented = _pool.Get();
             rented.CB = cb;
             rented._array = ArrayPool<T>.Shared.Rent(count);

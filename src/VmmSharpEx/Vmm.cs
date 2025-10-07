@@ -362,7 +362,7 @@ public sealed class Vmm : IDisposable
     public unsafe bool MemReadValue<T>(uint pid, ulong va, out T result, VmmFlags flags = VmmFlags.NONE)
         where T : unmanaged, allows ref struct
     {
-        var cb = SizeCache<T>.SizeU;
+        uint cb = (uint)sizeof(T);
 		result = default;
         fixed (void* pb = &result)
         {
@@ -383,7 +383,7 @@ public sealed class Vmm : IDisposable
     public unsafe T[] MemReadArray<T>(uint pid, ulong va, int count, VmmFlags flags = VmmFlags.NONE)
         where T : unmanaged
     {
-        uint cb = checked(SizeCache<T>.SizeU * (uint)count);
+        uint cb = checked((uint)sizeof(T) * (uint)count);
         var data = new T[count];
         fixed (T* pb = data)
         {
@@ -410,7 +410,7 @@ public sealed class Vmm : IDisposable
         where T : unmanaged
     {
         var arr = new PooledMemory<T>(count);
-        uint cb = checked(SizeCache<T>.SizeU * (uint)count);
+        uint cb = checked((uint)sizeof(T) * (uint)count);
         fixed (T* pb = arr.Span)
         {
             if (!Vmmi.VMMDLL_MemReadEx(_h, pid, va, (byte*)pb, cb, out var cbRead, flags) || cbRead != cb)
@@ -436,7 +436,7 @@ public sealed class Vmm : IDisposable
     public unsafe bool MemReadSpan<T>(uint pid, ulong va, Span<T> span, VmmFlags flags = VmmFlags.NONE)
         where T : unmanaged
     {
-		uint cb = checked(SizeCache<T>.SizeU * (uint)span.Length);
+		uint cb = checked((uint)sizeof(T) * (uint)span.Length);
 		fixed (T* pb = span)
         {
             return Vmmi.VMMDLL_MemReadEx(_h, pid, va, (byte*)pb, cb, out var cbRead, flags) && cbRead == cb;
@@ -540,7 +540,7 @@ public sealed class Vmm : IDisposable
         where T : unmanaged, allows ref struct
     {
         ThrowIfMemWritesDisabled();
-        var cb = SizeCache<T>.SizeU;
+        uint cb = (uint)sizeof(T);
 		return Vmmi.VMMDLL_MemWrite(_h, pid, va, (byte*)&value, cb);
     }
 
@@ -556,7 +556,7 @@ public sealed class Vmm : IDisposable
         where T : unmanaged
     {
         ThrowIfMemWritesDisabled();
-		uint cb = checked(SizeCache<T>.SizeU * (uint)data.Length);
+		uint cb = checked((uint)sizeof(T) * (uint)data.Length);
 		fixed (T* pb = data)
         {
             return Vmmi.VMMDLL_MemWrite(_h, pid, va, (byte*)pb, cb);
@@ -575,7 +575,7 @@ public sealed class Vmm : IDisposable
         where T : unmanaged
     {
         ThrowIfMemWritesDisabled();
-		uint cb = checked(SizeCache<T>.SizeU * (uint)span.Length);
+		uint cb = checked((uint)sizeof(T) * (uint)span.Length);
 		fixed (T* pb = span)
         {
             return Vmmi.VMMDLL_MemWrite(_h, pid, va, (byte*)pb, cb);

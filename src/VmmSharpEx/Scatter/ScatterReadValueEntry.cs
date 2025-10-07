@@ -4,6 +4,7 @@
 */
 
 using Microsoft.Extensions.ObjectPool;
+using System.Runtime.CompilerServices;
 using VmmSharpEx.Internal;
 using VmmSharpEx.Pools;
 
@@ -17,7 +18,7 @@ namespace VmmSharpEx.Scatter
 
         internal T _result = default;
         public ulong Address { get; private set; }
-        public int CB { get; } = SizeCache<T>.Size;
+        public int CB { get; } = Unsafe.SizeOf<T>();
         public bool IsFailed { get; set; }
 
         public ScatterReadValueEntry() { }

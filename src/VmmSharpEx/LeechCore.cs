@@ -162,7 +162,7 @@ public sealed class LeechCore : IDisposable
     public unsafe bool ReadValue<T>(ulong pa, out T result)
         where T : unmanaged, allows ref struct
     {
-        var cb = SizeCache<T>.SizeU;
+        uint cb = (uint)sizeof(T);
 		result = default;
         fixed (void* pb = &result)
         {
@@ -182,7 +182,7 @@ public sealed class LeechCore : IDisposable
         where T : unmanaged
     {
         var data = new T[count];
-        uint cb = checked(SizeCache<T>.SizeU * (uint)count);
+        uint cb = checked((uint)sizeof(T) * (uint)count);
         fixed (T* pb = data)
         {
             if (!Lci.LcRead(_h, pa, cb, (byte*)pb))
@@ -203,7 +203,7 @@ public sealed class LeechCore : IDisposable
         where T : unmanaged
     {
         var arr = new PooledMemory<T>(count);
-        uint cb = checked(SizeCache<T>.SizeU * (uint)count);
+        uint cb = checked((uint)sizeof(T) * (uint)count);
         fixed (T* pb = arr.Span)
         {
             if (!Lci.LcRead(_h, pa, cb, (byte*)pb))
@@ -225,7 +225,7 @@ public sealed class LeechCore : IDisposable
     public unsafe bool ReadSpan<T>(ulong pa, Span<T> span)
         where T : unmanaged
     {
-		uint cb = checked(SizeCache<T>.SizeU * (uint)span.Length);
+		uint cb = checked((uint)sizeof(T) * (uint)span.Length);
 		fixed (T* pb = span)
         {
             return Lci.LcRead(_h, pa, cb, (byte*)pb);
@@ -243,7 +243,7 @@ public sealed class LeechCore : IDisposable
         where T : unmanaged
     {
         _parent?.ThrowIfMemWritesDisabled();
-		uint cb = checked(SizeCache<T>.SizeU * (uint)span.Length);
+		uint cb = checked((uint)sizeof(T) * (uint)span.Length);
 		fixed (T* pb = span)
         {
             return Lci.LcWrite(_h, pa, cb, (byte*)pb);
@@ -331,7 +331,7 @@ public sealed class LeechCore : IDisposable
         where T : unmanaged, allows ref struct
     {
         _parent?.ThrowIfMemWritesDisabled();
-        var cb = SizeCache<T>.SizeU;
+        uint cb = (uint)sizeof(T);
 		return Lci.LcWrite(_h, pa, cb, (byte*)&value);
     }
 
@@ -349,7 +349,7 @@ public sealed class LeechCore : IDisposable
         where T : unmanaged
     {
         _parent?.ThrowIfMemWritesDisabled();
-		uint cb = checked(SizeCache<T>.SizeU * (uint)data.Length);
+		uint cb = checked((uint)sizeof(T) * (uint)data.Length);
 		fixed (T* pb = data)
         {
             return Lci.LcWrite(_h, pa, cb, (byte*)pb);
