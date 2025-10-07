@@ -19,8 +19,9 @@ Install-Package VmmSharpEx
 This library is **Windows Only**, and only bundles/targets the Windows x64 native libraries.
 
 ## Changelog
+- Version 3.60
+  - Updated MemProcFS to 5.16.0 (Support for Windows 11 25H2)
 - Version 3.50
-  - Updated Windows SDK to 10.0.26100.4948
   - Updated MemProcFS to 5.15.8
 - Version 3.0
   - Added .NET 10 Support
