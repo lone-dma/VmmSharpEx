@@ -124,12 +124,10 @@ namespace VmmSharpEx.Scatter
             // Set results
             foreach (var entry in entries)
             {
-                if (entry.IsFailed)
+                if (!entry.IsFailed)
                 {
-                    continue;
+                    entry.SetResult(hScatter);
                 }
-
-                entry.SetResult(hScatter);
             }
         }
 
