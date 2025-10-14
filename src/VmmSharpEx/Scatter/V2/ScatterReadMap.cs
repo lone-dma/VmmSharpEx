@@ -5,13 +5,16 @@
 
 using Collections.Pooled;
 
-namespace VmmSharpEx.Scatter
+namespace VmmSharpEx.Scatter.V2
 {
     /// <summary>
     /// Read multiple virtual addresses from a Windows x64 process using a custom scatter read implementation.
     /// Results are populated in the IScatterEntry objects, and can be used to chain reads.
-    /// NOTE: This API is **NOT THREAD SAFE**, you must keep operations synchronous or undefined behavior may occur.
     /// </summary>
+    /// <remarks>
+    /// NOTE: This API is **NOT THREAD SAFE**, you must keep operations synchronous or undefined behavior may occur.
+    /// This API may be deprecated in the future. New development should use <see cref="VmmScatter"/> or <see cref="VmmScatterMap"/> instead.
+    /// </remarks>
     public sealed class ScatterReadMap : IDisposable
     {
         /// <summary>
@@ -34,8 +37,11 @@ namespace VmmSharpEx.Scatter
         /// <summary>
         /// Read multiple virtual addresses from a Windows x64 process using a custom scatter read implementation.
         /// Results are populated in the IScatterEntry objects, and can be used to chain reads.
-        /// NOTE: This API is NOT thread safe, you must keep operations synchronous.
         /// </summary>
+        /// <remarks>
+        /// NOTE: This API is **NOT THREAD SAFE**, you must keep operations synchronous or undefined behavior may occur.
+        /// This API may be deprecated in the future. New development should use <see cref="VmmScatter"/> or <see cref="VmmScatterMap"/> instead.
+        /// </remarks>
         /// <param name="vmm">Vmm instance to read within.</param>
         /// <param name="pid">Process ID (PID) to read within.</param>
         public ScatterReadMap(Vmm vmm, uint pid)

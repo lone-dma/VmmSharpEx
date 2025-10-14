@@ -9,7 +9,7 @@ using VmmSharpEx.Internal;
 using VmmSharpEx.Options;
 using VmmSharpEx.Pools;
 
-namespace VmmSharpEx.Scatter
+namespace VmmSharpEx.Scatter.V2
 {
     /// <summary>
     /// Defines a Scatter Read Round. Each round will execute a single scatter read. If you have reads that

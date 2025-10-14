@@ -56,7 +56,7 @@ public class VmmSharpEx_MemReadWriteTests
 
         var output = _vmm.MemReadArray<int>(_pid, addr, input.Length, VmmSharpEx.Options.VmmFlags.NOCACHE);
         Assert.NotNull(output);
-        Assert.Equal(input.Length, output.Length);
+        Assert.Equal(input.Length, output.Count);
         Assert.True(input.SequenceEqual(output));
     }
 
@@ -82,7 +82,7 @@ public class VmmSharpEx_MemReadWriteTests
 
         Assert.True(_vmm.MemWriteArray(_pid, addr, input));
 
-        using var lease = _vmm.MemReadPooledArray<ushort>(_pid, addr, input.Length, VmmSharpEx.Options.VmmFlags.NOCACHE);
+        using var lease = _vmm.MemReadArray<ushort>(_pid, addr, input.Length, VmmSharpEx.Options.VmmFlags.NOCACHE);
         Assert.NotNull(lease);
         Assert.Equal(input.Length, lease.Span.Length);
         Assert.True(input.AsSpan().SequenceEqual(lease.Span));

@@ -4,11 +4,11 @@ Custom Vmmsharp fork targeting bleeding edge .NET Core for Windows x64. Also inc
 
 ```
 VmmSharpEx_Tests
-  Tests in group: 26
-   Total Duration: 151 ms
+  Tests in group: 30
+   Total Duration: 140 ms
 
 Outcomes
-   26 Passed
+   30 Passed
 ```
 
 ## Getting Started
@@ -19,6 +19,10 @@ Install-Package VmmSharpEx
 This library is **Windows Only**, and only bundles/targets the Windows x64 native libraries.
 
 ## Changelog
+- Version 3.70
+  - Expanded VmmScatter functionality and introduced VmmScatterMap.
+  - Refactored Scatter API namespaces slightly for better organization.
+  - V2 API (ScatterReadMap) will be deprecated in future releases. See [this discussion](https://github.com/lone-dma/VmmSharpEx/discussions/4).
 - Version 3.60
   - Updated MemProcFS to 5.16.0 (Support for Windows 11 25H2)
 - Version 3.50

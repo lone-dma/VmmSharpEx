@@ -7,7 +7,7 @@ using System.Runtime.InteropServices;
 using Microsoft.Extensions.ObjectPool;
 using VmmSharpEx.Internal;
 
-namespace VmmSharpEx.Scatter
+namespace VmmSharpEx.Scatter.V2
 {
     internal interface IScatterEntry : IResettable
     {

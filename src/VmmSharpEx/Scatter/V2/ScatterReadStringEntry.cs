@@ -8,7 +8,7 @@ using System.Buffers;
 using System.Text;
 using VmmSharpEx.Pools;
 
-namespace VmmSharpEx.Scatter
+namespace VmmSharpEx.Scatter.V2
 {
     internal sealed class ScatterReadStringEntry : IScatterEntry
     {

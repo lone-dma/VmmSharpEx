@@ -8,7 +8,7 @@ using System.Runtime.CompilerServices;
 using VmmSharpEx.Internal;
 using VmmSharpEx.Pools;
 
-namespace VmmSharpEx.Scatter
+namespace VmmSharpEx.Scatter.V2
 {
     internal sealed class ScatterReadValueEntry<T> : IScatterEntry
         where T : unmanaged

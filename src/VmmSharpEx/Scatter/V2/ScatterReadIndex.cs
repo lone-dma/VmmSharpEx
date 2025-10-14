@@ -8,7 +8,7 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using VmmSharpEx.Pools;
 
-namespace VmmSharpEx.Scatter
+namespace VmmSharpEx.Scatter.V2
 {
     /// <summary>
     /// Single scatter read index. May contain multiple child entries.

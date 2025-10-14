@@ -23,6 +23,7 @@ using System.Text;
 using VmmSharpEx.Internal;
 using VmmSharpEx.Options;
 using VmmSharpEx.Refresh;
+using VmmSharpEx.Scatter;
 
 namespace VmmSharpEx;
 
@@ -371,32 +372,6 @@ public sealed class Vmm : IDisposable
     }
 
     /// <summary>
-    /// Read Memory from a Virtual Address into an Array of Type <typeparamref name="T" />.
-    /// WARNING: This incurs a heap allocation for the array. Recommend using <see cref="MemReadPooledArray{T}(uint, ulong, int, VmmFlags)"/> instead.
-    /// </summary>
-    /// <typeparam name="T">Value Type.</typeparam>
-    /// <param name="pid">Process ID (PID) this operation will take place within.</param>
-    /// <param name="va">Virtual Address to read from.</param>
-    /// <param name="count">Number of elements to read.</param>
-    /// <param name="flags">VMM Flags.</param>
-    /// <returns>Managed <typeparamref name="T" /> array, NULL if failed.</returns>
-    public unsafe T[] MemReadArray<T>(uint pid, ulong va, int count, VmmFlags flags = VmmFlags.NONE)
-        where T : unmanaged
-    {
-        uint cb = checked((uint)sizeof(T) * (uint)count);
-        var data = new T[count];
-        fixed (T* pb = data)
-        {
-            if (!Vmmi.VMMDLL_MemReadEx(_h, pid, va, (byte*)pb, cb, out var cbRead, flags) || cbRead != cb)
-            {
-                return null;
-            }
-        }
-
-        return data;
-    }
-
-    /// <summary>
     /// Read Memory from a Virtual Address into a Pooled Array of Type <typeparamref name="T" />.
     /// NOTE: You must dispose the returned <see cref="PooledMemory{T}"/> when finished with it.
     /// </summary>
@@ -405,8 +380,8 @@ public sealed class Vmm : IDisposable
     /// <param name="va">Virtual Address to read from.</param>
     /// <param name="count">Number of elements to read.</param>
     /// <param name="flags">VMM Flags.</param>
-    /// <returns><see cref="PooledMemory{T}"/> lease, NULL if failed.</returns>
-    public unsafe PooledMemory<T> MemReadPooledArray<T>(uint pid, ulong va, int count, VmmFlags flags = VmmFlags.NONE)
+    /// <returns><see cref="PooledMemory{T}"/> lease, or NULL if failed. Be sure to call <see cref="PooledMemory{T}.Dispose()"/> when done.</returns>
+    public unsafe PooledMemory<T> MemReadArray<T>(uint pid, ulong va, int count, VmmFlags flags = VmmFlags.NONE)
         where T : unmanaged
     {
         var arr = new PooledMemory<T>(count);
@@ -599,11 +574,22 @@ public sealed class Vmm : IDisposable
     /// Initialize a Scatter handle used to read/write multiple virtual memory regions in a single call.
     /// </summary>
     /// <param name="pid">PID to create VmmScatter over.</param>
-    /// <param name="flags">Vmm Flags.</param>
-    /// <returns>A VmmScatterMemory handle.</returns>
+    /// <param name="flags">Vmm Flag Options for this operation.</param>
+    /// <returns>Newly instantiated <see cref="VmmScatter"/> handle.</returns>
+    /// <exception cref="VmmException"></exception>
     public VmmScatter CreateScatter(uint pid, VmmFlags flags = VmmFlags.NONE)
     {
         return new VmmScatter(this, pid, flags);
+    }
+
+    /// <summary>
+    /// Initialize a Scatter 'Map' that can be used to coordinate multiple <see cref="VmmScatter"/> instances (rounds).
+    /// </summary>
+    /// <param name="pid">PID to create this <see cref="VmmScatterMap"/> over.</param>
+    /// <returns>Newly instantiated <see cref="VmmScatterMap"/> handle.</returns>
+    public VmmScatterMap CreateScatterMap(uint pid)
+    {
+        return new VmmScatterMap(this, pid);
     }
 
     #endregion
