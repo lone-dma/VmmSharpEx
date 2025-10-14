@@ -48,7 +48,7 @@ public sealed class VmmScatter : IDisposable
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get => _isPrepared;
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        set
+        private set
         {
             if (value is true)
             {
