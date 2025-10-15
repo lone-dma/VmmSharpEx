@@ -60,7 +60,7 @@ public sealed class VmmScatter : IDisposable
     /// <summary>
     /// Event is fired upon completion of <see cref="Execute"/>. Exceptions are handled/ignored.
     /// </summary>
-    public EventHandler<VmmScatter> Completed;
+    public event EventHandler<VmmScatter> Completed;
     private void OnCompleted()
     {
         foreach (var callback in Completed?.GetInvocationList() ?? Enumerable.Empty<Delegate>())
