@@ -189,6 +189,67 @@ namespace VmmSharpEx.Options
         /// </summary>
         REFRESH_FREQ_SLOW = 0x2001001000000000,
 
+        /// <summary>
+        /// Refresh only heap allocations. (W)
+        /// </summary>
+        REFRESH_SPECIFIC_HEAP_ALLOC = 0x2003000100000000,
+
+        /// <summary>
+        /// Refresh only kernel objects. (W)
+        /// </summary>
+        REFRESH_SPECIFIC_KOBJECT = 0x2003000200000000,
+
+        /// <summary>
+        /// Refresh only network connections. (W)
+        /// </summary>
+        REFRESH_SPECIFIC_NET = 0x2003000300000000,
+
+        /// <summary>
+        /// Refresh only PFN database. (W)
+        /// </summary>
+        REFRESH_SPECIFIC_PFN = 0x2003000400000000,
+
+        /// <summary>
+        /// Refresh only physical memory map. (W)
+        /// </summary>
+        REFRESH_SPECIFIC_PHYSMEMMAP = 0x2003000500000000,
+
+        /// <summary>
+        /// Refresh only kernel pool. (W)
+        /// </summary>
+        REFRESH_SPECIFIC_POOL = 0x2003000600000000,
+
+        /// <summary>
+        /// Refresh only registry. (W)
+        /// </summary>
+        REFRESH_SPECIFIC_REGISTRY = 0x2003000700000000,
+
+        /// <summary>
+        /// Refresh only services. (W)
+        /// </summary>
+        REFRESH_SPECIFIC_SERVICES = 0x2003000800000000,
+
+        /// <summary>
+        /// Refresh only thread callstacks. (W)
+        /// </summary>
+        REFRESH_SPECIFIC_THREADCS = 0x2003000900000000,
+
+        /// <summary>
+        /// Refresh only users. (W)
+        /// </summary>
+        REFRESH_SPECIFIC_USER = 0x2003000A00000000,
+
+        /// <summary>
+        /// Refresh only virtual machines. (W)
+        /// </summary>
+        REFRESH_SPECIFIC_VM = 0x2003000B00000000,
+
+        /// <summary>
+        /// Refresh only the specified process. (W)
+        /// The low DWORD contains the process ID (PID).
+        /// </summary>
+        REFRESH_SPECIFIC_PROCESS = 0x2004000100000000,
+
         // ---- Process Options ----
 
         /// <summary>

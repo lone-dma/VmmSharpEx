@@ -27,7 +27,7 @@
 		<Copyright>©2025 AGPL-3.0</Copyright>
 		<Description>Custom Vmmsharp fork targeting bleeding edge .NET Core for Windows x64.</Description>
 		<!-- Auto Versioning -->
-		<Version>3.70.$([System.DateTimeOffset]::UtcNow.Subtract($([System.DateTimeOffset]::Parse('2000-01-01Z'))).Days).$([System.Convert]::ToInt32($([System.Math]::Floor($([System.DateTimeOffset]::UtcNow.TimeOfDay.TotalMinutes)))))</Version>
+		<Version>3.80.$([System.DateTimeOffset]::UtcNow.Subtract($([System.DateTimeOffset]::Parse('2000-01-01Z'))).Days).$([System.Convert]::ToInt32($([System.Math]::Floor($([System.DateTimeOffset]::UtcNow.TimeOfDay.TotalMinutes)))))</Version>
 		<AssemblyVersion>$(Version)</AssemblyVersion>
 		<FileVersion>$(Version)</FileVersion>
 		<!-- Properties -->
