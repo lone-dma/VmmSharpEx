@@ -19,6 +19,9 @@ Install-Package VmmSharpEx
 This library is **Windows Only**, and only bundles/targets the Windows x64 native libraries.
 
 ## Changelog
+- Version 3.80
+  - Updated MemProcFS to 5.16.2
+  - New Vmm Refresh Options
 - Version 3.70
   - Expanded VmmScatter functionality and introduced VmmScatterMap.
   - Refactored Scatter API namespaces slightly for better organization.
