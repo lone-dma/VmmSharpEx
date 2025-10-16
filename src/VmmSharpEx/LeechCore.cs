@@ -24,8 +24,14 @@ using VmmSharpEx.Options;
 namespace VmmSharpEx;
 
 /// <summary>
-/// LeechCore public API
+/// High-level managed wrapper over the native LeechCore API.
 /// </summary>
+/// <remarks>
+/// This class wraps a native <c>LC_CONTEXT</c> handle created by LeechCore and exposes common read/write and control
+/// operations against physical memory devices. It is typically acquired from <see cref="Vmm"/> via
+/// <see cref="Vmm.LeechCore"/> when MemProcFS has been initialized with a LeechCore-backed device.
+/// Native counterparts are defined in <c>leechcore.h</c> and implemented in <c>leechcore.dll</c>.
+/// </remarks>
 public sealed class LeechCore : IDisposable
 {
     private readonly Vmm _parent;
@@ -39,10 +45,10 @@ public sealed class LeechCore : IDisposable
     }
 
     /// <summary>
-    /// Create a new inherited LeechCore instance from a given Vmm instance.
+    /// Create a new inherited <see cref="LeechCore"/> instance from a given <see cref="Vmm"/> instance.
     /// </summary>
-    /// <param name="vmm"></param>
-    /// <exception cref="VmmException"></exception>
+    /// <param name="vmm">The owning <see cref="Vmm"/> instance the LC context should be bound to.</param>
+    /// <exception cref="VmmException">Thrown if the native LeechCore handle cannot be retrieved or duplicated.</exception>
     internal LeechCore(Vmm vmm)
     {
         if (vmm.ConfigGet(VmmOption.CORE_LEECHCORE_HANDLE) is not ulong pqwValue)
@@ -66,35 +72,43 @@ public sealed class LeechCore : IDisposable
         _parent = vmm;
     }
 
+    /// <summary>
+    /// Releases native resources.
+    /// </summary>
     public void Dispose()
     {
         Dispose(true);
         GC.SuppressFinalize(this);
     }
 
+    /// <summary>
+    /// Implicitly convert a <see cref="LeechCore"/> instance to its native LC handle.
+    /// </summary>
+    /// <param name="x">Instance to convert.</param>
+    /// <returns>The native LC handle or <see cref="IntPtr.Zero"/> if <paramref name="x"/> is <see langword="null"/>.</returns>
     public static implicit operator IntPtr(LeechCore x)
     {
         return x?._h ?? IntPtr.Zero;
     }
 
     /// <summary>
-    /// ToString() override.
+    /// Returns a string representation of this instance including the native handle value.
     /// </summary>
-    /// <returns></returns>
     public override string ToString()
     {
         return _h == IntPtr.Zero ? "LeechCore:NULL" : $"LeechCore:{_h.ToString("X")}";
     }
 
     /// <summary>
-    /// Factory method creating a new LeechCore object taking a LC_CONFIG structure
-    /// containing the configuration and optionally return a LC_CONFIG_ERRORINFO
-    /// structure containing any error.
-    /// Use this when you wish to gain greater control of creating LeechCore objects.
+    /// Factory that creates a new <see cref="LeechCore"/> object from a native <see cref="LCConfig"/>.
     /// </summary>
-    /// <param name="pLcCreateConfig"></param>
-    /// <param name="configErrorInfo"></param>
-    /// <returns>Initialized LeechCore Instance.</returns>
+    /// <remarks>
+    /// This overload provides access to extended create-time error information via
+    /// <paramref name="configErrorInfo"/>. See native <c>LcCreateEx</c> in <c>leechcore.h</c>.
+    /// </remarks>
+    /// <param name="pLcCreateConfig">The LC configuration to use.</param>
+    /// <param name="configErrorInfo">Receives extended create-time error information, if available.</param>
+    /// <returns>An initialized <see cref="LeechCore"/> instance on success; otherwise <see langword="null"/>.</returns>
     public static LeechCore Create(ref LCConfig pLcCreateConfig, out LCConfigErrorInfo configErrorInfo)
     {
         var cbERROR_INFO = Marshal.SizeOf<Lci.LC_CONFIG_ERRORINFO>();
@@ -153,12 +167,13 @@ public sealed class LeechCore : IDisposable
     //---------------------------------------------------------------------
 
     /// <summary>
-    /// Read physcial memory into a nullable struct value <typeparamref name="T" />.
+    /// Read physical memory into a value of type <typeparamref name="T"/>.
     /// </summary>
-    /// <typeparam name="T">Value Type.</typeparam>
+    /// <typeparam name="T">An unmanaged value or <see langword="ref struct"/>.</typeparam>
     /// <param name="pa">Physical address to read.</param>
-    /// <param name="result">Result of the memory read.</param>
-    /// <returns>TRUE if successful, otherwise FALSE.</returns>
+    /// <param name="result">Receives the value read from memory on success.</param>
+    /// <returns><see langword="true"/> if successful; otherwise <see langword="false"/>.</returns>
+    /// <seealso cref="Lci.LcRead(IntPtr, ulong, uint, byte*)"/>
     public unsafe bool ReadValue<T>(ulong pa, out T result)
         where T : unmanaged, allows ref struct
     {
@@ -171,35 +186,13 @@ public sealed class LeechCore : IDisposable
     }
 
     /// <summary>
-    /// Read physical memory into an array of type <typeparamref name="T" />.
-    /// WARNING: This incurs a heap allocation for the array. Recommend using <see cref="ReadPooledArray{T}(ulong, int)"/> instead.
+    /// Read physical memory into a pooled array of <typeparamref name="T"/>.
     /// </summary>
-    /// <typeparam name="T">Value Type.</typeparam>
+    /// <typeparam name="T">An unmanaged value type.</typeparam>
     /// <param name="pa">Physical address to read.</param>
     /// <param name="count">Number of elements to read.</param>
-    /// <returns>Managed Array of type <typeparamref name="T" />. Null if read failed.</returns>
-    public unsafe T[] ReadArray<T>(ulong pa, int count)
-        where T : unmanaged
-    {
-        var data = new T[count];
-        uint cb = checked((uint)sizeof(T) * (uint)count);
-        fixed (T* pb = data)
-        {
-            if (!Lci.LcRead(_h, pa, cb, (byte*)pb))
-                return null;
-        }
-        return data;
-    }
-
-    /// <summary>
-    /// Read physical memory into a pooled array of type <typeparamref name="T" />.
-    /// NOTE: You must dispose the returned <see cref="PooledMemory{T}"/> when finished with it.
-    /// </summary>
-    /// <typeparam name="T">Value Type.</typeparam>
-    /// <param name="pa">Physical address to read.</param>
-    /// <param name="count">Number of elements to read.</param>
-    /// <returns><see cref="PooledMemory{T}"/> lease, NULL if failed.</returns>
-    public unsafe PooledMemory<T> ReadPooledArray<T>(ulong pa, int count)
+    /// <returns>A <see cref="PooledMemory{T}"/> lease on success; otherwise <see langword="null"/>.</returns>
+    public unsafe PooledMemory<T> ReadArray<T>(ulong pa, int count)
         where T : unmanaged
     {
         var arr = new PooledMemory<T>(count);
@@ -216,12 +209,12 @@ public sealed class LeechCore : IDisposable
     }
 
     /// <summary>
-    /// Read memory into a Span of <typeparamref name="T" />.
+    /// Read physical memory into a <see cref="Span{T}"/>.
     /// </summary>
-    /// <typeparam name="T">Value Type</typeparam>
-    /// <param name="pa">Memory address to read from.</param>
-    /// <param name="span">Span to receive the memory read.</param>
-    /// <returns>True if successful, otherwise False.</returns>
+    /// <typeparam name="T">An unmanaged value type.</typeparam>
+    /// <param name="pa">Physical address to read.</param>
+    /// <param name="span">Destination span to receive the data.</param>
+    /// <returns><see langword="true"/> on success; otherwise <see langword="false"/>.</returns>
     public unsafe bool ReadSpan<T>(ulong pa, Span<T> span)
         where T : unmanaged
     {
@@ -233,12 +226,12 @@ public sealed class LeechCore : IDisposable
     }
 
     /// <summary>
-    /// Write memory from a Span of <typeparamref name="T" /> to a specified memory address.
+    /// Write a <see cref="Span{T}"/> of unmanaged values to physical memory.
     /// </summary>
-    /// <typeparam name="T">Value Type</typeparam>
-    /// <param name="pa">Memory address to write to.</param>
-    /// <param name="span">Span to write from.</param>
-    /// <returns>True if successful, otherwise False.</returns>
+    /// <typeparam name="T">An unmanaged value type.</typeparam>
+    /// <param name="pa">Physical address to write.</param>
+    /// <param name="span">Source span that will be written.</param>
+    /// <returns><see langword="true"/> on success; otherwise <see langword="false"/>.</returns>
     public unsafe bool WriteSpan<T>(ulong pa, Span<T> span)
         where T : unmanaged
     {
@@ -254,9 +247,9 @@ public sealed class LeechCore : IDisposable
     /// Read physical memory into unmanaged memory.
     /// </summary>
     /// <param name="pa">Physical address to read.</param>
-    /// <param name="pb">Pointer to buffer to read into.</param>
-    /// <param name="cb">Counte of bytes to read.</param>
-    /// <returns>True if read successful, otherwise False.</returns>
+    /// <param name="pb">Destination pointer to receive the data.</param>
+    /// <param name="cb">Number of bytes to read.</param>
+    /// <returns><see langword="true"/> on success; otherwise <see langword="false"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public unsafe bool Read(ulong pa, IntPtr pb, uint cb)
     {
@@ -267,9 +260,9 @@ public sealed class LeechCore : IDisposable
     /// Read physical memory into unmanaged memory.
     /// </summary>
     /// <param name="pa">Physical address to read.</param>
-    /// <param name="pb">Pointer to buffer to read into.</param>
-    /// <param name="cb">Counte of bytes to read.</param>
-    /// <returns>True if read successful, otherwise False.</returns>
+    /// <param name="pb">Destination pointer to receive the data.</param>
+    /// <param name="cb">Number of bytes to read.</param>
+    /// <returns><see langword="true"/> on success; otherwise <see langword="false"/>.</returns>
     public unsafe bool Read(ulong pa, void* pb, uint cb)
     {
         if (!Lci.LcRead(_h, pa, cb, (byte*)pb))
@@ -282,12 +275,15 @@ public sealed class LeechCore : IDisposable
 
     /// <summary>
     /// Perform a scatter read of multiple page-sized physical memory ranges.
-    /// Does not copy the read memory to a managed byte buffer, but instead allows direct access to the native memory via a
-    /// Span view.
     /// </summary>
-    /// <param name="pas">Array of page-aligned Physical Memory Addresses.</param>
-    /// <returns>SCATTER_HANDLE</returns>
-    /// <exception cref="VmmException"></exception>
+    /// <remarks>
+    /// This operation does not copy read pages into managed memory; instead, native buffers are exposed via
+    /// <see cref="ScatterData.Data"/>. Ensure the returned <see cref="LcScatterHandle"/> is disposed before those buffers
+    /// are accessed by other operations.
+    /// </remarks>
+    /// <param name="pas">Page-aligned physical memory addresses.</param>
+    /// <returns>An <see cref="LcScatterHandle"/> that owns the native buffers.</returns>
+    /// <exception cref="VmmException">Thrown if the native scatter allocation fails.</exception>
     public unsafe LcScatterHandle ReadScatter(params Span<ulong> pas)
     {
         if (!Lci.LcAllocScatter1((uint)pas.Length, out var pppMEMs))
@@ -318,15 +314,12 @@ public sealed class LeechCore : IDisposable
     }
 
     /// <summary>
-    /// Write a single struct <typeparamref name="T" /> into physical memory.
+    /// Write a single value of type <typeparamref name="T"/> to physical memory.
     /// </summary>
-    /// <typeparam name="T">Value Type.</typeparam>
-    /// <param name="pa">Physical address to write</param>
-    /// <param name="value"><typeparamref name="T" /> value to write.</param>
-    /// <returns>
-    /// True if write successful, otherwise False. The write is best-effort and may fail. It's recommended to verify
-    /// the write with a subsequent read.
-    /// </returns>
+    /// <typeparam name="T">An unmanaged value or <see langword="ref struct"/>.</typeparam>
+    /// <param name="pa">Physical address to write.</param>
+    /// <param name="value">The value to write.</param>
+    /// <returns><see langword="true"/> on success; otherwise <see langword="false"/>.</returns>
     public unsafe bool WriteValue<T>(ulong pa, T value)
         where T : unmanaged, allows ref struct
     {
@@ -336,15 +329,12 @@ public sealed class LeechCore : IDisposable
     }
 
     /// <summary>
-    /// Write a managed <typeparamref name="T" /> array into physical memory.
+    /// Write a managed array of <typeparamref name="T"/> to physical memory.
     /// </summary>
-    /// <typeparam name="T">Value Type.</typeparam>
-    /// <param name="pa">Physical address to write</param>
-    /// <param name="data">Managed <typeparamref name="T" /> array to write.</param>
-    /// <returns>
-    /// True if write successful, otherwise False. The write is best-effort and may fail. It's recommended to verify
-    /// the write with a subsequent read.
-    /// </returns>
+    /// <typeparam name="T">An unmanaged value type.</typeparam>
+    /// <param name="pa">Physical address to write.</param>
+    /// <param name="data">The managed array to write.</param>
+    /// <returns><see langword="true"/> on success; otherwise <see langword="false"/>.</returns>
     public unsafe bool WriteArray<T>(ulong pa, T[] data)
         where T : unmanaged
     {
@@ -359,13 +349,10 @@ public sealed class LeechCore : IDisposable
     /// <summary>
     /// Write from unmanaged memory into physical memory.
     /// </summary>
-    /// <param name="pa">Physical address to write</param>
-    /// <param name="pb">Pointer to buffer to write from.</param>
-    /// <param name="cb">Count of bytes to write.</param>
-    /// <returns>
-    /// True if write successful, otherwise False. The write is best-effort and may fail. It's recommended to verify
-    /// the write with a subsequent read.
-    /// </returns>
+    /// <param name="pa">Physical address to write.</param>
+    /// <param name="pb">Source pointer to write from.</param>
+    /// <param name="cb">Number of bytes to write.</param>
+    /// <returns><see langword="true"/> on success; otherwise <see langword="false"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public unsafe bool Write(ulong pa, IntPtr pb, uint cb)
     {
@@ -375,13 +362,10 @@ public sealed class LeechCore : IDisposable
     /// <summary>
     /// Write from unmanaged memory into physical memory.
     /// </summary>
-    /// <param name="pa">Physical address to write</param>
-    /// <param name="pb">Pointer to buffer to write from.</param>
-    /// <param name="cb">Count of bytes to write.</param>
-    /// <returns>
-    /// True if write successful, otherwise False. The write is best-effort and may fail. It's recommended to verify
-    /// the write with a subsequent read.
-    /// </returns>
+    /// <param name="pa">Physical address to write.</param>
+    /// <param name="pb">Source pointer to write from.</param>
+    /// <param name="cb">Number of bytes to write.</param>
+    /// <returns><see langword="true"/> on success; otherwise <see langword="false"/>.</returns>
     public unsafe bool Write(ulong pa, void* pb, uint cb)
     {
         _parent?.ThrowIfMemWritesDisabled();
@@ -389,10 +373,10 @@ public sealed class LeechCore : IDisposable
     }
 
     /// <summary>
-    /// Retrieve a LeechCore option value.
+    /// Retrieve a LeechCore option value via <see cref="Lci.GetOption(IntPtr, LcOption, out ulong)"/>.
     /// </summary>
-    /// <param name="fOption">Parameter LeechCore.LC_OPT_*</param>
-    /// <returns>The option value retrieved. NULL on fail.</returns>
+    /// <param name="fOption">The <see cref="LcOption"/> to query.</param>
+    /// <returns>The option value on success; otherwise <see langword="null"/>.</returns>
     public ulong? GetOption(LcOption fOption)
     {
         if (!Lci.GetOption(_h, fOption, out var pqwValue))
@@ -404,11 +388,11 @@ public sealed class LeechCore : IDisposable
     }
 
     /// <summary>
-    /// Set a LeechCore option value.
+    /// Set a LeechCore option value via <see cref="Lci.SetOption(IntPtr, LcOption, ulong)"/>.
     /// </summary>
-    /// <param name="fOption">Parameter LeechCore.LC_OPT_*</param>
-    /// <param name="qwValue">The option value to set.</param>
-    /// <returns></returns>
+    /// <param name="fOption">The <see cref="LcOption"/> to set.</param>
+    /// <param name="qwValue">The value to assign.</param>
+    /// <returns><see langword="true"/> on success; otherwise <see langword="false"/>.</returns>
     public bool SetOption(LcOption fOption, ulong qwValue)
     {
         return Lci.SetOption(_h, fOption, qwValue);
@@ -417,10 +401,14 @@ public sealed class LeechCore : IDisposable
     /// <summary>
     /// Send a command to LeechCore.
     /// </summary>
-    /// <param name="fOption">Parameter LeechCore.LC_CMD_*</param>
-    /// <param name="dataIn">The data to set (or null).</param>
-    /// <param name="dataOut">The data retrieved.</param>
-    /// <returns></returns>
+    /// <remarks>
+    /// See native <c>LcCommand</c> in <c>leechcore.h</c>. The output buffer, if any, is owned by the caller and must be
+    /// freed by the wrapper (handled internally).
+    /// </remarks>
+    /// <param name="fOption">The <see cref="LcCmd"/> to execute.</param>
+    /// <param name="dataIn">Optional input data.</param>
+    /// <param name="dataOut">Receives any output data returned by the command.</param>
+    /// <returns><see langword="true"/> on success; otherwise <see langword="false"/>.</returns>
     public unsafe bool ExecuteCommand(LcCmd fOption, byte[] dataIn, out byte[] dataOut)
     {
         uint cbDataOut;
@@ -456,9 +444,12 @@ public sealed class LeechCore : IDisposable
     }
 
     /// <summary>
-    /// Wraps native memory from a Scatter Read.
-    /// Calls LcMemFree on disposal.
+    /// Wraps native memory returned from a scatter read invocation.
     /// </summary>
+    /// <remarks>
+    /// The underlying native scatter page buffers are released via <see cref="Lci.LcMemFree(IntPtr)"/> when this handle
+    /// is disposed.
+    /// </remarks>
     public sealed class LcScatterHandle : IDisposable
     {
         private readonly PooledDictionary<ulong, ScatterData> _results;
@@ -473,17 +464,18 @@ public sealed class LeechCore : IDisposable
         }
 
         /// <summary>
-        /// Scatter Read Results. Only successful reads are contained in this Dictionary. If a read failed, it will not be
-        /// present.
-        /// KEY: Page-aligned Memory Address.
-        /// VALUE: SCATTER_PAGE containing the page data.
+        /// Results of a scatter read.
         /// </summary>
+        /// <remarks>
+        /// Only successful page reads are present. Keys are page-aligned addresses; values are the corresponding page
+        /// buffers.
+        /// </remarks>
         public IReadOnlyDictionary<ulong, ScatterData> Results => _results;
 
         #region IDisposable
 
         /// <summary>
-        /// Calls LcMemFree on native memory resources.
+        /// Dispose and release any native scatter resources.
         /// </summary>
         public void Dispose()
         {
@@ -509,7 +501,7 @@ public sealed class LeechCore : IDisposable
     }
 
     /// <summary>
-    /// Encapsulates native data from a scatter read entry.
+    /// Encapsulates native page data for a single scatter entry.
     /// </summary>
     public readonly struct ScatterData
     {
@@ -523,9 +515,11 @@ public sealed class LeechCore : IDisposable
         }
 
         /// <summary>
-        /// Page for this scatter read entry.
-        /// WARNING: Do not access this memory after the parent scope is disposed/freed!
+        /// Read-only view over the native page buffer.
         /// </summary>
+        /// <remarks>
+        /// Do not access this memory after the owning <see cref="LcScatterHandle"/> has been disposed.
+        /// </remarks>
         public readonly unsafe ReadOnlySpan<byte> Data =>
             new(_pb.ToPointer(), _cb);
     }
@@ -536,81 +530,140 @@ public sealed class LeechCore : IDisposable
     // LEECHCORE: CORE FUNCTIONALITY BELOW:
     //---------------------------------------------------------------------
 
+    /// <summary>
+    /// Current <see cref="LCConfig"/> structure version used by this wrapper.
+    /// </summary>
     public const uint LC_CONFIG_VERSION = 0xc0fd0002;
+
+    /// <summary>
+    /// Current <see cref="LCConfigErrorInfo"/> structure version used by this wrapper.
+    /// </summary>
     public const uint LC_CONFIG_ERRORINFO_VERSION = 0xc0fe0002;
 
     /// <summary>
-    /// From tdMEM_SCATTER in leechcore.h
-    /// Designed to be blittable for direct pointer access.
+    /// Native scatter descriptor mirroring <c>tdMEM_SCATTER</c> in <c>leechcore.h</c>.
     /// </summary>
+    /// <remarks>
+    /// This type is laid out for blittable interop. Only the documented public fields are intended for use.
+    /// </remarks>
     [StructLayout(LayoutKind.Sequential, Pack = 8)]
     public struct LcMemScatter
     {
         /// <summary>
-        /// MEM_SCATTER_VERSION
+        /// MEM_SCATTER_VERSION (internal).
         /// </summary>
         private readonly uint version;
         private readonly int _f; // WIN32 BOOL
         /// <summary>
-        /// TRUE = success data in pb, FALSE = fail or not yet read.
+        /// Indicates whether the entry contains valid data (<see langword="true"/>) or not.
         /// </summary>
         public readonly bool f => _f != 0;
         /// <summary>
-        /// address of memory to read
+        /// Page-aligned address associated with this scatter entry.
         /// </summary>
         public ulong qwA;
         /// <summary>
-        /// buffer to hold memory contents
+        /// Pointer to the native buffer holding the page data.
         /// </summary>
         public readonly IntPtr pb;
         /// <summary>
-        /// size of buffer to hold memory contents.
+        /// Size of the native page buffer in bytes.
         /// </summary>
         public readonly uint cb;
         /// <summary>
-        /// internal stack pointer
+        /// Internal stack pointer (reserved).
         /// </summary>
         private readonly uint iStack;
         /// <summary>
-        /// internal stack
+        /// Internal stack storage (reserved).
         /// </summary>
         private unsafe fixed ulong vStack[12];
 
         /// <summary>
-        /// Contains the read data from the <see cref="pb"/> buffer.
-        /// DANGER: Do not access this memory after the memory is freed via <see cref="Lci.LcMemFree(nint)"/>!
+        /// A read-only view over the page contents pointed at by <see cref="pb"/>.
         /// </summary>
+        /// <remarks>
+        /// DANGER: Do not access this memory after the memory is freed via <see cref="Lci.LcMemFree(IntPtr)"/>.
+        /// </remarks>
         public readonly unsafe ReadOnlySpan<byte> Data =>
             new ReadOnlySpan<byte>(pb.ToPointer(), checked((int)cb));
     }
 
+    /// <summary>
+    /// Managed representation of native <c>LC_CONFIG</c> used when creating a LeechCore context.
+    /// </summary>
     [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Ansi)]
     public struct LCConfig
     {
+        /// <summary>
+        /// Structure version. Must be set to <see cref="LC_CONFIG_VERSION"/>.
+        /// </summary>
         public uint dwVersion;
+        /// <summary>
+        /// Printf verbosity level.
+        /// </summary>
         public uint dwPrintfVerbosity;
 
+        /// <summary>
+        /// Device string, e.g. <c>fpga://...</c> or <c>existing://0xHANDLE</c>.
+        /// </summary>
         [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 260)]
         public string szDevice;
 
+        /// <summary>
+        /// Remote target string, if applicable.
+        /// </summary>
         [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 260)]
         public string szRemote;
 
+        /// <summary>
+        /// Optional printf callback.
+        /// </summary>
         public IntPtr pfn_printf_opt;
+        /// <summary>
+        /// Maximum physical address to use.
+        /// </summary>
         public ulong paMax;
+        /// <summary>
+        /// If <see langword="true"/>, volatile mode is enabled.
+        /// </summary>
         public bool fVolatile;
+        /// <summary>
+        /// If <see langword="true"/>, writes are allowed.
+        /// </summary>
         public bool fWritable;
+        /// <summary>
+        /// If <see langword="true"/>, operates in remote mode.
+        /// </summary>
         public bool fRemote;
+        /// <summary>
+        /// If <see langword="true"/>, disables compression in remote mode.
+        /// </summary>
         public bool fRemoteDisableCompress;
 
+        /// <summary>
+        /// Optional device name.
+        /// </summary>
         [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 260)]
         public string szDeviceName;
     }
 
+    /// <summary>
+    /// Extended create-time error information corresponding to native <c>LC_CONFIG_ERRORINFO</c>.
+    /// </summary>
     public struct LCConfigErrorInfo
     {
+        /// <summary>
+        /// Indicates whether this structure contains valid data.
+        /// </summary>
         public bool fValid;
+        /// <summary>
+        /// Indicates a user-input request was signalled by the native layer.
+        /// </summary>
         public bool fUserInputRequest;
+        /// <summary>
+        /// Optional user text provided by the native layer.
+        /// </summary>
         public string strUserText;
     }
 

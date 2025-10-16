@@ -62,7 +62,7 @@ public unsafe class VmmSharpEx_LeechCoreTests
         Assert.True(_lc.WriteArray(_pa, input));
         var got = _lc.ReadArray<ushort>(_pa, input.Length);
         Assert.NotNull(got);
-        Assert.True(input.AsSpan().SequenceEqual(got));
+        Assert.True(input.AsSpan().SequenceEqual(got.Span));
     }
 
     [Fact]
@@ -115,7 +115,7 @@ public unsafe class VmmSharpEx_LeechCoreTests
         ArgumentOutOfRangeException.ThrowIfGreaterThan(cb, 0x1000, nameof(cb)); // Ensure we don't exceed a page
         Assert.True(_lc.WriteArray(_pa, input));
 
-        using var lease = _lc.ReadPooledArray<int>(_pa, input.Length);
+        using var lease = _lc.ReadArray<int>(_pa, input.Length);
         Assert.NotNull(lease);
         Assert.Equal(input.Length, lease.Span.Length);
         Assert.True(input.AsSpan().SequenceEqual(lease.Span));
@@ -153,7 +153,7 @@ public unsafe class VmmSharpEx_LeechCoreTests
 
         var gotBytes = _lc.ReadArray<byte>(_pa, bytes.Length);
         Assert.NotNull(gotBytes);
-        var read = Encoding.Unicode.GetString(gotBytes);
+        var read = Encoding.Unicode.GetString(gotBytes.Span);
         Assert.Equal(s, read);
     }
 }

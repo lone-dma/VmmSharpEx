@@ -28,12 +28,21 @@ using VmmSharpEx.Scatter;
 namespace VmmSharpEx;
 
 /// <summary>
-/// MemProcFS public API
+/// Public managed API for interacting with MemProcFS and LeechCore.
 /// </summary>
-public sealed class Vmm : IDisposable
+/// <remarks>
+/// This class wraps a native VMM handle and exposes higher-level helpers around memory read/write, VFS, and process
+/// enumeration facilities. Instances are <see cref="IDisposable"/> and must be disposed to release the native handle.
+/// </remarks>
+public sealed partial class Vmm : IDisposable
 {
     #region Base Functionality
 
+    /// <summary>
+    /// Implicitly converts a <see cref="Vmm"/> instance to its underlying native handle.
+    /// </summary>
+    /// <param name="x">The <see cref="Vmm"/> instance to convert.</param>
+    /// <returns>The native VMM handle, or <see cref="IntPtr.Zero"/> if <paramref name="x"/> is <see langword="null"/>.</returns>
     public static implicit operator IntPtr(Vmm x)
     {
         return x?._h ?? IntPtr.Zero;
@@ -42,17 +51,20 @@ public sealed class Vmm : IDisposable
     private IntPtr _h;
 
     /// <summary>
-    /// Underlying LeechCore handle.
+    /// Gets the underlying <see cref="LeechCore"/> context associated with this <see cref="Vmm"/> instance.
     /// </summary>
     public LeechCore LeechCore { get; }
 
     private readonly bool _enableMemoryWriting = true;
 
     /// <summary>
-    /// Set to FALSE if you would like to disable all Memory Writing in this High Level API.
-    /// Attempts to Write Memory will throw a VmmException.
-    /// This setting is immutable after initialization.
+    /// Gets a value indicating whether memory writing via this high-level API is enabled.
     /// </summary>
+    /// <remarks>
+    /// Set this to <see langword="false"/> during initialization to disable all memory write operations exposed by this
+    /// wrapper. Attempts to write memory will throw a <see cref="VmmException"/>. This setting is immutable after
+    /// initialization.
+    /// </remarks>
     public bool EnableMemoryWriting
     {
         get => _enableMemoryWriting;
@@ -66,18 +78,19 @@ public sealed class Vmm : IDisposable
         }
     }
 
-    /// <summary>
-    /// ToString() override.
-    /// </summary>
-    /// <returns></returns>
+    /// <inheritdoc />
     public override string ToString()
     {
         return _h == IntPtr.Zero ? "Vmm:NULL" : $"Vmm:{_h:X}";
     }
 
     /// <summary>
-    /// Internal initialization factory method.
+    /// Creates and initializes the native VMM context.
     /// </summary>
+    /// <param name="configErrorInfo">Receives extended configuration error information, if available.</param>
+    /// <param name="args">MemProcFS/Vmm command line arguments.</param>
+    /// <returns>The native VMM handle on success.</returns>
+    /// <exception cref="VmmException">Thrown if initialization fails.</exception>
     private static IntPtr Create(out LeechCore.LCConfigErrorInfo configErrorInfo, params string[] args)
     {
         var cbERROR_INFO = Marshal.SizeOf<Lci.LC_CONFIG_ERRORINFO>();
@@ -112,13 +125,13 @@ public sealed class Vmm : IDisposable
     }
 
     /// <summary>
-    /// Private zero-argument constructor to prevent instantiation.
+    /// Initializes a new instance of the <see cref="Vmm"/> class.
     /// </summary>
+    /// <remarks>This private constructor prevents parameterless instantiation.</remarks>
     private Vmm() { }
 
     /// <summary>
-    /// Initialize a new Vmm instance with command line arguments.
-    /// Also retrieve the extended error information (if there is an error).
+    /// Initialize a new <see cref="Vmm"/> instance with command line arguments and capture extended error information.
     /// </summary>
     /// <param name="configErrorInfo">Error information in case of an error.</param>
     /// <param name="args">MemProcFS/Vmm command line arguments.</param>
@@ -130,7 +143,7 @@ public sealed class Vmm : IDisposable
     }
 
     /// <summary>
-    /// Initialize a new Vmm instance with command line arguments.
+    /// Initialize a new <see cref="Vmm"/> instance with command line arguments.
     /// </summary>
     /// <param name="args">MemProcFS/Vmm command line arguments.</param>
     public Vmm(params string[] args)
@@ -138,22 +151,35 @@ public sealed class Vmm : IDisposable
 
     /// <summary>
     /// Manually initialize plugins.
-    /// By default plugins are not initialized during Vmm Init.
     /// </summary>
-    /// <returns>TRUE if plugins are loaded successfully, otherwise FALSE.</returns>
+    /// <remarks>
+    /// Plugins are not initialized during <see cref="Vmm"/> construction by default.
+    /// </remarks>
+    /// <returns><see langword="true"/> if plugins are loaded successfully; otherwise <see langword="false"/>.</returns>
     public bool InitializePlugins() => Vmmi.VMMDLL_InitializePlugins(_h);
 
+    /// <summary>
+    /// Finalizer to ensure the native handle is closed if <see cref="Dispose()"/> was not called.
+    /// </summary>
     ~Vmm()
     {
         Dispose(false);
     }
 
+    /// <inheritdoc />
     public void Dispose()
     {
         Dispose(true);
         GC.SuppressFinalize(this);
     }
 
+    /// <summary>
+    /// Releases the native handle and any managed resources if requested.
+    /// </summary>
+    /// <param name="disposing">
+    /// <see langword="true"/> to release managed resources as well as unmanaged resources; otherwise,
+    /// <see langword="false"/> to release only unmanaged resources.
+    /// </param>
     private void Dispose(bool disposing)
     {
         if (Interlocked.Exchange(ref _h, IntPtr.Zero) is IntPtr h && h != IntPtr.Zero)
@@ -169,8 +195,11 @@ public sealed class Vmm : IDisposable
     }
 
     /// <summary>
-    /// Close all Vmm instances in the native layer.
+    /// Close all <see cref="Vmm"/> instances in the native layer.
     /// </summary>
+    /// <remarks>
+    /// This invokes <see cref="Vmmi.VMMDLL_CloseAll"/> and affects all native VMM contexts in the process.
+    /// </remarks>
     public static void CloseAll()
     {
         Vmmi.VMMDLL_CloseAll();
@@ -180,20 +209,35 @@ public sealed class Vmm : IDisposable
 
     #region Config Get/Set
 
+    /// <summary>
+    /// Memory model types known to MemProcFS.
+    /// </summary>
     public enum MemoryModelType
     {
+        /// <summary>Not applicable/unknown.</summary>
         MEMORYMODEL_NA = 0,
+        /// <summary>x86 (32-bit) paging model.</summary>
         MEMORYMODEL_X86 = 1,
+        /// <summary>x86 PAE (Physical Address Extension) paging model.</summary>
         MEMORYMODEL_X86PAE = 2,
+        /// <summary>x64 (64-bit) paging model.</summary>
         MEMORYMODEL_X64 = 3,
+        /// <summary>ARM64 paging model.</summary>
         MEMORYMODEL_ARM64 = 4
     }
 
+    /// <summary>
+    /// Operating system type inferred for the target system.
+    /// </summary>
     public enum SystemType
     {
+        /// <summary>Unknown x64 system.</summary>
         SYSTEM_UNKNOWN_X64 = 1,
+        /// <summary>Windows x64.</summary>
         SYSTEM_WINDOWS_X64 = 2,
+        /// <summary>Unknown x86 system.</summary>
         SYSTEM_UNKNOWN_X86 = 3,
+        /// <summary>Windows x86.</summary>
         SYSTEM_WINDOWS_X86 = 4
     }
 
@@ -204,10 +248,10 @@ public sealed class Vmm : IDisposable
     //---------------------------------------------------------------------
 
     /// <summary>
-    /// Get a configuration option given by a Vmm.CONFIG_* constant.
+    /// Get a configuration option given by a <see cref="VmmOption"/> constant.
     /// </summary>
-    /// <param name="fOption">The a Vmm.CONFIG_* option to get.</param>
-    /// <returns>The config value retrieved on success. NULL on fail.</returns>
+    /// <param name="fOption">The <see cref="VmmOption"/> option to retrieve.</param>
+    /// <returns>The config value retrieved on success; otherwise <see langword="null"/>.</returns>
     public ulong? ConfigGet(VmmOption fOption)
     {
         if (!Vmmi.VMMDLL_ConfigGet(_h, fOption, out var value))
@@ -219,23 +263,23 @@ public sealed class Vmm : IDisposable
     }
 
     /// <summary>
-    /// Set a configuration option given by a Vmm.CONFIG_* constant.
+    /// Set a configuration option given by a <see cref="VmmOption"/> constant.
     /// </summary>
-    /// <param name="fOption">The Vmm.CONFIG_* option to set.</param>
+    /// <param name="fOption">The <see cref="VmmOption"/> option to set.</param>
     /// <param name="qwValue">The value to set.</param>
-    /// <returns></returns>
+    /// <returns><see langword="true"/> on success; otherwise <see langword="false"/>.</returns>
     public bool ConfigSet(VmmOption fOption, ulong qwValue)
     {
         return Vmmi.VMMDLL_ConfigSet(_h, fOption, qwValue);
     }
 
     /// <summary>
-    /// Returns physical memory map in string format, with additional optional setup parameters.
+    /// Returns the physical memory map in string format, with additional optional setup parameters.
     /// </summary>
-    /// <param name="applyMap">(Optional) True if you would like to apply the Memory Map to the current Vmm/LeechCore instance.</param>
-    /// <param name="outputFile">(Optional) If Non-Null, will write the Memory Map to disk at the specified output location.</param>
-    /// <returns>Memory map result in String Format.</returns>
-    /// <exception cref="VmmException"></exception>
+    /// <param name="applyMap">If <see langword="true"/>, applies the memory map to the current <see cref="Vmm"/>/<see cref="LeechCore"/> instance.</param>
+    /// <param name="outputFile">If non-<see langword="null"/>, writes the memory map to disk at the specified output location.</param>
+    /// <returns>Memory map result in string format.</returns>
+    /// <exception cref="VmmException">Thrown if the memory map cannot be retrieved or applied.</exception>
     public string GetMemoryMap(
         bool applyMap = false,
         string outputFile = null)
@@ -277,19 +321,26 @@ public sealed class Vmm : IDisposable
     // MEMORY READ/WRITE FUNCTIONALITY BELOW:
     //---------------------------------------------------------------------
 
+    /// <summary>
+    /// Special PID that indicates physical memory operations.
+    /// </summary>
     public const uint PID_PHYSICALMEMORY = unchecked((uint)-1); // Pass as a PID Parameter to read Physical Memory
+
+    /// <summary>
+    /// Flag to combine with a PID to enable process kernel memory (use with extreme care).
+    /// </summary>
     public const uint PID_PROCESS_WITH_KERNELMEMORY = 0x80000000; // Combine with dwPID to enable process kernel memory (NB! use with extreme care).
 
     /// <summary>
     /// Perform a scatter read of multiple page-sized virtual memory ranges.
     /// Does not copy the read memory to a managed byte buffer, but instead allows direct access to the native memory via a
-    /// Span view.
+    /// <see cref="Span{T}"/> view.
     /// </summary>
     /// <param name="pid">Process ID (PID) this operation will take place within.</param>
-    /// <param name="flags">Vmm Flags.</param>
-    /// <param name="vas">Array of page-aligned Memory Addresses.</param>
-    /// <returns>SCATTER_HANDLE</returns>
-    /// <exception cref="VmmException"></exception>
+    /// <param name="flags">VMM read flags.</param>
+    /// <param name="vas">Page-aligned virtual addresses.</param>
+    /// <returns>An <see cref="LeechCore.LcScatterHandle"/> owning the native buffers for the read pages.</returns>
+    /// <exception cref="VmmException">Thrown if the native scatter allocation fails.</exception>
     public unsafe LeechCore.LcScatterHandle MemReadScatter(uint pid, VmmFlags flags, params Span<ulong> vas)
     {
         if (!Lci.LcAllocScatter1((uint)vas.Length, out var pppMEMs))
@@ -320,15 +371,15 @@ public sealed class Vmm : IDisposable
     }
 
     /// <summary>
-    /// Read Memory from a Virtual Address into unmanaged memory.
+    /// Read memory from a virtual address into unmanaged memory.
     /// </summary>
     /// <param name="pid">Process ID (PID) this operation will take place within.</param>
-    /// <param name="va">Virtual Address to read from.</param>
-    /// <param name="pb">Pointer to buffer to receive read.</param>
+    /// <param name="va">Virtual address to read from.</param>
+    /// <param name="pb">Pointer to buffer to receive the read.</param>
     /// <param name="cb">Count of bytes to read.</param>
-    /// <param name="cbRead">Count of bytes successfully read.</param>
-    /// <param name="flags">VMM Flags.</param>
-    /// <returns>True if successful, otherwise False. Be sure to check cbRead count.</returns>
+    /// <param name="cbRead">Receives the count of bytes successfully read.</param>
+    /// <param name="flags">VMM read flags.</param>
+    /// <returns><see langword="true"/> if successful; otherwise <see langword="false"/>. Be sure to check <paramref name="cbRead"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public unsafe bool MemRead(uint pid, ulong va, IntPtr pb, uint cb, out uint cbRead, VmmFlags flags = VmmFlags.NONE)
     {
@@ -336,15 +387,15 @@ public sealed class Vmm : IDisposable
     }
 
     /// <summary>
-    /// Read Memory from a Virtual Address into unmanaged memory.
+    /// Read memory from a virtual address into unmanaged memory.
     /// </summary>
     /// <param name="pid">Process ID (PID) this operation will take place within.</param>
-    /// <param name="va">Virtual Address to read from.</param>
-    /// <param name="pb">Pointer to buffer to receive read.</param>
+    /// <param name="va">Virtual address to read from.</param>
+    /// <param name="pb">Pointer to buffer to receive the read.</param>
     /// <param name="cb">Count of bytes to read.</param>
-    /// <param name="cbRead">Count of bytes successfully read.</param>
-    /// <param name="flags">VMM Flags.</param>
-    /// <returns>True if successful, otherwise False. Be sure to check cbRead count.</returns>
+    /// <param name="cbRead">Receives the count of bytes successfully read.</param>
+    /// <param name="flags">VMM read flags.</param>
+    /// <returns><see langword="true"/> if successful; otherwise <see langword="false"/>. Be sure to check <paramref name="cbRead"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public unsafe bool MemRead(uint pid, ulong va, void* pb, uint cb, out uint cbRead, VmmFlags flags = VmmFlags.NONE)
     {
@@ -352,14 +403,14 @@ public sealed class Vmm : IDisposable
     }
 
     /// <summary>
-    /// Read Memory from a Virtual Address into a ref struct of Type <typeparamref name="T" />.
+    /// Read memory from a virtual address into a <see langword="ref struct"/> of type <typeparamref name="T"/>.
     /// </summary>
-    /// <typeparam name="T">Struct/Ref Struct Type.</typeparam>
+    /// <typeparam name="T">Struct/Ref struct type.</typeparam>
     /// <param name="pid">Process ID (PID) this operation will take place within.</param>
-    /// <param name="va">Virtual Address to read from.</param>
-    /// <param name="result">Memory read result.</param>
-    /// <param name="flags">VMM Flags.</param>
-    /// <returns>TRUE if successful, otherwise FALSE.</returns>
+    /// <param name="va">Virtual address to read from.</param>
+    /// <param name="result">Receives the value read on success; otherwise <see langword="default"/>.</param>
+    /// <param name="flags">VMM read flags.</param>
+    /// <returns><see langword="true"/> if successful; otherwise <see langword="false"/>.</returns>
     public unsafe bool MemReadValue<T>(uint pid, ulong va, out T result, VmmFlags flags = VmmFlags.NONE)
         where T : unmanaged, allows ref struct
     {
@@ -372,15 +423,17 @@ public sealed class Vmm : IDisposable
     }
 
     /// <summary>
-    /// Read Memory from a Virtual Address into a Pooled Array of Type <typeparamref name="T" />.
-    /// NOTE: You must dispose the returned <see cref="PooledMemory{T}"/> when finished with it.
+    /// Read memory from a virtual address into a pooled array of type <typeparamref name="T"/>.
     /// </summary>
-    /// <typeparam name="T">Value Type.</typeparam>
+    /// <remarks>
+    /// You must dispose the returned <see cref="PooledMemory{T}"/> when finished with it.
+    /// </remarks>
+    /// <typeparam name="T">Value type.</typeparam>
     /// <param name="pid">Process ID (PID) this operation will take place within.</param>
-    /// <param name="va">Virtual Address to read from.</param>
+    /// <param name="va">Virtual address to read from.</param>
     /// <param name="count">Number of elements to read.</param>
-    /// <param name="flags">VMM Flags.</param>
-    /// <returns><see cref="PooledMemory{T}"/> lease, or NULL if failed. Be sure to call <see cref="PooledMemory{T}.Dispose()"/> when done.</returns>
+    /// <param name="flags">VMM read flags.</param>
+    /// <returns>A <see cref="PooledMemory{T}"/> lease, or <see langword="null"/> if failed.</returns>
     public unsafe PooledMemory<T> MemReadArray<T>(uint pid, ulong va, int count, VmmFlags flags = VmmFlags.NONE)
         where T : unmanaged
     {
@@ -398,16 +451,14 @@ public sealed class Vmm : IDisposable
     }
 
     /// <summary>
-    /// Read memory into a Span of <typeparamref name="T" />.
+    /// Read memory into a <see cref="Span{T}"/>.
     /// </summary>
-    /// <typeparam name="T">Value Type</typeparam>
+    /// <typeparam name="T">Value type.</typeparam>
     /// <param name="pid">Process ID (PID) this operation will take place within.</param>
     /// <param name="va">Memory address to read from.</param>
     /// <param name="span">Span to receive the memory read.</param>
     /// <param name="flags">Read flags.</param>
-    /// <returns>
-    /// True if successful, otherwise False.
-    /// </returns>
+    /// <returns><see langword="true"/> if successful; otherwise <see langword="false"/>.</returns>
     public unsafe bool MemReadSpan<T>(uint pid, ulong va, Span<T> span, VmmFlags flags = VmmFlags.NONE)
         where T : unmanaged
     {
@@ -419,14 +470,14 @@ public sealed class Vmm : IDisposable
     }
 
     /// <summary>
-    /// Read Memory from a Virtual Address into a Managed String.
+    /// Read memory from a virtual address into a managed <see cref="string"/>.
     /// </summary>
     /// <param name="pid">Process ID (PID) this operation will take place within.</param>
-    /// <param name="va">Virtual Address to read from.</param>
-    /// <param name="cb">Number of bytes to read. Keep in mind some string encodings are 2-4 bytes per character.</param>
-    /// <param name="encoding">String Encoding for this read.</param>
-    /// <param name="flags">VMM Flags.</param>
-    /// <returns>C# Managed System.String. Null if failed.</returns>
+    /// <param name="va">Virtual address to read from.</param>
+    /// <param name="cb">Number of bytes to read. Keep in mind some string encodings are 2–4 bytes per character.</param>
+    /// <param name="encoding">String encoding for this read.</param>
+    /// <param name="flags">VMM read flags.</param>
+    /// <returns>A managed <see cref="string"/> on success; otherwise <see langword="null"/>.</returns>
     public unsafe string MemReadString(uint pid, ulong va, int cb, Encoding encoding,
         VmmFlags flags = VmmFlags.NONE)
     {
@@ -465,7 +516,7 @@ public sealed class Vmm : IDisposable
     /// </summary>
     /// <param name="pid">Process ID (PID) this operation will take place within.</param>
     /// <param name="vas">An array of the virtual addresses to prefetch.</param>
-    /// <returns></returns>
+    /// <returns><see langword="true"/> on success; otherwise <see langword="false"/>.</returns>
     public unsafe bool MemPrefetchPages(uint pid, params Span<ulong> vas)
     {
         fixed (void* pb = vas)
@@ -475,13 +526,13 @@ public sealed class Vmm : IDisposable
     }
 
     /// <summary>
-    /// Write Memory from unmanaged memory to a given Virtual Address.
+    /// Write memory from unmanaged memory to a given virtual address.
     /// </summary>
     /// <param name="pid">Process ID (PID) this operation will take place within.</param>
-    /// <param name="va">Virtual Address to write to.</param>
+    /// <param name="va">Virtual address to write to.</param>
     /// <param name="pb">Pointer to buffer to write from.</param>
     /// <param name="cb">Count of bytes to write.</param>
-    /// <returns>True if write successful, otherwise False.</returns>
+    /// <returns><see langword="true"/> if the write is successful; otherwise <see langword="false"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public unsafe bool MemWrite(uint pid, ulong va, IntPtr pb, uint cb)
     {
@@ -489,13 +540,13 @@ public sealed class Vmm : IDisposable
     }
 
     /// <summary>
-    /// Write Memory from unmanaged memory to a given Virtual Address.
+    /// Write memory from unmanaged memory to a given virtual address.
     /// </summary>
     /// <param name="pid">Process ID (PID) this operation will take place within.</param>
-    /// <param name="va">Virtual Address to write to.</param>
+    /// <param name="va">Virtual address to write to.</param>
     /// <param name="pb">Pointer to buffer to write from.</param>
     /// <param name="cb">Count of bytes to write.</param>
-    /// <returns>True if write successful, otherwise False.</returns>
+    /// <returns><see langword="true"/> if the write is successful; otherwise <see langword="false"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public unsafe bool MemWrite(uint pid, ulong va, void* pb, uint cb)
     {
@@ -504,13 +555,13 @@ public sealed class Vmm : IDisposable
     }
 
     /// <summary>
-    /// Write Memory from a struct value <typeparamref name="T" /> to a given Virtual Address.
+    /// Write memory from a struct value <typeparamref name="T"/> to a given virtual address.
     /// </summary>
-    /// <typeparam name="T">Value Type.</typeparam>
+    /// <typeparam name="T">Value type.</typeparam>
     /// <param name="pid">Process ID (PID) this operation will take place within.</param>
-    /// <param name="va">Virtual Address to write to.</param>
-    /// <param name="value"><typeparamref name="T" /> Value to write.</param>
-    /// <returns>True if write successful, otherwise False.</returns>
+    /// <param name="va">Virtual address to write to.</param>
+    /// <param name="value">The value to write.</param>
+    /// <returns><see langword="true"/> if the write is successful; otherwise <see langword="false"/>.</returns>
     public unsafe bool MemWriteValue<T>(uint pid, ulong va, T value)
         where T : unmanaged, allows ref struct
     {
@@ -520,13 +571,13 @@ public sealed class Vmm : IDisposable
     }
 
     /// <summary>
-    /// Write Memory from a managed <typeparamref name="T" /> Array to a given Virtual Address.
+    /// Write memory from a managed array of <typeparamref name="T"/> to a given virtual address.
     /// </summary>
-    /// <typeparam name="T">Value Type.</typeparam>
+    /// <typeparam name="T">Value type.</typeparam>
     /// <param name="pid">Process ID (PID) this operation will take place within.</param>
-    /// <param name="va">Virtual Address to write to.</param>
-    /// <param name="data">Managed <typeparamref name="T" /> array to write.</param>
-    /// <returns>True if write successful, otherwise False.</returns>
+    /// <param name="va">Virtual address to write to.</param>
+    /// <param name="data">Managed <typeparamref name="T"/> array to write.</param>
+    /// <returns><see langword="true"/> if the write is successful; otherwise <see langword="false"/>.</returns>
     public unsafe bool MemWriteArray<T>(uint pid, ulong va, T[] data)
         where T : unmanaged
     {
@@ -539,13 +590,13 @@ public sealed class Vmm : IDisposable
     }
 
     /// <summary>
-    /// Write memory from a Span of <typeparamref name="T" /> to a specified memory address.
+    /// Write memory from a <see cref="Span{T}"/> of <typeparamref name="T"/> to a specified memory address.
     /// </summary>
-    /// <typeparam name="T">Value Type</typeparam>
+    /// <typeparam name="T">Value type.</typeparam>
     /// <param name="pid">Process ID (PID) this operation will take place within.</param>
     /// <param name="va">Memory address to write to.</param>
     /// <param name="span">Span to write from.</param>
-    /// <returns>True if successful, otherwise False.</returns>
+    /// <returns><see langword="true"/> if successful; otherwise <see langword="false"/>.</returns>
     public unsafe bool MemWriteSpan<T>(uint pid, ulong va, Span<T> span)
         where T : unmanaged
     {
@@ -562,7 +613,7 @@ public sealed class Vmm : IDisposable
     /// </summary>
     /// <param name="pid">Process ID (PID) this operation will take place within.</param>
     /// <param name="va">Virtual address to translate from.</param>
-    /// <returns>Physical address if successful, zero on fail.</returns>
+    /// <returns>Physical address if successful; otherwise 0 on failure.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public ulong MemVirt2Phys(uint pid, ulong va)
     {
@@ -571,19 +622,19 @@ public sealed class Vmm : IDisposable
     }
 
     /// <summary>
-    /// Initialize a Scatter handle used to read/write multiple virtual memory regions in a single call.
+    /// Initialize a scatter handle used to read/write multiple virtual memory regions in a single call.
     /// </summary>
-    /// <param name="pid">PID to create VmmScatter over.</param>
-    /// <param name="flags">Vmm Flag Options for this operation.</param>
+    /// <param name="pid">PID to create <see cref="VmmScatter"/> over.</param>
+    /// <param name="flags">VMM flag options for this operation.</param>
     /// <returns>Newly instantiated <see cref="VmmScatter"/> handle.</returns>
-    /// <exception cref="VmmException"></exception>
+    /// <exception cref="VmmException">Thrown if the underlying scatter handle cannot be created.</exception>
     public VmmScatter CreateScatter(uint pid, VmmFlags flags = VmmFlags.NONE)
     {
         return new VmmScatter(this, pid, flags);
     }
 
     /// <summary>
-    /// Initialize a Scatter 'Map' that can be used to coordinate multiple <see cref="VmmScatter"/> instances (rounds).
+    /// Initialize a scatter map that can be used to coordinate multiple <see cref="VmmScatter"/> instances (rounds).
     /// </summary>
     /// <param name="pid">PID to create this <see cref="VmmScatterMap"/> over.</param>
     /// <returns>Newly instantiated <see cref="VmmScatterMap"/> handle.</returns>
@@ -600,42 +651,57 @@ public sealed class Vmm : IDisposable
     // VFS (VIRTUAL FILE SYSTEM) FUNCTIONALITY BELOW:
     //---------------------------------------------------------------------
 
+    /// <summary>
+    /// Extended VFS file information provided by VMMDLL when listing files/directories.
+    /// </summary>
     [StructLayout(LayoutKind.Sequential)]
     public struct VMMDLL_VFS_FILELIST_EXINFO
     {
+        /// <summary>Structure version.</summary>
         public uint dwVersion;
+        /// <summary>Indicates whether the file is compressed.</summary>
         public bool fCompressed;
+        /// <summary>Creation timestamp (FILETIME).</summary>
         public ulong ftCreationTime;
+        /// <summary>Last access timestamp (FILETIME).</summary>
         public ulong ftLastAccessTime;
+        /// <summary>Last write timestamp (FILETIME).</summary>
         public ulong ftLastWriteTime;
     }
 
+    /// <summary>
+    /// Managed VFS entry describing a file or directory.
+    /// </summary>
     public struct VfsEntry
     {
+        /// <summary>The file or directory name.</summary>
         public string name;
+        /// <summary><see langword="true"/> if the entry is a directory; otherwise <see langword="false"/>.</summary>
         public bool isDirectory;
+        /// <summary>The size of the entry in bytes (0 for directories).</summary>
         public ulong size;
+        /// <summary>Optional extended file information.</summary>
         public VMMDLL_VFS_FILELIST_EXINFO info;
     }
 
     /// <summary>
     /// VFS list callback function for adding files.
     /// </summary>
-    /// <param name="ctx"></param>
-    /// <param name="name"></param>
-    /// <param name="cb"></param>
-    /// <param name="pExInfo"></param>
-    /// <returns></returns>
+    /// <param name="ctx">User-supplied context forwarded to the callback.</param>
+    /// <param name="name">The file name.</param>
+    /// <param name="cb">The file size in bytes.</param>
+    /// <param name="pExInfo">Pointer to <see cref="VMMDLL_VFS_FILELIST_EXINFO"/> if available; otherwise <see cref="IntPtr.Zero"/>.</param>
+    /// <returns><see langword="true"/> to continue enumeration; otherwise <see langword="false"/> to stop.</returns>
     [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
     public delegate bool VfsCallBack_AddFile(ulong ctx, [MarshalAs(UnmanagedType.LPUTF8Str)] string name, ulong cb, IntPtr pExInfo);
 
     /// <summary>
     /// VFS list callback function for adding directories.
     /// </summary>
-    /// <param name="ctx"></param>
-    /// <param name="name"></param>
-    /// <param name="pExInfo"></param>
-    /// <returns></returns>
+    /// <param name="ctx">User-supplied context forwarded to the callback.</param>
+    /// <param name="name">The directory name.</param>
+    /// <param name="pExInfo">Pointer to <see cref="VMMDLL_VFS_FILELIST_EXINFO"/> if available; otherwise <see cref="IntPtr.Zero"/>.</param>
+    /// <returns><see langword="true"/> to continue enumeration; otherwise <see langword="false"/> to stop.</returns>
     [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
     public delegate bool VfsCallBack_AddDirectory(ulong ctx, [MarshalAs(UnmanagedType.LPUTF8Str)] string name, IntPtr pExInfo);
 
@@ -680,11 +746,11 @@ public sealed class Vmm : IDisposable
     /// <summary>
     /// VFS list files and directories in a virtual file system path using callback functions.
     /// </summary>
-    /// <param name="path"></param>
+    /// <param name="path">Virtual path to enumerate.</param>
     /// <param name="ctx">A user-supplied context which will be passed on to the callback functions.</param>
-    /// <param name="CallbackFile"></param>
-    /// <param name="CallbackDirectory"></param>
-    /// <returns></returns>
+    /// <param name="CallbackFile">Callback invoked per file entry.</param>
+    /// <param name="CallbackDirectory">Callback invoked per directory entry.</param>
+    /// <returns><see langword="true"/> on success; otherwise <see langword="false"/>.</returns>
     public bool VfsList(string path, ulong ctx, VfsCallBack_AddFile CallbackFile, VfsCallBack_AddDirectory CallbackDirectory)
     {
         Vmmi.VMMDLL_VFS_FILELIST FileList;
@@ -699,8 +765,8 @@ public sealed class Vmm : IDisposable
     /// <summary>
     /// VFS list files and directories in a virtual file system path.
     /// </summary>
-    /// <param name="path"></param>
-    /// <returns>A list with file and directory entries on success. An empty list on fail.</returns>
+    /// <param name="path">Virtual path to enumerate.</param>
+    /// <returns>A list with file and directory entries on success; an empty list on failure.</returns>
     public List<VfsEntry> VfsList(string path)
     {
         var ctx = new List<VfsEntry>();
@@ -713,11 +779,11 @@ public sealed class Vmm : IDisposable
     /// <summary>
     /// VFS read data from a virtual file.
     /// </summary>
-    /// <param name="fileName"></param>
-    /// <param name="ntStatus">The NTSTATUS value of the operation (success = 0).</param>
-    /// <param name="size">The maximum number of bytes to read. (0 = default = 16MB).</param>
-    /// <param name="offset"></param>
-    /// <returns>The data read on success. Zero-length data on fail. NB! data read may be shorter than size!</returns>
+    /// <param name="fileName">The file name/path within the VFS.</param>
+    /// <param name="ntStatus">Receives the NTSTATUS value of the operation (success = 0).</param>
+    /// <param name="size">The maximum number of bytes to read. 0 = default = 16MB.</param>
+    /// <param name="offset">Optional offset within the file to start reading at.</param>
+    /// <returns>The data read on success. Zero-length data on failure. NB! Data read may be shorter than <paramref name="size"/>.</returns>
     public unsafe byte[] VfsRead(string fileName, out uint ntStatus, uint size = 0, ulong offset = 0)
     {
         uint cbRead = 0;
@@ -743,10 +809,10 @@ public sealed class Vmm : IDisposable
     /// <summary>
     /// VFS read data from a virtual file.
     /// </summary>
-    /// <param name="fileName"></param>
-    /// <param name="size"></param>
-    /// <param name="offset"></param>
-    /// <returns>The data read on success. Zero-length data on fail. NB! data read may be shorter than size!</returns>
+    /// <param name="fileName">The file name/path within the VFS.</param>
+    /// <param name="size">The maximum number of bytes to read. 0 = default = 16MB.</param>
+    /// <param name="offset">Optional offset within the file to start reading at.</param>
+    /// <returns>The data read on success. Zero-length data on failure. NB! Data read may be shorter than <paramref name="size"/>.</returns>
     public byte[] VfsRead(string fileName, uint size = 0, ulong offset = 0)
     {
         return VfsRead(fileName, out _, size, offset);
@@ -755,9 +821,9 @@ public sealed class Vmm : IDisposable
     /// <summary>
     /// VFS write data to a virtual file.
     /// </summary>
-    /// <param name="fileName"></param>
-    /// <param name="data"></param>
-    /// <param name="offset"></param>
+    /// <param name="fileName">The file name/path within the VFS.</param>
+    /// <param name="data">The data to write.</param>
+    /// <param name="offset">Optional offset within the file to start writing at.</param>
     /// <returns>The NTSTATUS value of the operation (success = 0).</returns>
     public unsafe uint VfsWrite(string fileName, byte[] data, ulong offset = 0)
     {
@@ -777,9 +843,9 @@ public sealed class Vmm : IDisposable
     //---------------------------------------------------------------------
 
     /// <summary>
-    /// Get all Process IDs (PIDs) currently running on the target system.
+    /// Get all process IDs (PIDs) currently running on the target system.
     /// </summary>
-    /// <returns>Array of PIDs, empty array if failed.</returns>
+    /// <returns>Array of PIDs; empty array on failure.</returns>
     public unsafe uint[] PidGetList()
     {
         bool result;
@@ -809,23 +875,25 @@ public sealed class Vmm : IDisposable
     }
 
     /// <summary>
-    /// Get the Process ID (PID) for a given process name.
-    /// NOTE: This only returns the first PID found for the process name. For multiple PIDs, use <see cref="PidGetAllFromName"/>/>.
+    /// Get the process ID (PID) for a given process name.
     /// </summary>
+    /// <remarks>
+    /// This only returns the first PID found for the process name. For multiple PIDs, use <see cref="PidGetAllFromName(string)"/>.
+    /// </remarks>
     /// <param name="sProcName">Name of the process to look up.</param>
-    /// <param name="pdwPID">PID result.</param>
-    /// <returns>TRUE if successful, otherwise FALSE.</returns>
+    /// <param name="pdwPID">Receives the PID result.</param>
+    /// <returns><see langword="true"/> if successful; otherwise <see langword="false"/>.</returns>
     public bool PidGetFromName(string sProcName, out uint pdwPID)
     {
         return Vmmi.VMMDLL_PidGetFromName(_h, sProcName, out pdwPID);
     }
 
     /// <summary>
-    /// Get all Process IDs (PIDs) for a given process name.
+    /// Get all process IDs (PIDs) for a given process name.
     /// </summary>
     /// <param name="sProcName">Name of the process to look up.</param>
-    /// <returns>Array of PIDs that match, or empty array if no matches.</returns>
-    /// <exception cref="VmmException"></exception>
+    /// <returns>Array of PIDs that match; empty array if no matches.</returns>
+    /// <exception cref="VmmException">Thrown if process information cannot be retrieved.</exception>
     public uint[] PidGetAllFromName(string sProcName)
     {
         var pids = new List<uint>();
@@ -848,8 +916,8 @@ public sealed class Vmm : IDisposable
     /// PTE (Page Table Entry) information.
     /// </summary>
     /// <param name="pid">Process ID (PID) for this operation.</param>
-    /// <param name="fIdentifyModules"></param>
-    /// <returns>Array of PTEs on success. Zero-length array on fail.</returns>
+    /// <param name="fIdentifyModules">If <see langword="true"/>, attempt to identify modules for regions.</param>
+    /// <returns>Array of PTEs on success; zero-length array on failure.</returns>
     public unsafe PteEntry[] Map_GetPTE(uint pid, bool fIdentifyModules = true)
     {
         var cbMAP = Marshal.SizeOf<Vmmi.VMMDLL_MAP_PTE>();
@@ -895,8 +963,8 @@ public sealed class Vmm : IDisposable
     /// VAD (Virtual Address Descriptor) information.
     /// </summary>
     /// <param name="pid">Process ID (PID) for this operation.</param>
-    /// <param name="fIdentifyModules"></param>
-    /// <returns></returns>
+    /// <param name="fIdentifyModules">If <see langword="true"/>, attempt to identify modules for regions.</param>
+    /// <returns>Array of VAD entries on success; zero-length array on failure.</returns>
     public unsafe VadEntry[] Map_GetVad(uint pid, bool fIdentifyModules = true)
     {
         var cbMAP = Marshal.SizeOf<Vmmi.VMMDLL_MAP_VAD>();
@@ -956,9 +1024,9 @@ public sealed class Vmm : IDisposable
     /// Extended VAD (Virtual Address Descriptor) information.
     /// </summary>
     /// <param name="pid">Process ID (PID) for this operation.</param>
-    /// <param name="oPages"></param>
-    /// <param name="cPages"></param>
-    /// <returns></returns>
+    /// <param name="oPages">Page offset.</param>
+    /// <param name="cPages">Number of pages.</param>
+    /// <returns>Array of extended VAD entries on success; zero-length array on failure.</returns>
     public unsafe VadExEntry[] Map_GetVadEx(uint pid, uint oPages, uint cPages)
     {
         var cbMAP = Marshal.SizeOf<Vmmi.VMMDLL_MAP_VADEX>();
@@ -999,11 +1067,11 @@ public sealed class Vmm : IDisposable
     }
 
     /// <summary>
-    /// Module (loaded DLLs) information.
+    /// Retrieve module (loaded DLL) information for a process.
     /// </summary>
     /// <param name="pid">Process ID (PID) for this operation.</param>
-    /// <param name="fExtendedInfo"></param>
-    /// <returns></returns>
+    /// <param name="fExtendedInfo">If <see langword="true"/>, attempts to include extended debug/version information.</param>
+    /// <returns>An array of <see cref="ModuleEntry"/> on success; an empty array on failure.</returns>
     public unsafe ModuleEntry[] Map_GetModule(uint pid, bool fExtendedInfo = false)
     {
         var cbMAP = Marshal.SizeOf<Vmmi.VMMDLL_MAP_MODULE>();
@@ -1089,18 +1157,18 @@ public sealed class Vmm : IDisposable
             m[i] = e;
         }
 
-        fail:
+    fail:
         Vmmi.VMMDLL_MemFree((byte*)pMap.ToPointer());
         return m;
     }
 
     /// <summary>
-    /// Get a module from its name. If more than one module with the same name is loaded, the first one is returned.
+    /// Get a single module from its name. If more than one module with the same name is loaded, the first one is returned.
     /// </summary>
     /// <param name="pid">Process ID (PID) for this operation.</param>
-    /// <param name="module">Module to lookup.</param>
-    /// <param name="result">Result if successful.</param>
-    /// <returns>TRUE if successful, otherwise FALSE.</returns>
+    /// <param name="module">Module name to look up.</param>
+    /// <param name="result">Receives the <see cref="ModuleEntry"/> if successful.</param>
+    /// <returns><see langword="true"/> if successful; otherwise <see langword="false"/>.</returns>
     public unsafe bool Map_GetModuleFromName(uint pid, string module, out ModuleEntry result)
     {
         bool f = false;
@@ -1124,16 +1192,16 @@ public sealed class Vmm : IDisposable
         result.cEAT = nM.cEAT;
         result.cIAT = nM.cIAT;
         f = true;
-        fail:
+    fail:
         Vmmi.VMMDLL_MemFree((byte*)pMap.ToPointer());
         return f;
     }
 
     /// <summary>
-    /// Unloaded module information.
+    /// Retrieve information about unloaded modules.
     /// </summary>
     /// <param name="pid">Process ID (PID) for this operation.</param>
-    /// <returns></returns>
+    /// <returns>An array of <see cref="UnloadedModuleEntry"/> on success; an empty array on failure.</returns>
     public unsafe UnloadedModuleEntry[] Map_GetUnloadedModule(uint pid)
     {
         var cbMAP = Marshal.SizeOf<Vmmi.VMMDLL_MAP_UNLOADEDMODULE>();
@@ -1165,18 +1233,18 @@ public sealed class Vmm : IDisposable
             m[i] = e;
         }
 
-        fail:
+    fail:
         Vmmi.VMMDLL_MemFree((byte*)pMap.ToPointer());
         return m;
     }
 
     /// <summary>
-    /// EAT (Export Address Table) information.
+    /// Retrieve EAT (Export Address Table) information for a module.
     /// </summary>
     /// <param name="pid">Process ID (PID) for this operation.</param>
-    /// <param name="module"></param>
-    /// <param name="info"></param>
-    /// <returns></returns>
+    /// <param name="module">Module name to query.</param>
+    /// <param name="info">Receives high-level <see cref="EATInfo"/> for the module.</param>
+    /// <returns>An array of <see cref="EATEntry"/> on success; an empty array on failure.</returns>
     public unsafe EATEntry[] Map_GetEAT(uint pid, string module, out EATInfo info)
     {
         info = new EATInfo();
@@ -1216,17 +1284,17 @@ public sealed class Vmm : IDisposable
         info.cNumberOfForwardedFunctions = nM.cNumberOfForwardedFunctions;
         info.cNumberOfNames = nM.cNumberOfNames;
         info.dwOrdinalBase = nM.dwOrdinalBase;
-        fail:
+    fail:
         Vmmi.VMMDLL_MemFree((byte*)pMap.ToPointer());
         return m;
     }
 
     /// <summary>
-    /// IAT (Import Address Table) information.
+    /// Retrieve IAT (Import Address Table) information for a module.
     /// </summary>
     /// <param name="pid">Process ID (PID) for this operation.</param>
-    /// <param name="module"></param>
-    /// <returns></returns>
+    /// <param name="module">Module name to query.</param>
+    /// <returns>An array of <see cref="IATEntry"/> on success; an empty array on failure.</returns>
     public unsafe IATEntry[] Map_GetIAT(uint pid, string module)
     {
         var cbMAP = Marshal.SizeOf<Vmmi.VMMDLL_MAP_IAT>();
@@ -1261,17 +1329,17 @@ public sealed class Vmm : IDisposable
             m[i] = e;
         }
 
-        fail:
+    fail:
         Vmmi.VMMDLL_MemFree((byte*)pMap.ToPointer());
         return m;
     }
 
     /// <summary>
-    /// Heap information.
+    /// Retrieve heap information for a process.
     /// </summary>
     /// <param name="pid">Process ID (PID) for this operation.</param>
-    /// <param name="result">Result if successful.</param>
-    /// <returns>TRUE if successful, otherwise FALSE.</returns>
+    /// <param name="result">Receives the <see cref="HeapMap"/> result on success.</param>
+    /// <returns><see langword="true"/> if successful; otherwise <see langword="false"/>.</returns>
     public unsafe bool Map_GetHeap(uint pid, out HeapMap result)
     {
         bool f = false;
@@ -1312,17 +1380,17 @@ public sealed class Vmm : IDisposable
             result.segments[i].iHeapNum = nH.iHeap;
         }
         f = true;
-        fail:
+    fail:
         Vmmi.VMMDLL_MemFree((byte*)pMap.ToPointer());
         return f;
     }
 
     /// <summary>
-    /// Heap allocated entries information.
+    /// Retrieve heap allocation entries for a specific heap by base address or heap number.
     /// </summary>
     /// <param name="pid">Process ID (PID) for this operation.</param>
-    /// <param name="vaHeapOrHeapNum"></param>
-    /// <returns></returns>
+    /// <param name="vaHeapOrHeapNum">Heap base address or heap index.</param>
+    /// <returns>An array of <see cref="HeapAllocEntry"/> on success; an empty array on failure.</returns>
     public unsafe HeapAllocEntry[] Map_GetHeapAlloc(uint pid, ulong vaHeapOrHeapNum)
     {
         var cbMAP = Marshal.SizeOf<Vmmi.VMMDLL_MAP_HEAPALLOC>();
@@ -1353,10 +1421,10 @@ public sealed class Vmm : IDisposable
     }
 
     /// <summary>
-    /// Thread information.
+    /// Retrieve thread information for a process.
     /// </summary>
     /// <param name="pid">Process ID (PID) for this operation.</param>
-    /// <returns></returns>
+    /// <returns>An array of <see cref="ThreadEntry"/> on success; an empty array on failure.</returns>
     public unsafe ThreadEntry[] Map_GetThread(uint pid)
     {
         var cbMAP = Marshal.SizeOf<Vmmi.VMMDLL_MAP_THREAD>();
@@ -1407,18 +1475,18 @@ public sealed class Vmm : IDisposable
             m[i] = e;
         }
 
-        fail:
+    fail:
         Vmmi.VMMDLL_MemFree((byte*)pMap.ToPointer());
         return m;
     }
 
     /// <summary>
-    /// Thread callstack information.
+    /// Retrieve thread call stack information.
     /// </summary>
     /// <param name="pid">Process ID (PID) for this operation.</param>
-    /// <param name="tid">The thread id to retrieve the callstack for.</param>
-    /// <param name="flags">Supported flags: 0, FLAG_NOCACHE, FLAG_FORCECACHE_READ</param>
-    /// <returns></returns>
+    /// <param name="tid">Thread ID to retrieve the call stack for.</param>
+    /// <param name="flags">Supported <see cref="VmmFlags"/> values include <see cref="VmmFlags.NONE"/>, <see cref="VmmFlags.NOCACHE"/>, and <see cref="VmmFlags.FORCECACHE_READ"/>.</param>
+    /// <returns>An array of <see cref="ThreadCallstackEntry"/> on success; an empty array on failure.</returns>
     public unsafe ThreadCallstackEntry[] Map_GetThread_Callstack(uint pid, uint tid, VmmFlags flags = VmmFlags.NONE)
     {
         var cbMAP = Marshal.SizeOf<Vmmi.VMMDLL_MAP_THREAD_CALLSTACK>();
@@ -1453,16 +1521,16 @@ public sealed class Vmm : IDisposable
             m[i] = e;
         }
 
-        fail:
+    fail:
         Vmmi.VMMDLL_MemFree((byte*)pMap.ToPointer());
         return m;
     }
 
     /// <summary>
-    /// Handle information.
+    /// Retrieve handle information for a process.
     /// </summary>
     /// <param name="pid">Process ID (PID) for this operation.</param>
-    /// <returns></returns>
+    /// <returns>An array of <see cref="HandleEntry"/> on success; an empty array on failure.</returns>
     public unsafe HandleEntry[] Map_GetHandle(uint pid)
     {
         var cbMAP = Marshal.SizeOf<Vmmi.VMMDLL_MAP_HANDLE>();
@@ -1499,47 +1567,47 @@ public sealed class Vmm : IDisposable
             m[i] = e;
         }
 
-        fail:
+    fail:
         Vmmi.VMMDLL_MemFree((byte*)pMap.ToPointer());
         return m;
     }
 
     /// <summary>
-    /// User mode path of the process image.
+    /// Get the user-mode path of the process image.
     /// </summary>
     /// <param name="pid">Process ID (PID) for this operation.</param>
-    /// <returns></returns>
+    /// <returns>A string path on success; otherwise an empty string.</returns>
     public string GetProcessPathUser(uint pid)
     {
         return GetProcessInformationString(pid, VMMDLL_PROCESS_INFORMATION_OPT_STRING_PATH_USER_IMAGE);
     }
 
     /// <summary>
-    /// Kernel mode path of the process image.
+    /// Get the kernel-mode path of the process image.
     /// </summary>
     /// <param name="pid">Process ID (PID) for this operation.</param>
-    /// <returns></returns>
+    /// <returns>A string path on success; otherwise an empty string.</returns>
     public string GetProcessPathKernel(uint pid)
     {
         return GetProcessInformationString(pid, VMMDLL_PROCESS_INFORMATION_OPT_STRING_PATH_KERNEL);
     }
 
     /// <summary>
-    /// Process command line.
+    /// Get the process command line.
     /// </summary>
     /// <param name="pid">Process ID (PID) for this operation.</param>
-    /// <returns></returns>
+    /// <returns>The command line string on success; otherwise an empty string.</returns>
     public string GetProcessCmdline(uint pid)
     {
         return GetProcessInformationString(pid, VMMDLL_PROCESS_INFORMATION_OPT_STRING_CMDLINE);
     }
 
     /// <summary>
-    /// Get the string representation of an option value.
+    /// Get the string representation of a process info option.
     /// </summary>
     /// <param name="pid">Process ID (PID) for this operation.</param>
-    /// <param name="fOptionString">VmmProcess.VMMDLL_PROCESS_INFORMATION_OPT_*</param>
-    /// <returns></returns>
+    /// <param name="fOptionString">A VMMDLL_PROCESS_INFORMATION_OPT_* flag indicating which string to fetch.</param>
+    /// <returns>The string value on success; otherwise an empty string.</returns>
     public unsafe string GetProcessInformationString(uint pid, uint fOptionString)
     {
         var pb = Vmmi.VMMDLL_ProcessGetInformationString(_h, pid, fOptionString);
@@ -1554,11 +1622,11 @@ public sealed class Vmm : IDisposable
     }
 
     /// <summary>
-    /// IMAGE_DATA_DIRECTORY information for the specified module.
+    /// Retrieve IMAGE_DATA_DIRECTORY information for the specified module.
     /// </summary>
     /// <param name="pid">Process ID (PID) for this operation.</param>
-    /// <param name="sModule"></param>
-    /// <returns></returns>
+    /// <param name="sModule">Module name.</param>
+    /// <returns>An array of <see cref="IMAGE_DATA_DIRECTORY"/>; empty array on failure.</returns>
     public unsafe IMAGE_DATA_DIRECTORY[] ProcessGetDirectories(uint pid, string sModule)
     {
         var PE_DATA_DIRECTORIES = new string[16] { "EXPORT", "IMPORT", "RESOURCE", "EXCEPTION", "SECURITY", "BASERELOC", "DEBUG", "ARCHITECTURE", "GLOBALPTR", "TLS", "LOAD_CONFIG", "BOUND_IMPORT", "IAT", "DELAY_IMPORT", "COM_DESCRIPTOR", "RESERVED" };
@@ -1588,11 +1656,11 @@ public sealed class Vmm : IDisposable
     }
 
     /// <summary>
-    /// IMAGE_SECTION_HEADER information for the specified module.
+    /// Retrieve IMAGE_SECTION_HEADER information for the specified module.
     /// </summary>
     /// <param name="pid">Process ID (PID) for this operation.</param>
-    /// <param name="sModule"></param>
-    /// <returns></returns>
+    /// <param name="sModule">Module name.</param>
+    /// <returns>An array of <see cref="IMAGE_SECTION_HEADER"/>; empty array on failure.</returns>
     public unsafe IMAGE_SECTION_HEADER[] ProcessGetSections(uint pid, string sModule)
     {
         bool result;
@@ -1634,34 +1702,34 @@ public sealed class Vmm : IDisposable
     }
 
     /// <summary>
-    /// Function address of a function in a loaded module.
+    /// Get the function address of a function in a loaded module.
     /// </summary>
     /// <param name="pid">Process ID (PID) for this operation.</param>
-    /// <param name="wszModuleName"></param>
-    /// <param name="szFunctionName"></param>
-    /// <returns></returns>
+    /// <param name="wszModuleName">Module name.</param>
+    /// <param name="szFunctionName">Function name.</param>
+    /// <returns>The function virtual address on success; 0 on failure.</returns>
     public ulong ProcessGetProcAddress(uint pid, string wszModuleName, string szFunctionName)
     {
         return Vmmi.VMMDLL_ProcessGetProcAddress(_h, pid, wszModuleName, szFunctionName);
     }
 
     /// <summary>
-    /// Base address of a loaded module.
+    /// Get the base address of a loaded module.
     /// </summary>
     /// <param name="pid">Process ID (PID) for this operation.</param>
-    /// <param name="wszModuleName"></param>
-    /// <returns></returns>
+    /// <param name="wszModuleName">Module name.</param>
+    /// <returns>The module base address on success; 0 on failure.</returns>
     public ulong ProcessGetModuleBase(uint pid, string wszModuleName)
     {
         return Vmmi.VMMDLL_ProcessGetModuleBase(_h, pid, wszModuleName);
     }
 
     /// <summary>
-    /// Get process information.
+    /// Get process information for a specific process.
     /// </summary>
     /// <param name="pid">Process ID (PID) for this operation.</param>
-    /// <param name="result">Result if successful.</param>
-    /// <returns>TRUE if successful, otherwise FALSE.</returns>
+    /// <param name="result">Receives the <see cref="ProcessInfo"/> if successful.</param>
+    /// <returns><see langword="true"/> if successful; otherwise <see langword="false"/>.</returns>
     public unsafe bool ProcessGetInformation(uint pid, out ProcessInfo result)
     {
         result = default;
@@ -1708,7 +1776,7 @@ public sealed class Vmm : IDisposable
     /// <summary>
     /// Get process information for all processes.
     /// </summary>
-    /// <returns>ProcessInformation array, Empty Array if failed.</returns>
+    /// <returns>An array of <see cref="ProcessInfo"/>; empty array on failure.</returns>
     public unsafe ProcessInfo[] ProcessGetInformationAll()
     {
         var m = Array.Empty<ProcessInfo>();
@@ -1753,29 +1821,54 @@ public sealed class Vmm : IDisposable
         return m;
     }
 
+    /// <summary>
+    /// Process metadata as returned by MemProcFS/VMMDLL.
+    /// </summary>
     public struct ProcessInfo
     {
+        /// <summary>Indicates the entry contains valid data.</summary>
         public bool fValid;
+        /// <summary>Memory model type (see underlying VMMDLL).</summary>
         public uint tpMemoryModel;
+        /// <summary>System type (see underlying VMMDLL).</summary>
         public uint tpSystem;
+        /// <summary>True if user-mode only.</summary>
         public bool fUserOnly;
+        /// <summary>Process identifier.</summary>
         public uint dwPID;
+        /// <summary>Parent process identifier.</summary>
         public uint dwPPID;
+        /// <summary>Process state flags.</summary>
         public uint dwState;
+        /// <summary>Short process name.</summary>
         public string sName;
+        /// <summary>Long process name.</summary>
         public string sNameLong;
+        /// <summary>Directory table base (kernel).</summary>
         public ulong paDTB;
+        /// <summary>User-mode DTB (optional).</summary>
         public ulong paDTB_UserOpt;
+        /// <summary>EPROCESS address.</summary>
         public ulong vaEPROCESS;
+        /// <summary>PEB address.</summary>
         public ulong vaPEB;
+        /// <summary>True if the process is WoW64.</summary>
         public bool fWow64;
+        /// <summary>PEB32 address for WoW64 processes.</summary>
         public uint vaPEB32;
+        /// <summary>Windows session id.</summary>
         public uint dwSessionId;
+        /// <summary>Process LUID.</summary>
         public ulong qwLUID;
+        /// <summary>Process SID string.</summary>
         public string sSID;
+        /// <summary>Integrity level value.</summary>
         public uint IntegrityLevel;
     }
 
+    /// <summary>
+    /// Page Table Entry (PTE) mapping entry.
+    /// </summary>
     public struct PteEntry
     {
         public ulong vaBase;
@@ -1792,6 +1885,9 @@ public sealed class Vmm : IDisposable
         public bool fX;
     }
 
+    /// <summary>
+    /// Virtual Address Descriptor (VAD) mapping entry.
+    /// </summary>
     public struct VadEntry
     {
         public ulong vaStart;
@@ -1822,6 +1918,9 @@ public sealed class Vmm : IDisposable
         public uint cVadExPagesBase;
     }
 
+    /// <summary>
+    /// Prototype information for a VAD EX entry.
+    /// </summary>
     public struct VadExEntryPrototype
     {
         public uint tp;
@@ -1829,6 +1928,9 @@ public sealed class Vmm : IDisposable
         public ulong pte;
     }
 
+    /// <summary>
+    /// Extended VAD entry with page table details.
+    /// </summary>
     public struct VadExEntry
     {
         public uint tp;
@@ -1841,11 +1943,20 @@ public sealed class Vmm : IDisposable
         public ulong vaVadBase;
     }
 
+    /// <summary>
+    /// Module type constants.
+    /// </summary>
     public const uint MAP_MODULEENTRY_TP_NORMAL = 0;
+    /// <summary>Module is data only.</summary>
     public const uint VMMDLL_MODULE_TP_DATA = 1;
+    /// <summary>Module not linked.</summary>
     public const uint VMMDLL_MODULE_TP_NOTLINKED = 2;
+    /// <summary>Module injected.</summary>
     public const uint VMMDLL_MODULE_TP_INJECTED = 3;
 
+    /// <summary>
+    /// Extended debug information associated with a module entry.
+    /// </summary>
     public struct ModuleEntryDebugInfo
     {
         public bool fValid;
@@ -1854,6 +1965,9 @@ public sealed class Vmm : IDisposable
         public string sPdbFilename;
     }
 
+    /// <summary>
+    /// Version information associated with a module entry.
+    /// </summary>
     public struct ModuleEntryVersionInfo
     {
         public bool fValid;
@@ -1867,6 +1981,9 @@ public sealed class Vmm : IDisposable
         public string sProductVersion;
     }
 
+    /// <summary>
+    /// Module entry describing a loaded module/DLL.
+    /// </summary>
     public struct ModuleEntry
     {
         public bool fValid;
@@ -1885,17 +2002,26 @@ public sealed class Vmm : IDisposable
         public ModuleEntryVersionInfo VersionInfo;
     }
 
+    /// <summary>
+    /// Entry describing an unloaded module.
+    /// </summary>
     public struct UnloadedModuleEntry
     {
         public ulong vaBase;
         public uint cbImageSize;
         public bool fWow64;
         public string wText;
+        /// <summary>User-mode only.</summary>
         public uint dwCheckSum; // user-mode only
+        /// <summary>User-mode only.</summary>
         public uint dwTimeDateStamp; // user-mode only
+        /// <summary>Kernel-mode only.</summary>
         public ulong ftUnload; // kernel-mode only
     }
 
+    /// <summary>
+    /// High-level EAT metadata for a module.
+    /// </summary>
     public struct EATInfo
     {
         public bool fValid;
@@ -1908,6 +2034,9 @@ public sealed class Vmm : IDisposable
         public uint dwOrdinalBase;
     }
 
+    /// <summary>
+    /// Export Address Table entry.
+    /// </summary>
     public struct EATEntry
     {
         public ulong vaFunction;
@@ -1918,6 +2047,9 @@ public sealed class Vmm : IDisposable
         public string sForwardedFunction;
     }
 
+    /// <summary>
+    /// Import Address Table entry.
+    /// </summary>
     public struct IATEntry
     {
         public ulong vaFunction;
@@ -1932,6 +2064,9 @@ public sealed class Vmm : IDisposable
         public uint rvaNameFunction;
     }
 
+    /// <summary>
+    /// Heap descriptor entry.
+    /// </summary>
     public struct HeapEntry
     {
         public ulong va;
@@ -1940,6 +2075,9 @@ public sealed class Vmm : IDisposable
         public uint iHeapNum;
     }
 
+    /// <summary>
+    /// Heap segment descriptor entry.
+    /// </summary>
     public struct HeapSegmentEntry
     {
         public ulong va;
@@ -1948,12 +2086,18 @@ public sealed class Vmm : IDisposable
         public uint iHeapNum;
     }
 
+    /// <summary>
+    /// Heap map result containing heaps and segments.
+    /// </summary>
     public struct HeapMap
     {
         public HeapEntry[] heaps;
         public HeapSegmentEntry[] segments;
     }
 
+    /// <summary>
+    /// Heap allocation entry.
+    /// </summary>
     public struct HeapAllocEntry
     {
         public ulong va;
@@ -1961,6 +2105,9 @@ public sealed class Vmm : IDisposable
         public uint tp;
     }
 
+    /// <summary>
+    /// Thread descriptor entry.
+    /// </summary>
     public struct ThreadEntry
     {
         public uint dwTID;
@@ -1991,6 +2138,9 @@ public sealed class Vmm : IDisposable
         public byte bWaitReason;
     }
 
+    /// <summary>
+    /// A single thread call stack frame entry.
+    /// </summary>
     public struct ThreadCallstackEntry
     {
         public uint dwPID;
@@ -2005,24 +2155,42 @@ public sealed class Vmm : IDisposable
         public string sFunction;
     }
 
+    /// <summary>
+    /// Kernel handle table entry.
+    /// </summary>
     public struct HandleEntry
     {
+        /// <summary>Kernel object address.</summary>
         public ulong vaObject;
+        /// <summary>Raw handle value.</summary>
         public uint dwHandle;
+        /// <summary>Granted access mask (low 24 bits of native field).</summary>
         public uint dwGrantedAccess;
+        /// <summary>Object type index (high 8 bits of native field).</summary>
         public uint iType;
+        /// <summary>Handle reference count.</summary>
         public ulong qwHandleCount;
+        /// <summary>Pointer reference count.</summary>
         public ulong qwPointerCount;
+        /// <summary>Pointer to OBJECT_CREATE_INFORMATION.</summary>
         public ulong vaObjectCreateInfo;
+        /// <summary>Pointer to security descriptor.</summary>
         public ulong vaSecurityDescriptor;
+        /// <summary>Descriptive text, if available.</summary>
         public string sText;
+        /// <summary>Owning process ID.</summary>
         public uint dwPID;
+        /// <summary>Pool tag.</summary>
         public uint dwPoolTag;
+        /// <summary>Object type name.</summary>
         public string sType;
     }
 
+    /// <summary>Process information string option: kernel path.</summary>
     public const uint VMMDLL_PROCESS_INFORMATION_OPT_STRING_PATH_KERNEL = 1;
+    /// <summary>Process information string option: user image path.</summary>
     public const uint VMMDLL_PROCESS_INFORMATION_OPT_STRING_PATH_USER_IMAGE = 2;
+    /// <summary>Process information string option: command line.</summary>
     public const uint VMMDLL_PROCESS_INFORMATION_OPT_STRING_CMDLINE = 3;
 
     /// <summary>
@@ -2060,6 +2228,9 @@ public sealed class Vmm : IDisposable
     // REGISTRY FUNCTIONALITY BELOW:
     //---------------------------------------------------------------------
 
+    /// <summary>
+    /// Registry hive descriptor.
+    /// </summary>
     public struct RegHiveEntry
     {
         public ulong vaCMHIVE;
@@ -2070,12 +2241,18 @@ public sealed class Vmm : IDisposable
         public string sHiveRootPath;
     }
 
+    /// <summary>
+    /// Registry subkey descriptor.
+    /// </summary>
     public struct RegEnumKeyEntry
     {
         public string sName;
         public ulong ftLastWriteTime;
     }
 
+    /// <summary>
+    /// Registry value descriptor.
+    /// </summary>
     public struct RegEnumValueEntry
     {
         public string sName;
@@ -2083,6 +2260,9 @@ public sealed class Vmm : IDisposable
         public uint size;
     }
 
+    /// <summary>
+    /// Registry enumeration result containing keys and values.
+    /// </summary>
     public struct RegEnumEntry
     {
         public string sKeyFullPath;
@@ -2093,7 +2273,7 @@ public sealed class Vmm : IDisposable
     /// <summary>
     /// List the registry hives.
     /// </summary>
-    /// <returns></returns>
+    /// <returns>An array of <see cref="RegHiveEntry"/> on success; an empty array on failure.</returns>
     public unsafe RegHiveEntry[] WinReg_HiveList()
     {
         bool result;
@@ -2137,13 +2317,13 @@ public sealed class Vmm : IDisposable
     }
 
     /// <summary>
-    /// Read from a registry hive.
+    /// Read a region from a registry hive.
     /// </summary>
-    /// <param name="vaCMHIVE">The virtual address of the registry hive.</param>
-    /// <param name="ra">The hive registry address (ra).</param>
-    /// <param name="cb"></param>
-    /// <param name="flags"></param>
-    /// <returns>Read data on success (length may differ from requested read size). Zero-length array on fail.</returns>
+    /// <param name="vaCMHIVE">Virtual address of the registry hive.</param>
+    /// <param name="ra">Hive registry address (ra).</param>
+    /// <param name="cb">Number of bytes to read.</param>
+    /// <param name="flags">Optional <see cref="VmmFlags"/> to control the read.</param>
+    /// <returns>Data read on success (length may differ from requested read size); zero-length array on failure.</returns>
     public unsafe byte[] WinReg_HiveReadEx(ulong vaCMHIVE, uint ra, uint cb, VmmFlags flags = VmmFlags.NONE)
     {
         uint cbRead;
@@ -2165,12 +2345,15 @@ public sealed class Vmm : IDisposable
     }
 
     /// <summary>
-    /// Write to a registry hive. NB! This is a very dangerous operation and is not recommended!
+    /// Write to a registry hive.
     /// </summary>
-    /// <param name="vaCMHIVE">>The virtual address of the registry hive.</param>
-    /// <param name="ra">The hive registry address (ra).</param>
-    /// <param name="data"></param>
-    /// <returns></returns>
+    /// <remarks>
+    /// NB! This is a very dangerous operation and is not recommended. Only proceed if you know what you're doing.
+    /// </remarks>
+    /// <param name="vaCMHIVE">The virtual address of the registry hive.</param>
+    /// <param name="ra">Hive registry address (ra).</param>
+    /// <param name="data">Data to write.</param>
+    /// <returns><see langword="true"/> on success; otherwise <see langword="false"/>.</returns>
     public unsafe bool WinReg_HiveWrite(ulong vaCMHIVE, uint ra, byte[] data)
     {
         ThrowIfMemWritesDisabled();
@@ -2183,8 +2366,8 @@ public sealed class Vmm : IDisposable
     /// <summary>
     /// Enumerate a registry key for subkeys and values.
     /// </summary>
-    /// <param name="sKeyFullPath"></param>
-    /// <returns></returns>
+    /// <param name="sKeyFullPath">Full registry path to enumerate.</param>
+    /// <returns>A <see cref="RegEnumEntry"/> containing subkeys and values on success.</returns>
     public unsafe RegEnumEntry WinReg_Enum(string sKeyFullPath)
     {
         uint i, cchName, cbData = 0;
@@ -2232,9 +2415,9 @@ public sealed class Vmm : IDisposable
     /// <summary>
     /// Read a registry value.
     /// </summary>
-    /// <param name="sValueFullPath"></param>
-    /// <param name="tp"></param>
-    /// <returns></returns>
+    /// <param name="sValueFullPath">Full registry value path.</param>
+    /// <param name="tp">Receives the registry value type.</param>
+    /// <returns>Value data on success; otherwise <see langword="null"/>.</returns>
     public unsafe byte[] WinReg_QueryValue(string sValueFullPath, out uint tp)
     {
         bool result;
@@ -2261,11 +2444,18 @@ public sealed class Vmm : IDisposable
     // "MAP" FUNCTIONALITY BELOW:
     //---------------------------------------------------------------------
 
+    /// <summary>Page is writable.</summary>
     public const ulong MEMMAP_FLAG_PAGE_W = 0x0000000000000002;
+    /// <summary>Page is not shareable.</summary>
     public const ulong MEMMAP_FLAG_PAGE_NS = 0x0000000000000004;
+    /// <summary>Page is non-executable.</summary>
     public const ulong MEMMAP_FLAG_PAGE_NX = 0x8000000000000000;
+    /// <summary>Mask of supported page flags.</summary>
     public const ulong MEMMAP_FLAG_PAGE_MASK = 0x8000000000000006;
 
+    /// <summary>
+    /// Network endpoint address entry.
+    /// </summary>
     public struct NetEntryAddress
     {
         public bool fValid;
@@ -2274,6 +2464,9 @@ public sealed class Vmm : IDisposable
         public string sText;
     }
 
+    /// <summary>
+    /// Network connection entry.
+    /// </summary>
     public struct NetEntry
     {
         public uint dwPID;
@@ -2287,12 +2480,18 @@ public sealed class Vmm : IDisposable
         public string sText;
     }
 
+    /// <summary>
+    /// Physical memory range entry.
+    /// </summary>
     public struct MemoryEntry
     {
         public ulong pa;
         public ulong cb;
     }
 
+    /// <summary>
+    /// Kernel device entry.
+    /// </summary>
     public struct KDeviceEntry
     {
         public ulong va;
@@ -2305,6 +2504,9 @@ public sealed class Vmm : IDisposable
         public string sVolumeInfo;
     }
 
+    /// <summary>
+    /// Kernel driver entry.
+    /// </summary>
     public struct KDriverEntry
     {
         public ulong va;
@@ -2317,6 +2519,9 @@ public sealed class Vmm : IDisposable
         public ulong[] MajorFunction;
     }
 
+    /// <summary>
+    /// Kernel named object entry.
+    /// </summary>
     public struct KObjectEntry
     {
         public ulong va;
@@ -2326,6 +2531,9 @@ public sealed class Vmm : IDisposable
         public string sType;
     }
 
+    /// <summary>
+    /// Kernel pool allocation entry.
+    /// </summary>
     public struct PoolEntry
     {
         public ulong va;
@@ -2337,6 +2545,9 @@ public sealed class Vmm : IDisposable
         public string sTag;
     }
 
+    /// <summary>
+    /// User information entry.
+    /// </summary>
     public struct UserEntry
     {
         public string sSID;
@@ -2344,6 +2555,9 @@ public sealed class Vmm : IDisposable
         public ulong vaRegHive;
     }
 
+    /// <summary>
+    /// Virtual machine entry.
+    /// </summary>
     public struct VirtualMachineEntry
     {
         public ulong hVM;
@@ -2360,6 +2574,9 @@ public sealed class Vmm : IDisposable
         public uint dwVmMemPID;
     }
 
+    /// <summary>
+    /// Windows service entry.
+    /// </summary>
     public struct ServiceEntry
     {
         public ulong vaObj;
@@ -2381,6 +2598,9 @@ public sealed class Vmm : IDisposable
         public uint dwWaitHint;
     }
 
+    /// <summary>
+    /// PFN state types.
+    /// </summary>
     public enum PfnType
     {
         Zero = 0,
@@ -2393,6 +2613,9 @@ public sealed class Vmm : IDisposable
         Transition = 7
     }
 
+    /// <summary>
+    /// Extended PFN types.
+    /// </summary>
     public enum PfnTypeExtended
     {
         Unknown = 0,
@@ -2405,6 +2628,9 @@ public sealed class Vmm : IDisposable
         File = 7
     }
 
+    /// <summary>
+    /// PFN entry details.
+    /// </summary>
     public struct PfnEntry
     {
         public uint dwPfn;
@@ -2421,6 +2647,10 @@ public sealed class Vmm : IDisposable
         public byte priority;
     }
 
+    /// <summary>
+    /// Retrieve active network connections.
+    /// </summary>
+    /// <returns>An array of <see cref="NetEntry"/>; empty array on failure.</returns>
     public unsafe NetEntry[] Map_GetNet()
     {
         var cbMAP = Marshal.SizeOf<Vmmi.VMMDLL_MAP_NET>();
@@ -2460,7 +2690,7 @@ public sealed class Vmm : IDisposable
             m[i] = e;
         }
 
-        fail:
+    fail:
         Vmmi.VMMDLL_MemFree((byte*)pMap.ToPointer());
         return m;
     }
@@ -2468,7 +2698,7 @@ public sealed class Vmm : IDisposable
     /// <summary>
     /// Retrieve the physical memory map.
     /// </summary>
-    /// <returns>An array of MemoryEntry elements.</returns>
+    /// <returns>An array of <see cref="MemoryEntry"/> elements; empty array on failure.</returns>
     public unsafe MemoryEntry[] Map_GetPhysMem()
     {
         var cbMAP = Marshal.SizeOf<Vmmi.VMMDLL_MAP_PHYSMEM>();
@@ -2495,7 +2725,7 @@ public sealed class Vmm : IDisposable
             m[i] = e;
         }
 
-        fail:
+    fail:
         Vmmi.VMMDLL_MemFree((byte*)pMap.ToPointer());
         return m;
     }
@@ -2503,7 +2733,7 @@ public sealed class Vmm : IDisposable
     /// <summary>
     /// Retrieve the kernel devices on the system.
     /// </summary>
-    /// <returns>An array of KDeviceEntry elements.</returns>
+    /// <returns>An array of <see cref="KDeviceEntry"/> elements; empty array on failure.</returns>
     public unsafe KDeviceEntry[] Map_GetKDevice()
     {
         var cbMAP = Marshal.SizeOf<Vmmi.VMMDLL_MAP_KDEVICE>();
@@ -2536,7 +2766,7 @@ public sealed class Vmm : IDisposable
             m[i] = e;
         }
 
-        fail:
+    fail:
         Vmmi.VMMDLL_MemFree((byte*)pMap.ToPointer());
         return m;
     }
@@ -2544,7 +2774,7 @@ public sealed class Vmm : IDisposable
     /// <summary>
     /// Retrieve the kernel drivers on the system.
     /// </summary>
-    /// <returns>An array of KDriverEntry elements.</returns>
+    /// <returns>An array of <see cref="KDriverEntry"/> elements; empty array on failure.</returns>
     public unsafe KDriverEntry[] Map_GetKDriver()
     {
         var cbMAP = Marshal.SizeOf<Vmmi.VMMDLL_MAP_KDRIVER>();
@@ -2582,7 +2812,7 @@ public sealed class Vmm : IDisposable
             m[i] = e;
         }
 
-        fail:
+    fail:
         Vmmi.VMMDLL_MemFree((byte*)pMap.ToPointer());
         return m;
     }
@@ -2590,7 +2820,7 @@ public sealed class Vmm : IDisposable
     /// <summary>
     /// Retrieve the kernel named objects on the system.
     /// </summary>
-    /// <returns>An array of KObjectEntry elements.</returns>
+    /// <returns>An array of <see cref="KObjectEntry"/> elements; empty array on failure.</returns>
     public unsafe KObjectEntry[] Map_GetKObject()
     {
         var cbMAP = Marshal.SizeOf<Vmmi.VMMDLL_MAP_KOBJECT>();
@@ -2625,7 +2855,7 @@ public sealed class Vmm : IDisposable
             m[i] = e;
         }
 
-        fail:
+    fail:
         Vmmi.VMMDLL_MemFree((byte*)pMap.ToPointer());
         return m;
     }
@@ -2634,10 +2864,9 @@ public sealed class Vmm : IDisposable
     /// Retrieve entries from the kernel pool.
     /// </summary>
     /// <param name="isBigPoolOnly">
-    /// Set to true to only retrieve big pool allocations (= faster). Default is to retrieve all
-    /// allocations.
+    /// Set to <see langword="true"/> to only retrieve big pool allocations (faster). Default is to retrieve all allocations.
     /// </param>
-    /// <returns>An array of PoolEntry elements.</returns>
+    /// <returns>An array of <see cref="PoolEntry"/> elements; empty array on failure.</returns>
     public unsafe PoolEntry[] Map_GetPool(bool isBigPoolOnly = false)
     {
         byte[] tag = { 0, 0, 0, 0 };
@@ -2679,7 +2908,7 @@ public sealed class Vmm : IDisposable
     /// <summary>
     /// Retrieve the detected users on the system.
     /// </summary>
-    /// <returns>An array of UserEntry elements.</returns>
+    /// <returns>An array of <see cref="UserEntry"/> elements; empty array on failure.</returns>
     public unsafe UserEntry[] Map_GetUsers()
     {
         var cbMAP = Marshal.SizeOf<Vmmi.VMMDLL_MAP_USER>();
@@ -2707,16 +2936,15 @@ public sealed class Vmm : IDisposable
             m[i] = e;
         }
 
-        fail:
+    fail:
         Vmmi.VMMDLL_MemFree((byte*)pMap.ToPointer());
         return m;
     }
 
     /// <summary>
-    /// Retrieve the detected virtual machines on the system. This includes Hyper-V, WSL and other virtual machines running
-    /// on top of the Windows Hypervisor Platform.
+    /// Retrieve the detected virtual machines on the system. This includes Hyper-V, WSL and other virtual machines running on top of the Windows Hypervisor Platform.
     /// </summary>
-    /// <returns>An array of VirtualMachineEntry elements.</returns>
+    /// <returns>An array of <see cref="VirtualMachineEntry"/> elements; empty array on failure.</returns>
     public unsafe VirtualMachineEntry[] Map_GetVM()
     {
         var cbMAP = Marshal.SizeOf<Vmmi.VMMDLL_MAP_VM>();
@@ -2753,7 +2981,7 @@ public sealed class Vmm : IDisposable
             m[i] = e;
         }
 
-        fail:
+    fail:
         Vmmi.VMMDLL_MemFree((byte*)pMap.ToPointer());
         return m;
     }
@@ -2761,7 +2989,7 @@ public sealed class Vmm : IDisposable
     /// <summary>
     /// Retrieve the services on the system.
     /// </summary>
-    /// <returns>An array of ServiceEntry elements.</returns>
+    /// <returns>An array of <see cref="ServiceEntry"/> elements; empty array on failure.</returns>
     public unsafe ServiceEntry[] Map_GetServices()
     {
         var cbMAP = Marshal.SizeOf<Vmmi.VMMDLL_MAP_SERVICE>();
@@ -2803,16 +3031,16 @@ public sealed class Vmm : IDisposable
             m[i] = e;
         }
 
-        fail:
+    fail:
         Vmmi.VMMDLL_MemFree((byte*)pMap.ToPointer());
         return m;
     }
 
     /// <summary>
-    /// Retrieve the PFN entries for the specified PFNs.
+    /// Retrieve the PFN entries for the specified PFN numbers.
     /// </summary>
-    /// <param name="pfns">the pfn numbers of the pfns to retrieve.</param>
-    /// <returns></returns>
+    /// <param name="pfns">The PFN numbers to retrieve information for.</param>
+    /// <returns>An array of <see cref="PfnEntry"/>; empty array on failure.</returns>
     public unsafe PfnEntry[] Map_GetPfn(params Span<uint> pfns)
     {
         bool result;
@@ -2881,10 +3109,10 @@ public sealed class Vmm : IDisposable
     /// <summary>
     /// Load a .pdb symbol file and return its associated module name upon success.
     /// </summary>
-    /// <param name="pid"></param>
-    /// <param name="vaModuleBase"></param>
-    /// <param name="szModuleName"></param>
-    /// <returns></returns>
+    /// <param name="pid">Process ID (PID) whose module the symbols belong to.</param>
+    /// <param name="vaModuleBase">Module base address.</param>
+    /// <param name="szModuleName">Receives the module name if successful.</param>
+    /// <returns><see langword="true"/> if the PDB was loaded successfully; otherwise <see langword="false"/>.</returns>
     public unsafe bool PdbLoad(uint pid, ulong vaModuleBase, out string szModuleName)
     {
         szModuleName = "";
@@ -2907,11 +3135,11 @@ public sealed class Vmm : IDisposable
     /// <summary>
     /// Get the symbol name given an address or offset.
     /// </summary>
-    /// <param name="szModule"></param>
-    /// <param name="cbSymbolAddressOrOffset"></param>
-    /// <param name="szSymbolName"></param>
-    /// <param name="pdwSymbolDisplacement"></param>
-    /// <returns></returns>
+    /// <param name="szModule">Module name.</param>
+    /// <param name="cbSymbolAddressOrOffset">Symbol address or module-relative offset.</param>
+    /// <param name="szSymbolName">Receives the symbol name.</param>
+    /// <param name="pdwSymbolDisplacement">Receives the displacement from the symbol.</param>
+    /// <returns><see langword="true"/> on success; otherwise <see langword="false"/>.</returns>
     public unsafe bool PdbSymbolName(string szModule, ulong cbSymbolAddressOrOffset, out string szSymbolName, out uint pdwSymbolDisplacement)
     {
         szSymbolName = "";
@@ -2935,10 +3163,10 @@ public sealed class Vmm : IDisposable
     /// <summary>
     /// Get the symbol address given a symbol name.
     /// </summary>
-    /// <param name="szModule"></param>
-    /// <param name="szSymbolName"></param>
-    /// <param name="pvaSymbolAddress"></param>
-    /// <returns></returns>
+    /// <param name="szModule">Module name.</param>
+    /// <param name="szSymbolName">Symbol name.</param>
+    /// <param name="pvaSymbolAddress">Receives the symbol address on success.</param>
+    /// <returns><see langword="true"/> on success; otherwise <see langword="false"/>.</returns>
     public bool PdbSymbolAddress(string szModule, string szSymbolName, out ulong pvaSymbolAddress)
     {
         return Vmmi.VMMDLL_PdbSymbolAddress(_h, szModule, szSymbolName, out pvaSymbolAddress);
@@ -2947,10 +3175,10 @@ public sealed class Vmm : IDisposable
     /// <summary>
     /// Get the size of a type.
     /// </summary>
-    /// <param name="szModule"></param>
-    /// <param name="szTypeName"></param>
-    /// <param name="pcbTypeSize"></param>
-    /// <returns></returns>
+    /// <param name="szModule">Module name.</param>
+    /// <param name="szTypeName">Type name.</param>
+    /// <param name="pcbTypeSize">Receives the type size.</param>
+    /// <returns><see langword="true"/> on success; otherwise <see langword="false"/>.</returns>
     public bool PdbTypeSize(string szModule, string szTypeName, out uint pcbTypeSize)
     {
         return Vmmi.VMMDLL_PdbTypeSize(_h, szModule, szTypeName, out pcbTypeSize);
@@ -2959,11 +3187,11 @@ public sealed class Vmm : IDisposable
     /// <summary>
     /// Get the child offset of a type.
     /// </summary>
-    /// <param name="szModule"></param>
-    /// <param name="szTypeName"></param>
-    /// <param name="wszTypeChildName"></param>
-    /// <param name="pcbTypeChildOffset"></param>
-    /// <returns></returns>
+    /// <param name="szModule">Module name.</param>
+    /// <param name="szTypeName">Type name.</param>
+    /// <param name="wszTypeChildName">Child member name.</param>
+    /// <param name="pcbTypeChildOffset">Receives the child offset within the type.</param>
+    /// <returns><see langword="true"/> on success; otherwise <see langword="false"/>.</returns>
     public bool PdbTypeChildOffset(string szModule, string szTypeName, string wszTypeChildName, out uint pcbTypeChildOffset)
     {
         return Vmmi.VMMDLL_PdbTypeChildOffset(_h, szModule, szTypeName, wszTypeChildName, out pcbTypeChildOffset);
@@ -2977,8 +3205,8 @@ public sealed class Vmm : IDisposable
     /// Convert a byte array to a hexdump formatted string. (static method).
     /// </summary>
     /// <param name="pbData">The data to convert.</param>
-    /// <param name="initialOffset">The iniital offset (default = 0).</param>
-    /// <returns>A string in hexdump format representing the binary data pbData.</returns>
+    /// <param name="initialOffset">The initial offset (default = 0).</param>
+    /// <returns>A string in hexdump format representing the binary data <paramref name="pbData"/>; otherwise <see langword="null"/>.</returns>
     public static unsafe string UtilFillHexAscii(byte[] pbData, uint initialOffset = 0)
     {
         bool result;
@@ -3007,11 +3235,17 @@ public sealed class Vmm : IDisposable
     /// </summary>
     public enum LogLevel
     {
+        /// <summary>Critical stopping error.</summary>
         Critical = 1, // critical stopping error
+        /// <summary>Severe warning error.</summary>
         Warning = 2, // severe warning error
+        /// <summary>Normal/info message.</summary>
         Info = 3, // normal/info message
+        /// <summary>Verbose message (visible with -v).</summary>
         Verbose = 4, // verbose message (visible with -v)
+        /// <summary>Debug message (visible with -vv).</summary>
         Debug = 5, // debug message (visible with -vv)
+        /// <summary>Trace message.</summary>
         Trace = 6 // trace message
     }
 
@@ -3027,14 +3261,14 @@ public sealed class Vmm : IDisposable
     }
 
     /// <summary>
-    /// Create a VmmSearch object for searching memory.
+    /// Create a <see cref="VmmSearch"/> object for searching memory.
     /// </summary>
-    /// <param name="pid"></param>
-    /// <param name="addr_min"></param>
-    /// <param name="addr_max"></param>
-    /// <param name="cMaxResult"></param>
-    /// <param name="readFlags"></param>
-    /// <returns></returns>
+    /// <param name="pid">Process ID (PID) for this operation.</param>
+    /// <param name="addr_min">Minimum address to search (inclusive).</param>
+    /// <param name="addr_max">Maximum address to search (inclusive).</param>
+    /// <param name="cMaxResult">Maximum number of results to collect (0 = unlimited).</param>
+    /// <param name="readFlags">Optional read flags passed to the search engine.</param>
+    /// <returns>A configured <see cref="VmmSearch"/> instance.</returns>
     public VmmSearch CreateSearch(uint pid, ulong addr_min = 0, ulong addr_max = ulong.MaxValue, uint cMaxResult = 0, uint readFlags = 0)
     {
         return new VmmSearch(this, pid, addr_min, addr_max, cMaxResult, readFlags);
@@ -3043,7 +3277,7 @@ public sealed class Vmm : IDisposable
     /// <summary>
     /// Throw an exception if memory writing is disabled.
     /// </summary>
-    /// <exception cref="VmmException">Memory writing is disabled.</exception>
+    /// <exception cref="VmmException">Thrown when memory writing is disabled.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal void ThrowIfMemWritesDisabled()
     {
@@ -3058,7 +3292,7 @@ public sealed class Vmm : IDisposable
     #region Custom Refresh Functionality
 
     /// <summary>
-    /// Force a 'Full' Vmm Refresh.
+    /// Force a full VMM refresh (equivalent to <see cref="VmmOption.REFRESH_ALL"/>).
     /// </summary>
     public void ForceFullRefresh()
     {
@@ -3069,19 +3303,20 @@ public sealed class Vmm : IDisposable
     }
 
     /// <summary>
-    /// Registers an Auto Refresher with a specified interval.
-    /// This is potentially useful if you initialized with -norefresh, and want to control refreshing more closely.
-    /// Minimum interval resolution ~10-15ms.
+    /// Register an auto-refresher with a specified interval.
     /// </summary>
-    /// <param name="option">Vmm Refresh Option</param>
-    /// <param name="interval">Interval in which to fire a refresh operation.</param>
+    /// <remarks>
+    /// Useful if initialized with -norefresh and you want to control refreshing more closely. Minimum interval resolution is ~10–15ms.
+    /// </remarks>
+    /// <param name="option">VMM refresh <see cref="RefreshOption"/>.</param>
+    /// <param name="interval">Interval at which to fire a refresh operation.</param>
     public void RegisterAutoRefresh(RefreshOption option, TimeSpan interval)
     {
         RefreshManager.Register(this, option, interval);
     }
 
     /// <summary>
-    /// Unregisters an Auto Refresher.
+    /// Unregister an auto-refresher.
     /// </summary>
     /// <param name="option">Option to unregister.</param>
     public void UnregisterAutoRefresh(RefreshOption option)
@@ -3094,12 +3329,12 @@ public sealed class Vmm : IDisposable
     #region Vmm Mem Callbacks
 
     /// <summary>
-    /// MEM callback function definition.
+    /// Memory callback function definition.
     /// </summary>
-    /// <param name="ctxUser">user context pointer.</param>
-    /// <param name="dwPID">PID of target process, (DWORD)-1 for physical memory.</param>
-    /// <param name="cpMEMs">count of pMEMs.</param>
-    /// <param name="ppMEMs">array of pointers to MEM scatter read headers.</param>
+    /// <param name="ctxUser">User context pointer.</param>
+    /// <param name="dwPID">PID of target process; <c>(DWORD)-1</c> for physical memory.</param>
+    /// <param name="cpMEMs">Count of <paramref name="ppMEMs"/> entries.</param>
+    /// <param name="ppMEMs">Array of pointers to MEM scatter read headers.</param>
     public unsafe delegate void VmmMemCallbackFn(
         IntPtr ctxUser,
         uint dwPID,
@@ -3108,13 +3343,12 @@ public sealed class Vmm : IDisposable
     );
 
     /// <summary>
-    /// Register a memory callback function.
-    /// Can only have one callback of each type registered at a time.
+    /// Register a memory callback function. Only one callback of each <see cref="VmmMemCallbackType"/> may be active at a time.
     /// </summary>
-    /// <param name="type">Callback type</param>
+    /// <param name="type">Callback type.</param>
     /// <param name="callback">Callback delegate.</param>
     /// <param name="context">User context pointer to be passed to the callback function.</param>
-    /// <returns><see cref="VmmMemCallback"/> instance. Dispose of it when you would like to unregister the callback.</returns>
+    /// <returns>A <see cref="VmmMemCallback"/> which unregisters the callback on <see cref="VmmMemCallback.Dispose"/>.</returns>
     public VmmMemCallback CreateMemCallback(VmmMemCallbackType type, VmmMemCallbackFn callback, IntPtr context) =>
         new VmmMemCallback(this, type, callback, context);
 
