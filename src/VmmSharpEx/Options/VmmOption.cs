@@ -248,7 +248,7 @@ namespace VmmSharpEx.Options
         /// Refresh only the specified process. (W)
         /// The low DWORD contains the process ID (PID).
         /// </summary>
-        REFRESH_SPECIFIC_PROCESS = 0x2004000100000000,
+        REFRESH_SPECIFIC_PROCESS = 0x2002000300000000,
 
         // ---- Process Options ----
 
