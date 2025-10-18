@@ -155,10 +155,7 @@ public sealed class LeechCore : IDisposable
     {
         if (Interlocked.Exchange(ref _h, IntPtr.Zero) is IntPtr h && h != IntPtr.Zero)
         {
-            if (_parent is null)
-            {
-                Lci.LcClose(h);
-            }
+            Lci.LcClose(h);
         }
     }
 

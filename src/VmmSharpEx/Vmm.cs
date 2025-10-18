@@ -137,9 +137,17 @@ public sealed partial class Vmm : IDisposable
     /// <param name="args">MemProcFS/Vmm command line arguments.</param>
     public Vmm(out LeechCore.LCConfigErrorInfo configErrorInfo, params string[] args)
     {
-        _h = Create(out configErrorInfo, args);
-        LeechCore = new LeechCore(this);
-        Log($"VmmSharpEx Initialized ({_h:X16}).");
+        try
+        {
+            _h = Create(out configErrorInfo, args);
+            LeechCore = new LeechCore(this);
+            Log($"VmmSharpEx Initialized ({_h:X16}).");
+        }
+        catch
+        {
+            Dispose();
+            throw;
+        }
     }
 
     /// <summary>
@@ -184,13 +192,9 @@ public sealed partial class Vmm : IDisposable
     {
         if (Interlocked.Exchange(ref _h, IntPtr.Zero) is IntPtr h && h != IntPtr.Zero)
         {
-            if (disposing)
-            {
-                LeechCore.Dispose();
-                RefreshManager.UnregisterAll(this);
-            }
-
+            LeechCore?.Dispose();
             Vmmi.VMMDLL_Close(h);
+            RefreshManager.UnregisterAll(this);
         }
     }
 
