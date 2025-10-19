@@ -13,6 +13,7 @@ namespace VmmSharpEx.Scatter.V2
     /// <summary>
     /// Single scatter read index. May contain multiple child entries.
     /// </summary>
+    [Obsolete("This API has been deprecated. New development should use VmmScatter or VmmScatterMap instead.", false)]
     public sealed class ScatterReadIndex : IResettable
     {
         private static readonly ObjectPool<ScatterReadIndex> _pool = VmmPoolManager.ObjectPoolProvider

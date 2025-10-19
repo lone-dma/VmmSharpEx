@@ -10,6 +10,7 @@ using VmmSharpEx.Pools;
 
 namespace VmmSharpEx.Scatter.V2
 {
+    [Obsolete("This API has been deprecated. New development should use VmmScatter or VmmScatterMap instead.", false)]
     internal sealed class ScatterReadStringEntry : IScatterEntry
     {
         private static readonly ObjectPool<ScatterReadStringEntry> _pool = VmmPoolManager.ObjectPoolProvider

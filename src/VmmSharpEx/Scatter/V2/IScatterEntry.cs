@@ -9,6 +9,7 @@ using VmmSharpEx.Internal;
 
 namespace VmmSharpEx.Scatter.V2
 {
+    [Obsolete("This API has been deprecated. New development should use VmmScatter or VmmScatterMap instead.", false)]
     internal interface IScatterEntry : IResettable
     {
         /// <summary>

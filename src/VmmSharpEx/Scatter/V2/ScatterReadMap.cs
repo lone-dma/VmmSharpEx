@@ -13,8 +13,8 @@ namespace VmmSharpEx.Scatter.V2
     /// </summary>
     /// <remarks>
     /// NOTE: This API is **NOT THREAD SAFE**, you must keep operations synchronous or undefined behavior may occur.
-    /// This API may be deprecated in the future. New development should use <see cref="VmmScatter"/> or <see cref="VmmScatterMap"/> instead.
     /// </remarks>
+    [Obsolete("This API has been deprecated. New development should use VmmScatter or VmmScatterMap instead.", false)]
     public sealed class ScatterReadMap : IDisposable
     {
         /// <summary>

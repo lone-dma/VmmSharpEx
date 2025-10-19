@@ -15,6 +15,7 @@ namespace VmmSharpEx.Scatter.V2
     /// Defines a Scatter Read Round. Each round will execute a single scatter read. If you have reads that
     /// are dependent on previous reads (chained pointers for example), you may need multiple rounds.
     /// </summary>
+    [Obsolete("This API has been deprecated. New development should use VmmScatter or VmmScatterMap instead.", false)]
     public sealed class ScatterReadRound : IResettable
     {
         private static readonly ObjectPool<ScatterReadRound> _pool = VmmPoolManager.ObjectPoolProvider
