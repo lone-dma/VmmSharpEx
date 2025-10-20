@@ -31,11 +31,6 @@ namespace VmmSharpEx
                 throw new VmmException("Failed to register memory callback!");
         }
 
-        /// <summary>
-        /// Unregisters the memory callback.
-        /// </summary>
-        public void Unregister() => Dispose();
-
         ~VmmMemCallback() => Dispose(false);
 
         public void Dispose()
