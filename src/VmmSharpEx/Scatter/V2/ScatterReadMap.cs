@@ -14,9 +14,13 @@ namespace VmmSharpEx.Scatter.V2
     /// <remarks>
     /// NOTE: This API is **NOT THREAD SAFE**, you must keep operations synchronous or undefined behavior may occur.
     /// </remarks>
-    [Obsolete("This API has been deprecated. New development should use VmmScatter or VmmScatterMap instead.", false)]
+    [Obsolete(
+    message: "This API has been deprecated, and will be removed in the future. Please use VmmScatter/VmmScatterMap.",
+    error: false,
+    DiagnosticId = ScatterReadMap.ObsoleteDiagnosticId)]
     public sealed class ScatterReadMap : IDisposable
     {
+        internal const string ObsoleteDiagnosticId = "VMMX0001";
         /// <summary>
         /// Maximum read size in bytes for any single entry.
         /// DEFAULT: No Limit (<see cref="int.MaxValue"/>)
@@ -40,7 +44,6 @@ namespace VmmSharpEx.Scatter.V2
         /// </summary>
         /// <remarks>
         /// NOTE: This API is **NOT THREAD SAFE**, you must keep operations synchronous or undefined behavior may occur.
-        /// This API may be deprecated in the future. New development should use <see cref="VmmScatter"/> or <see cref="VmmScatterMap"/> instead.
         /// </remarks>
         /// <param name="vmm">Vmm instance to read within.</param>
         /// <param name="pid">Process ID (PID) to read within.</param>

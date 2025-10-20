@@ -11,7 +11,10 @@ using VmmSharpEx.Pools;
 
 namespace VmmSharpEx.Scatter.V2
 {
-    [Obsolete("This API has been deprecated. New development should use VmmScatter or VmmScatterMap instead.", false)]
+    [Obsolete(
+    message: "This API has been deprecated, and will be removed in the future. Please use VmmScatter/VmmScatterMap.",
+    error: false,
+    DiagnosticId = ScatterReadMap.ObsoleteDiagnosticId)]
     internal sealed class ScatterReadArrayEntry<T> : IScatterEntry
         where T : unmanaged
     {
