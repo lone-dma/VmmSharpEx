@@ -151,7 +151,9 @@ public sealed class VmmScatter : IDisposable
     /// <returns><see langword="true"/> if the operation is successful, otherwise <see langword="false"/>.</returns>
     public bool PrepareRead(ulong address, uint cb)
     {
-        return IsPrepared = Vmmi.VMMDLL_Scatter_Prepare(_h, address, cb);
+        bool ret;
+        IsPrepared = ret = Vmmi.VMMDLL_Scatter_Prepare(_h, address, cb);
+        return ret;
     }
 
     /// <summary>
@@ -168,7 +170,9 @@ public sealed class VmmScatter : IDisposable
         where T : unmanaged
     {
         uint cb = checked((uint)sizeof(T) * (uint)count);
-        return IsPrepared = Vmmi.VMMDLL_Scatter_Prepare(_h, address, cb);
+        bool ret;
+        IsPrepared = ret = Vmmi.VMMDLL_Scatter_Prepare(_h, address, cb);
+        return ret;
     }
 
     /// <summary>
@@ -184,7 +188,9 @@ public sealed class VmmScatter : IDisposable
         where T : unmanaged, allows ref struct
     {
         uint cb = (uint)sizeof(T);
-        return IsPrepared = Vmmi.VMMDLL_Scatter_Prepare(_h, address, cb);
+        bool ret;
+        IsPrepared = ret = Vmmi.VMMDLL_Scatter_Prepare(_h, address, cb);
+        return ret;
     }
 
     /// <summary>
@@ -198,7 +204,9 @@ public sealed class VmmScatter : IDisposable
     public unsafe bool PrepareReadPtr(ulong address)
     {
         uint cb = (uint)sizeof(VmmPointer);
-        return IsPrepared = Vmmi.VMMDLL_Scatter_Prepare(_h, address, cb);
+        bool ret;
+        IsPrepared = ret = Vmmi.VMMDLL_Scatter_Prepare(_h, address, cb);
+        return ret;
     }
 
     /// <summary>
@@ -216,9 +224,11 @@ public sealed class VmmScatter : IDisposable
     {
         _vmm.ThrowIfMemWritesDisabled();
         uint cb = checked((uint)sizeof(T) * (uint)data.Length);
+        bool ret;
         fixed (T* pb = data)
         {
-            return IsPrepared = Vmmi.VMMDLL_Scatter_PrepareWrite(_h, address, (byte*)pb, cb);
+            IsPrepared = ret = Vmmi.VMMDLL_Scatter_PrepareWrite(_h, address, (byte*)pb, cb);
+            return ret;
         }
     }
 
@@ -237,7 +247,9 @@ public sealed class VmmScatter : IDisposable
     {
         _vmm.ThrowIfMemWritesDisabled();
         uint cb = (uint)sizeof(T);
-        return IsPrepared = Vmmi.VMMDLL_Scatter_PrepareWrite(_h, address, (byte*)&value, cb);
+        bool ret;
+        IsPrepared = ret = Vmmi.VMMDLL_Scatter_PrepareWrite(_h, address, (byte*)&value, cb);
+        return ret;
     }
 
     /// <summary>
