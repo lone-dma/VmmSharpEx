@@ -32,13 +32,13 @@ jobs:
 
       - name: Pack NuGet (Release)
         run: dotnet pack src/VmmSharpEx/VmmSharpEx.csproj \
-              -c Release \
-              -p:ContinuousIntegrationBuild=true \
-              -p:Version=${{ steps.nbgv.outputs.NuGetPackageVersion }} \
-              -p:AssemblyVersion=${{ steps.nbgv.outputs.AssemblyVersion }} \
-              -p:FileVersion=${{ steps.nbgv.outputs.AssemblyFileVersion }} \
-              -p:InformationalVersion=${{ steps.nbgv.outputs.AssemblyInformationalVersion }} \
-              -o artifacts
+          -c Release \
+          -p:ContinuousIntegrationBuild=true \
+          -p:Version=${{ steps.nbgv.outputs.NuGetPackageVersion }} \
+          -p:AssemblyVersion=${{ steps.nbgv.outputs.AssemblyVersion }} \
+          -p:FileVersion=${{ steps.nbgv.outputs.AssemblyFileVersion }} \
+          -p:InformationalVersion=${{ steps.nbgv.outputs.AssemblyInformationalVersion }} \
+          -o artifacts
               
       # Get a short-lived NuGet API key
       - name: NuGet login (OIDC → temp API key)
