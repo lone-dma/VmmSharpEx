@@ -19,7 +19,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Get version info (Nerdbank.GitVersioning)
+      - name: Get version info
         uses: dotnet/nbgv@master
         id: nbgv
         
