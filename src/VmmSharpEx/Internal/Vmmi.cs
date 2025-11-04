@@ -1488,7 +1488,7 @@ internal static partial class Vmmi
     public static unsafe partial bool VMMDLL_Log(
         IntPtr hVMM,
         uint MID,
-        uint dwLogLevel,
+        Vmm.LogLevel dwLogLevel,
         [MarshalAs(UnmanagedType.LPStr)] string uszFormat,
         [MarshalAs(UnmanagedType.LPUTF8Str)] string uszTextToLog);
 

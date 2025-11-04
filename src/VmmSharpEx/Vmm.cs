@@ -3237,7 +3237,7 @@ public sealed partial class Vmm : IDisposable
     /// <summary>
     /// Enum used to specify the log level.
     /// </summary>
-    public enum LogLevel
+    public enum LogLevel : uint
     {
         /// <summary>Critical stopping error.</summary>
         Critical = 1, // critical stopping error
@@ -3261,7 +3261,7 @@ public sealed partial class Vmm : IDisposable
     /// <param name="MID">Module ID (default = API).</param>
     public void Log(string message, LogLevel logLevel = LogLevel.Info, uint MID = 0x80000011)
     {
-        Vmmi.VMMDLL_Log(_h, MID, (uint)logLevel, "%s", message);
+        Vmmi.VMMDLL_Log(_h, MID, logLevel, "%s", message);
     }
 
     /// <summary>
