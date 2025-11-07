@@ -375,6 +375,31 @@ public sealed partial class Vmm : IDisposable
     }
 
     /// <summary>
+    /// Read memory from a virtual address into a byte array.
+    /// </summary>
+    /// <remarks>
+    /// NOTE: This method incurs a heap allocation for the returned byte array. For high-performance use other read methods instead.
+    /// </remarks>
+    /// <param name="pid">Process ID (PID) this operation will take place within.</param>
+    /// <param name="va">Virtual address to read from.</param>
+    /// <param name="cb">Count of bytes to read.</param>
+    /// <param name="cbRead">Count of bytes actually read.</param>
+    /// <param name="flags">VMM read flags.</param>
+    /// <returns>A byte array with the read memory, otherwise <see langword="null"/>. Be sure to also check <paramref name="cbRead"/>.</returns>
+    public unsafe byte[] MemRead(uint pid, ulong va, uint cb, out uint cbRead, VmmFlags flags = VmmFlags.NONE)
+    {
+        var arr = new byte[cb];
+        fixed (byte* pb = arr)
+        {
+            if (!Vmmi.VMMDLL_MemReadEx(_h, pid, va, (byte*)pb, cb, out cbRead, flags))
+            {
+                return null;
+            }
+        }
+        return arr;
+    }
+
+    /// <summary>
     /// Read memory from a virtual address into unmanaged memory.
     /// </summary>
     /// <param name="pid">Process ID (PID) this operation will take place within.</param>

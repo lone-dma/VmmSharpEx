@@ -270,6 +270,56 @@ public sealed class VmmScatter : IDisposable
     }
 
     /// <summary>
+    /// Read memory from an address into a byte array.
+    /// </summary>
+    /// <remarks>
+    /// This should be called after <see cref="Execute"/>.
+    /// NOTE: This method incurs a heap allocation for the returned byte array. For high-performance use other read methods instead.
+    /// </remarks>
+    /// <param name="address">Address to read from.</param>
+    /// <param name="cb">Count of bytes to be read.</param>
+    /// <param name="cbRead">Count of bytes actually read.</param>
+    /// <returns>A byte array with the read memory, otherwise <see langword="null"/>. Be sure to also check <paramref name="cbRead"/>.</returns>
+    public unsafe byte[] Read(ulong address, uint cb, out uint cbRead)
+    {
+        var arr = new byte[cb];
+        fixed (byte* pb = arr)
+        {
+            if (!Vmmi.VMMDLL_Scatter_Read(_h, address, cb, pb, out cbRead))
+            {
+                return null;
+            }
+        }
+        return arr;
+    }
+
+    /// <summary>
+    /// Read memory from an address to a pointer of a buffer that can accept <paramref name="cb"/> bytes.
+    /// </summary>
+    /// <param name="address">Address to read from.</param>
+    /// <param name="cb">Count of bytes to be read.</param>
+    /// <param name="pb">Pointer to buffer to receive read. You must make sure the buffer is pinned/fixed.</param>
+    /// <param name="cbRead">Count of bytes actually read.</param>
+    /// <returns>TRUE if successful, otherwise FALSE. Be sure to also check <paramref name="cbRead"/>.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public unsafe bool Read(ulong address, uint cb, void* pb, out uint cbRead)
+    {
+        return Vmmi.VMMDLL_Scatter_Read(_h, address, cb, (byte*)pb, out cbRead);
+    }
+
+    /// <summary>
+    /// Read memory from an address to a pointer of a buffer that can accept <paramref name="cb"/> bytes.
+    /// </summary>
+    /// <param name="address">Address to read from.</param>
+    /// <param name="cb">Count of bytes to be read.</param>
+    /// <param name="pb">Pointer to buffer to receive read. You must make sure the buffer is pinned/fixed.</param>
+    /// <param name="cbRead">Count of bytes actually read.</param>
+    /// <returns>TRUE if successful, otherwise FALSE. Be sure to also check <paramref name="cbRead"/>.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public unsafe bool Read(ulong address, uint cb, IntPtr pb, out uint cbRead) =>
+        Read(address, cb, pb.ToPointer(), out cbRead);
+
+    /// <summary>
     /// Read memory from an address into a struct type.
     /// </summary>
     /// <remarks>

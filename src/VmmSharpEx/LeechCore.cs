@@ -164,6 +164,28 @@ public sealed class LeechCore : IDisposable
     //---------------------------------------------------------------------
 
     /// <summary>
+    /// Read memory from a physical address into a byte array.
+    /// </summary>
+    /// <remarks>
+    /// NOTE: This method incurs a heap allocation for the returned byte array. For high-performance use other read methods instead.
+    /// </remarks>
+    /// <param name="pa">Physical address to read from.</param>
+    /// <param name="cb">Count of bytes to read.</param>
+    /// <returns>A byte array with the read memory, otherwise <see langword="null"/>.</returns>
+    public unsafe byte[] Read(ulong pa, uint cb)
+    {
+        var arr = new byte[cb];
+        fixed (byte* pb = arr)
+        {
+            if (!Lci.LcRead(_h, pa, cb, pb))
+            {
+                return null;
+            }
+        }
+        return arr;
+    }
+
+    /// <summary>
     /// Read physical memory into a value of type <typeparamref name="T"/>.
     /// </summary>
     /// <typeparam name="T">An unmanaged value or <see langword="ref struct"/>.</typeparam>
