@@ -43,7 +43,7 @@ namespace VmmSharpEx.Scatter.V2
             char[] rentedChars = null;
             try
             {
-                Span<byte> bytesSource = CB <= 256 ? 
+                Span<byte> bytesSource = CB <= 256 ?
                     stackalloc byte[CB] : (rentedBytes = ArrayPool<byte>.Shared.Rent(CB));
                 var data = bytesSource.Slice(0, CB); // Rented Pool can have more than cb
 
@@ -54,7 +54,7 @@ namespace VmmSharpEx.Scatter.V2
                 else
                 {
                     int charCount = _encoding.GetCharCount(data);
-                    Span<char> charsSource = charCount <= 128 ? 
+                    Span<char> charsSource = charCount <= 128 ?
                         stackalloc char[charCount] : (rentedChars = ArrayPool<char>.Shared.Rent(charCount));
                     var chars = charsSource.Slice(0, charCount);
                     _encoding.GetChars(data, chars);

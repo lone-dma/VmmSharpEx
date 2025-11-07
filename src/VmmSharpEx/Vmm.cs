@@ -444,7 +444,7 @@ public sealed partial class Vmm : IDisposable
         where T : unmanaged, allows ref struct
     {
         uint cb = (uint)sizeof(T);
-		result = default;
+        result = default;
         fixed (void* pb = &result)
         {
             return Vmmi.VMMDLL_MemReadEx(_h, pid, va, (byte*)pb, cb, out var cbRead, flags) && cbRead == cb;
@@ -491,8 +491,8 @@ public sealed partial class Vmm : IDisposable
     public unsafe bool MemReadSpan<T>(uint pid, ulong va, Span<T> span, VmmFlags flags = VmmFlags.NONE)
         where T : unmanaged
     {
-		uint cb = checked((uint)sizeof(T) * (uint)span.Length);
-		fixed (T* pb = span)
+        uint cb = checked((uint)sizeof(T) * (uint)span.Length);
+        fixed (T* pb = span)
         {
             return Vmmi.VMMDLL_MemReadEx(_h, pid, va, (byte*)pb, cb, out var cbRead, flags) && cbRead == cb;
         }
@@ -596,7 +596,7 @@ public sealed partial class Vmm : IDisposable
     {
         ThrowIfMemWritesDisabled();
         uint cb = (uint)sizeof(T);
-		return Vmmi.VMMDLL_MemWrite(_h, pid, va, (byte*)&value, cb);
+        return Vmmi.VMMDLL_MemWrite(_h, pid, va, (byte*)&value, cb);
     }
 
     /// <summary>
@@ -611,8 +611,8 @@ public sealed partial class Vmm : IDisposable
         where T : unmanaged
     {
         ThrowIfMemWritesDisabled();
-		uint cb = checked((uint)sizeof(T) * (uint)data.Length);
-		fixed (T* pb = data)
+        uint cb = checked((uint)sizeof(T) * (uint)data.Length);
+        fixed (T* pb = data)
         {
             return Vmmi.VMMDLL_MemWrite(_h, pid, va, (byte*)pb, cb);
         }
@@ -630,8 +630,8 @@ public sealed partial class Vmm : IDisposable
         where T : unmanaged
     {
         ThrowIfMemWritesDisabled();
-		uint cb = checked((uint)sizeof(T) * (uint)span.Length);
-		fixed (T* pb = span)
+        uint cb = checked((uint)sizeof(T) * (uint)span.Length);
+        fixed (T* pb = span)
         {
             return Vmmi.VMMDLL_MemWrite(_h, pid, va, (byte*)pb, cb);
         }
@@ -983,7 +983,7 @@ public sealed partial class Vmm : IDisposable
             m[i] = e;
         }
 
-        fail:
+    fail:
         Vmmi.VMMDLL_MemFree((byte*)pMap.ToPointer());
         return m;
     }
@@ -1044,7 +1044,7 @@ public sealed partial class Vmm : IDisposable
             m[i] = e;
         }
 
-        fail:
+    fail:
         Vmmi.VMMDLL_MemFree((byte*)pMap.ToPointer());
         return m;
     }
@@ -1090,7 +1090,7 @@ public sealed partial class Vmm : IDisposable
             m[i] = e;
         }
 
-        fail:
+    fail:
         Vmmi.VMMDLL_MemFree((byte*)pMap.ToPointer());
         return m;
     }

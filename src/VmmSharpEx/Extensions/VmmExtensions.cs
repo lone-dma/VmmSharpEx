@@ -109,7 +109,7 @@ namespace VmmSharpEx.Extensions
             ArgumentOutOfRangeException.ThrowIfGreaterThan(sigSplit.Length, 32, nameof(signature));
             byte[] searchBytes = new byte[sigSplit.Length];
             byte[] skipBytes = new byte[sigSplit.Length];
-            for (int i = 0; i< sigSplit.Length; i++)
+            for (int i = 0; i < sigSplit.Length; i++)
             {
                 string byteStr = sigSplit[i];
                 if (byteStr.StartsWith('?'))

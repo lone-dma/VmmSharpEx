@@ -5,7 +5,6 @@
 
 using Microsoft.Extensions.ObjectPool;
 using System.Runtime.CompilerServices;
-using VmmSharpEx.Internal;
 using VmmSharpEx.Pools;
 
 namespace VmmSharpEx.Scatter.V2

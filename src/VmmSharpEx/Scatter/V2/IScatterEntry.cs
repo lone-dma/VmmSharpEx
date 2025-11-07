@@ -3,8 +3,8 @@
  *  Copyright (C) 2025 AGPL-3.0
 */
 
-using System.Runtime.InteropServices;
 using Microsoft.Extensions.ObjectPool;
+using System.Runtime.InteropServices;
 using VmmSharpEx.Internal;
 
 namespace VmmSharpEx.Scatter.V2
@@ -58,7 +58,7 @@ namespace VmmSharpEx.Scatter.V2
             var resultOut = MemoryMarshal.Cast<TBuf, byte>(result);
             int cbTotal = resultOut.Length; // After casting Length will be adjusted to number of byte elements for our total count of bytes
             int pageOffset = (int)Utilities.BYTE_OFFSET(addr); // Get object offset from the page start address
-            
+
             int cb = Math.Min(cbTotal, 0x1000 - pageOffset); // bytes to read current page
             int cbRead = 0; // track number of bytes copied to ensure nothing is missed
 

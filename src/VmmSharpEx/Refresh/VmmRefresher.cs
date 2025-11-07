@@ -12,6 +12,8 @@ internal sealed class VmmRefresher : IDisposable
     private readonly CancellationTokenSource _cts = new();
     private bool _disposed;
 
+    private VmmRefresher() { }
+
     public VmmRefresher(Vmm instance, RefreshOption option, TimeSpan interval)
     {
         ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(interval, TimeSpan.Zero, nameof(interval));

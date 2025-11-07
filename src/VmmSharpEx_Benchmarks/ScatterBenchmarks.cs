@@ -1,11 +1,4 @@
-﻿using BenchmarkDotNet.Attributes;
-using BenchmarkDotNet.Jobs;
-using Collections.Pooled;
-using VmmSharpEx;
-using VmmSharpEx.Scatter;
-using VmmSharpEx.Scatter.V2;
-
-namespace VmmSharpEx_Benchmarks
+﻿namespace VmmSharpEx_Benchmarks
 {
     // TODO: Need to fix this to allow net9.0-windows, cannot use the windows TFM in BenchmarkDotNet by default, but there is probably a workaround.
     // WORKAROUND: Temporarily add net9.0 to TargetFrameworks in VmmSharpEx.csproj.
@@ -30,7 +23,7 @@ namespace VmmSharpEx_Benchmarks
             var vas = new List<ulong>();
             foreach (var vad in vads)
             {
-                if (vad.vaEnd -vad.vaStart >= 0x1000ul)
+                if (vad.vaEnd - vad.vaStart >= 0x1000ul)
                 {
                     vas.Add(vad.vaStart);
                 }

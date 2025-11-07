@@ -5,7 +5,6 @@
 
 using System.Text;
 using VmmSharpEx;
-using VmmSharpEx.Scatter;
 using VmmSharpEx_Tests.Fixtures;
 
 namespace VmmSharpEx_Tests;
