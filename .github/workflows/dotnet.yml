@@ -10,9 +10,6 @@ on:
     paths:
       - 'src/VmmSharpEx/**'
   workflow_dispatch:
-
-permissions:
-  contents: write
   
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -22,6 +19,8 @@ jobs:
   build-and-publish:
     runs-on: ubuntu-latest
     environment: production
+    permissions:
+      id-token: write  # enable GitHub OIDC token issuance for this job
 
     steps:
       - name: Checkout
@@ -46,10 +45,11 @@ jobs:
           -p:Version=${{ steps.nbgv.outputs.NuGetPackageVersion }} \
           -p:AssemblyVersion=${{ steps.nbgv.outputs.AssemblyVersion }} \
           -p:FileVersion=${{ steps.nbgv.outputs.AssemblyFileVersion }} \
+          -p:InformationalVersion=${{ steps.nbgv.outputs.AssemblyInformationalVersion }} \
           -o artifacts
               
-      # https://learn.microsoft.com/en-us/nuget/nuget-org/trusted-publishing
-      - name: NuGet Login
+      # Get a short-lived NuGet API key
+      - name: NuGet login (OIDC → temp API key)
         uses: NuGet/login@v1
         id: login
         with:
