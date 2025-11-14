@@ -5,8 +5,6 @@ VisualStudioVersion = 18.0.11010.61
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VmmSharpEx", "VmmSharpEx\VmmSharpEx.csproj", "{F626C26D-E436-5673-55A2-29B9C253153C}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "VmmTestRemote", "VmmTestRemote\VmmTestRemote.vcxproj", "{73603620-50F7-402C-92B1-EEFB2402B1A4}"
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VmmSharpEx_Tests", "VmmSharpEx_Tests\VmmSharpEx_Tests.csproj", "{DD309ED9-6852-4187-9A26-17FC7783E637}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VmmSharpEx_Benchmarks", "VmmSharpEx_Benchmarks\VmmSharpEx_Benchmarks.csproj", "{FE0BF66B-0647-42AF-BEE0-C97E903A3C8E}"
@@ -21,10 +19,6 @@ Global
 		{F626C26D-E436-5673-55A2-29B9C253153C}.Debug|x64.Build.0 = Debug|x64
 		{F626C26D-E436-5673-55A2-29B9C253153C}.Release|x64.ActiveCfg = Release|x64
 		{F626C26D-E436-5673-55A2-29B9C253153C}.Release|x64.Build.0 = Release|x64
-		{73603620-50F7-402C-92B1-EEFB2402B1A4}.Debug|x64.ActiveCfg = Debug|x64
-		{73603620-50F7-402C-92B1-EEFB2402B1A4}.Debug|x64.Build.0 = Debug|x64
-		{73603620-50F7-402C-92B1-EEFB2402B1A4}.Release|x64.ActiveCfg = Release|x64
-		{73603620-50F7-402C-92B1-EEFB2402B1A4}.Release|x64.Build.0 = Release|x64
 		{DD309ED9-6852-4187-9A26-17FC7783E637}.Debug|x64.ActiveCfg = Debug|Any CPU
 		{DD309ED9-6852-4187-9A26-17FC7783E637}.Debug|x64.Build.0 = Debug|Any CPU
 		{DD309ED9-6852-4187-9A26-17FC7783E637}.Release|x64.ActiveCfg = Release|Any CPU
