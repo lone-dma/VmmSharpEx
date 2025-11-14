@@ -51,6 +51,7 @@ namespace VmmSharpEx_Tests.Fixtures
                 "-f",
                 $"file://file={DUMP_FILE},write=1",
                 "-waitinitialize",
+                "-norefresh",
                 "-loglevel",
                 "3"
             };
