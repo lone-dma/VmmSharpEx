@@ -11,13 +11,13 @@ using Xunit.Abstractions;
 namespace VmmSharpEx_Tests;
 
 [Collection(nameof(VmmCollection))]
-public class VmmSharpEx_BasicTests
+public class VmmSharpEx_MiscTests
 {
     private readonly VmmFixture _fixture;
     private readonly Vmm _vmm;
     private readonly ITestOutputHelper _output;
 
-    public VmmSharpEx_BasicTests(VmmFixture fixture, ITestOutputHelper output)
+    public VmmSharpEx_MiscTests(VmmFixture fixture, ITestOutputHelper output)
     {
         _fixture = fixture;
         _vmm = fixture.Vmm; // Shortcut
