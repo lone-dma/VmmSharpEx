@@ -25,7 +25,7 @@ public unsafe class VmmSharpEx_VmmTests
         Assert.NotNull(_vmm);
         _heapBase = fixture.Heap;
         _heapLen = fixture.HeapLen;
-        Assert.True(_heapLen > 0x1000, "Heap length too small for tests.");
+        Assert.True(_heapLen > 0x800000, "Heap length too small for tests.");
     }
 
     private ulong HeapAddr(int offset)

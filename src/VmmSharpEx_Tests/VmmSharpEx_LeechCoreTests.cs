@@ -24,6 +24,7 @@ public unsafe class VmmSharpEx_LeechCoreTests
         Assert.NotNull(_lc);
         _heapBase = fixture.Heap;
         _heapLen = fixture.HeapLen;
+        Assert.True(_heapLen > 0x800000, "Heap length too small for tests.");
     }
 
     private ulong HeapAddr(int offset)
