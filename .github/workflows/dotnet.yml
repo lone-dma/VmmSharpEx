@@ -3,7 +3,9 @@ name: Publish Package to NuGet
 on:
   push:
     branches:
-      - dev-11142025
+      - master
+    paths:
+      - 'src/VmmSharpEx/**'
   workflow_dispatch:
 
 concurrency:
@@ -13,7 +15,7 @@ concurrency:
 jobs:
   test-build:
     runs-on: windows-latest
-    environment: dev
+    environment: production
     permissions:
       id-token: write
 
@@ -57,6 +59,7 @@ jobs:
 
   publish:
     runs-on: windows-latest
+    environment: production
     needs: test-build
     permissions:
       contents: write
@@ -83,13 +86,10 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release create "v${{ steps.nbgv.outputs.NuGetPackageVersion }}" \
-            --title "VmmSharpEx v${{ steps.nbgv.outputs.NuGetPackageVersion }}" \
+          gh release create "v${{ steps.nbgv.outputs.SemVer2 }}" \
+            --title "VmmSharpEx v${{ steps.nbgv.outputs.SemVer2 }}" \
             --notes "Available at https://www.nuget.org/packages/VmmSharpEx" \
             artifacts/test-output.txt
-
-      - name: Force success
-        run: exit 0
 
       - name: NuGet login (OIDC → temp API key)
         uses: NuGet/login@v1
