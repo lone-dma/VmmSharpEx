@@ -82,16 +82,15 @@ jobs:
         id: nbgv
 
       - name: Create GitHub Release
-        shell: bash
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release create "v${{ steps.nbgv.outputs.SemVer2 }}" \
-            --title "VmmSharpEx ${{ steps.nbgv.outputs.SemVer2 }}" \
-            --notes "Available at https://www.nuget.org/packages/VmmSharpEx" \
+          gh release create "v${{ steps.nbgv.outputs.SemVer2 }}" `
+            --title "VmmSharpEx ${{ steps.nbgv.outputs.SemVer2 }}" `
+            --notes "Available at https://www.nuget.org/packages/VmmSharpEx" `
             artifacts/test-output.txt
 
-      - name: NuGet login (OIDC → temp API key)
+      - name: NuGet Login
         uses: NuGet/login@v1
         id: login
         with:
