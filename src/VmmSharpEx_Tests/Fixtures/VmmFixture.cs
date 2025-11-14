@@ -9,16 +9,6 @@ using VmmSharpEx;
 
 namespace VmmSharpEx_Tests.Fixtures
 {
-    /// <summary>
-    /// ===Access Legend===
-    /// 0x0 - uint* num = 100;
-    /// 0x8 - int* num = -200;
-    /// 0x10 - ascii* str = "Hello, World!";
-    /// 0x18 - utf8* str = "Hello, World!";
-    /// 0x20 - unicode* str = "Hello, World!";
-    /// 0x28 - byte* data = [random bytes];
-    /// 0x30 - int* dataLen = length of data;
-    /// </summary>
     public unsafe class VmmFixture : IDisposable
     {
         private const string DUMP_FILE = "dump.raw";
