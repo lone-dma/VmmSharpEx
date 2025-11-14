@@ -32,12 +32,9 @@ jobs:
         with:
           dotnet-version: "10.0.x"
 
-      - name: Restore
-        run: dotnet restore
-
       - name: Run Tests
         run: |
-          dotnet test --logger "console;verbosity=detailed" | tee artifacts/test-output.txt
+          dotnet test src/VmmSharpEx_Tests/VmmSharpEx_Tests.csproj --logger "console;verbosity=detailed" | tee artifacts/test-output.txt
 
       - name: Pack NuGet (Release)
         run: |
@@ -47,7 +44,6 @@ jobs:
           -p:Version=${{ steps.nbgv.outputs.NuGetPackageVersion }} \
           -p:AssemblyVersion=${{ steps.nbgv.outputs.AssemblyVersion }} \
           -p:FileVersion=${{ steps.nbgv.outputs.AssemblyFileVersion }} \
-          -p:InformationalVersion=${{ steps.nbgv.outputs.AssemblyInformationalVersion }} \
           -o artifacts
 
       - name: Upload NuGet Package Artifact
