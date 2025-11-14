@@ -1,6 +1,3 @@
-# This workflow will build a .NET project
-# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-net
-
 name: Publish Package to NuGet
 
 on:
@@ -10,17 +7,17 @@ on:
     paths:
       - 'src/VmmSharpEx/**'
   workflow_dispatch:
-  
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  build-and-publish:
-    runs-on: ubuntu-latest
+  test-build:
+    runs-on: windows-latest
     environment: production
     permissions:
-      id-token: write  # enable GitHub OIDC token issuance for this job
+      id-token: write
 
     steps:
       - name: Checkout
@@ -28,33 +25,77 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Setup .NET SDKs
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: |
+            9.0.x
+            10.0.x
+
+      - name: Run Tests
+        run: |
+          mkdir -p artifacts
+          dotnet test src/VmmSharpEx_Tests/VmmSharpEx_Tests.csproj --logger "console;verbosity=detailed" | tee artifacts/test-output.txt
+
       - name: Get version info
         uses: dotnet/nbgv@master
         id: nbgv
-        
-      - name: Setup .NET 10 SDK
-        uses: actions/setup-dotnet@v5
-        with:
-          dotnet-version: "10.0.x"
 
       - name: Pack NuGet (Release)
         run: |
-          dotnet pack src/VmmSharpEx/VmmSharpEx.csproj \
-          -c Release \
-          -p:ContinuousIntegrationBuild=true \
-          -p:Version=${{ steps.nbgv.outputs.NuGetPackageVersion }} \
-          -p:AssemblyVersion=${{ steps.nbgv.outputs.AssemblyVersion }} \
-          -p:FileVersion=${{ steps.nbgv.outputs.AssemblyFileVersion }} \
-          -p:InformationalVersion=${{ steps.nbgv.outputs.AssemblyInformationalVersion }} \
-          -o artifacts
-              
-      # Get a short-lived NuGet API key
+          dotnet pack src/VmmSharpEx/VmmSharpEx.csproj `
+            -c Release `
+            -p:ContinuousIntegrationBuild=true `
+            -p:Version=${{ steps.nbgv.outputs.NuGetPackageVersion }} `
+            -p:AssemblyVersion=${{ steps.nbgv.outputs.AssemblyVersion }} `
+            -p:FileVersion=${{ steps.nbgv.outputs.AssemblyFileVersion }} `
+            -o artifacts
+
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: build
+          path: artifacts/*
+
+  publish:
+    runs-on: windows-latest
+    environment: production
+    needs: test-build
+    permissions:
+      contents: write
+      id-token: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Download Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: build
+          path: artifacts
+
+      - name: Get version info
+        uses: dotnet/nbgv@master
+        id: nbgv
+
+      - name: Create GitHub Release
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "v${{ steps.nbgv.outputs.SemVer2 }}" \
+            --title "VmmSharpEx v${{ steps.nbgv.outputs.SemVer2 }}" \
+            --notes "Available at https://www.nuget.org/packages/VmmSharpEx" \
+            artifacts/test-output.txt
+
       - name: NuGet login (OIDC → temp API key)
         uses: NuGet/login@v1
         id: login
         with:
           user: ${{ secrets.NUGET_USER }}
 
-      # Push the package
       - name: NuGet Push
-        run: dotnet nuget push artifacts/*.nupkg --api-key ${{steps.login.outputs.NUGET_API_KEY}} --source https://api.nuget.org/v3/index.json
+        run: dotnet nuget push "artifacts/*.nupkg" --api-key ${{steps.login.outputs.NUGET_API_KEY}} --source https://api.nuget.org/v3/index.json
