@@ -14,7 +14,7 @@ namespace VmmSharpEx_Tests.Fixtures
         private const string DUMP_FILE = "dump.raw";
         private const ulong PTR_STR_UNICODE = 0x0;
         private const ulong PTR_HEAP = 0x8;
-        private const ulong ADDR_HEAPLEN = 0x10;
+        private const ulong INT_HEAPLEN = 0x10;
         private const string EXPECTED_STR = "Hello, World!";
 
         /// <summary>
@@ -49,7 +49,7 @@ namespace VmmSharpEx_Tests.Fixtures
             // Validate everything
             var unicodeStr = Vmm.MemReadString(Vmm.PID_PHYSICALMEMORY, ReadPtr(PTR_STR_UNICODE), 64, Encoding.Unicode);
             Assert.Equal(EXPECTED_STR, unicodeStr);
-            Assert.True(Vmm.MemReadValue<int>(Vmm.PID_PHYSICALMEMORY, ADDR_HEAPLEN, out var heapLen));
+            Assert.True(Vmm.MemReadValue<int>(Vmm.PID_PHYSICALMEMORY, INT_HEAPLEN, out var heapLen));
             Heap = ReadPtr(PTR_HEAP);
             HeapLen = heapLen;
             var pMem = NativeMemory.Alloc((nuint)HeapLen);
