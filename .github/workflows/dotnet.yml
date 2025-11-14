@@ -23,10 +23,6 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Get version info
-        uses: dotnet/nbgv@master
-        id: nbgv
-
       - name: Setup .NET SDKs
         uses: actions/setup-dotnet@v5
         with:
@@ -36,7 +32,12 @@ jobs:
 
       - name: Run Tests
         run: |
+          mkdir -p artifacts
           dotnet test src/VmmSharpEx_Tests/VmmSharpEx_Tests.csproj --logger "console;verbosity=detailed" | tee artifacts/test-output.txt
+
+      - name: Get version info
+        uses: dotnet/nbgv@master
+        id: nbgv
 
       - name: Pack NuGet (Release)
         run: |
