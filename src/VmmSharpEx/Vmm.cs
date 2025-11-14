@@ -3291,8 +3291,6 @@ public sealed partial class Vmm : IDisposable
 
     /// <summary>
     /// Delegate for VMM log callback functions.
-    /// If you want to pass this to Vmm Init Params, be sure you root the managed delegate in a field, and then call <see cref="Marshal.GetFunctionPointerForDelegate{TDelegate}(TDelegate)"/> to get a Native function pointer.
-    /// Vmm Init Param: -log-pfn-callback ptr
     /// </summary>
     /// <param name="hVMM">The <see cref="Vmm"/> native handle.</param>
     /// <param name="MID">Module ID.</param>
@@ -3320,9 +3318,7 @@ public sealed partial class Vmm : IDisposable
     /// <returns><see langword="true"/> if the callback was successfully registered/unregistered, otherwise <see langword="false"/>.</returns>
     public bool LogCallback(VMMDLL_LOG_CALLBACK_PFN pfnCB)
     {
-        var func = pfnCB == null ? 
-            IntPtr.Zero : Marshal.GetFunctionPointerForDelegate(pfnCB);
-        return Vmmi.VMMDLL_LogCallback(_h, func);
+        return Vmmi.VMMDLL_LogCallback(_h, pfnCB);
     }
 
     /// <summary>
