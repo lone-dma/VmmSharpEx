@@ -3290,6 +3290,42 @@ public sealed partial class Vmm : IDisposable
     }
 
     /// <summary>
+    /// Delegate for VMM log callback functions.
+    /// If you want to pass this to Vmm Init Params, be sure you root the managed delegate in a field, and then call <see cref="Marshal.GetFunctionPointerForDelegate{TDelegate}(TDelegate)"/> to get a Native function pointer.
+    /// Vmm Init Param: -log-pfn-callback ptr
+    /// </summary>
+    /// <param name="hVMM">The <see cref="Vmm"/> native handle.</param>
+    /// <param name="MID">Module ID.</param>
+    /// <param name="uszModule">Module name.</param>
+    /// <param name="dwLogLevel">Logging severity level.</param>
+    /// <param name="uszLogMessage">Log message.</param>
+    public delegate void VMMDLL_LOG_CALLBACK_PFN(
+        IntPtr hVMM,
+        uint MID,
+        [MarshalAs(UnmanagedType.LPUTF8Str)]
+        string uszModule,
+        LogLevel dwLogLevel,
+        [MarshalAs(UnmanagedType.LPUTF8Str)]
+        string uszLogMessage);
+
+    /// <summary>
+    /// Register or unregister an optional log callback function.
+    /// When vmm logs an action which is visible according to current logging
+    /// configuration the registered callback function will be called with details.
+    /// To clear an already registered callback function specify <see langword="null"/> as pfnCB.
+    /// Callback logging will follow file logging configuration even if no log file
+    /// is specified when a callback function is registered.
+    /// </summary>
+    /// <param name="pfnCB">The callback function to register, or <see langword="null"/> to unregister an existing callback.</param>
+    /// <returns><see langword="true"/> if the callback was successfully registered/unregistered, otherwise <see langword="false"/>.</returns>
+    public bool LogCallback(VMMDLL_LOG_CALLBACK_PFN pfnCB)
+    {
+        var func = pfnCB == null ? 
+            IntPtr.Zero : Marshal.GetFunctionPointerForDelegate(pfnCB);
+        return Vmmi.VMMDLL_LogCallback(_h, func);
+    }
+
+    /// <summary>
     /// Create a <see cref="VmmSearch"/> object for searching memory.
     /// </summary>
     /// <param name="pid">Process ID (PID) for this operation.</param>

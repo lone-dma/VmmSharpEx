@@ -19,6 +19,8 @@ Install-Package VmmSharpEx
 This library is **Windows Only**, and only bundles/targets the Windows x64 native libraries.
 
 ## Changelog
+- Version 3.91
+  - Updated MemProcFS to 5.16.7 for additional logging interop.
 - Version 3.90
   - Updated versioning to utilize dotnet/Nerdbank.GitVersioning
 - Version 3.80

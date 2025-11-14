@@ -1492,6 +1492,12 @@ internal static partial class Vmmi
         [MarshalAs(UnmanagedType.LPStr)] string uszFormat,
         [MarshalAs(UnmanagedType.LPUTF8Str)] string uszTextToLog);
 
+    [LibraryImport("vmm.dll", EntryPoint = "VMMDLL_LogCallback")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static partial bool VMMDLL_LogCallback(
+        IntPtr hVMM,
+        IntPtr pfnCB);
+
     [LibraryImport("vmm.dll", EntryPoint = "VMMDLL_MemCallback")]
     [return: MarshalAs(UnmanagedType.Bool)]
     public static unsafe partial bool VMMDLL_MemCallback(

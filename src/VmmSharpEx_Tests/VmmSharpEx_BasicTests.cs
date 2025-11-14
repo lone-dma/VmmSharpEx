@@ -6,6 +6,7 @@
 using VmmSharpEx;
 using VmmSharpEx.Options;
 using VmmSharpEx_Tests.Fixtures;
+using Xunit.Abstractions;
 
 namespace VmmSharpEx_Tests;
 
@@ -14,11 +15,13 @@ public class VmmSharpEx_BasicTests
 {
     private readonly VmmFixture _fixture;
     private readonly Vmm _vmm;
+    private readonly ITestOutputHelper _output;
 
-    public VmmSharpEx_BasicTests(VmmFixture fixture)
+    public VmmSharpEx_BasicTests(VmmFixture fixture, ITestOutputHelper output)
     {
         _fixture = fixture;
         _vmm = fixture.Vmm; // Shortcut
+        _output = output;
     }
 
     [Fact]
@@ -115,5 +118,21 @@ public class VmmSharpEx_BasicTests
         // Try VA->PA translation (may return 0 if translation unavailable)
         var pa = _vmm.MemVirt2Phys(_fixture.PID, _fixture.ModuleBase);
         Assert.True(pa >= 0);
+    }
+
+    [Fact]
+    public void CustomLogging()
+    {
+        Assert.True(_vmm.LogCallback(LoggingFn));
+        _vmm.Log("Test log message from unit test", Vmm.LogLevel.Info);
+        Assert.True(_vmm.LogCallback(null));
+    }
+
+    private void LoggingFn(IntPtr hVMM, uint MID, string uszModule, Vmm.LogLevel dwLogLevel, string uszLogMessage)
+    {
+        Assert.Equal(_vmm, hVMM);
+        ArgumentException.ThrowIfNullOrWhiteSpace(uszModule);
+        ArgumentException.ThrowIfNullOrWhiteSpace(uszLogMessage);
+        _output.WriteLine(uszLogMessage);
     }
 }

@@ -41,7 +41,9 @@ namespace VmmSharpEx_Tests.Fixtures
                 {
                     "-device",
                     "fpga",
-                    "-waitinitialize"
+                    "-waitinitialize",
+                    "-loglevel",
+                    "3"
                 };
                 Vmm = new Vmm(args);
                 _ = Vmm.GetMemoryMap(applyMap: true);
