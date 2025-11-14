@@ -17,6 +17,7 @@
 
 using System.Runtime.InteropServices;
 using VmmSharpEx.Options;
+using static VmmSharpEx.Vmm;
 
 namespace VmmSharpEx.Internal;
 
@@ -1504,7 +1505,7 @@ internal static partial class Vmmi
         IntPtr hVMM,
         VmmMemCallbackType tp,
         IntPtr ctxUser,
-        IntPtr pfnCB);
+        VMMDLL_MEM_CALLBACK_PFN pfnCB);
 
     #endregion
 }

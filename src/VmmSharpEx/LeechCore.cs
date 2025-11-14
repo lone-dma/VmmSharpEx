@@ -35,13 +35,13 @@ namespace VmmSharpEx;
 public sealed class LeechCore : IDisposable
 {
     private readonly Vmm _parent;
-    private IntPtr _h;
+    private IntPtr _handle;
 
     private LeechCore() { }
 
     private LeechCore(IntPtr hLC)
     {
-        _h = hLC;
+        _handle = hLC;
     }
 
     /// <summary>
@@ -68,7 +68,7 @@ public sealed class LeechCore : IDisposable
             throw new VmmException("LeechCore: failed to create object.");
         }
 
-        _h = hLC;
+        _handle = hLC;
         _parent = vmm;
     }
 
@@ -88,7 +88,7 @@ public sealed class LeechCore : IDisposable
     /// <returns>The native LC handle or <see cref="IntPtr.Zero"/> if <paramref name="x"/> is <see langword="null"/>.</returns>
     public static implicit operator IntPtr(LeechCore x)
     {
-        return x?._h ?? IntPtr.Zero;
+        return x?._handle ?? IntPtr.Zero;
     }
 
     /// <summary>
@@ -96,7 +96,7 @@ public sealed class LeechCore : IDisposable
     /// </summary>
     public override string ToString()
     {
-        return _h == IntPtr.Zero ? "LeechCore:NULL" : $"LeechCore:{_h.ToString("X")}";
+        return _handle == IntPtr.Zero ? "LeechCore:NULL" : $"LeechCore:{_handle.ToString("X")}";
     }
 
     /// <summary>
@@ -153,7 +153,7 @@ public sealed class LeechCore : IDisposable
 
     private void Dispose(bool disposing)
     {
-        if (Interlocked.Exchange(ref _h, IntPtr.Zero) is IntPtr h && h != IntPtr.Zero)
+        if (Interlocked.Exchange(ref _handle, IntPtr.Zero) is IntPtr h && h != IntPtr.Zero)
         {
             Lci.LcClose(h);
         }
@@ -177,7 +177,7 @@ public sealed class LeechCore : IDisposable
         var arr = new byte[cb];
         fixed (byte* pb = arr)
         {
-            if (!Lci.LcRead(_h, pa, cb, pb))
+            if (!Lci.LcRead(_handle, pa, cb, pb))
             {
                 return null;
             }
@@ -200,7 +200,7 @@ public sealed class LeechCore : IDisposable
         result = default;
         fixed (void* pb = &result)
         {
-            return Lci.LcRead(_h, pa, cb, (byte*)pb);
+            return Lci.LcRead(_handle, pa, cb, (byte*)pb);
         }
     }
 
@@ -218,7 +218,7 @@ public sealed class LeechCore : IDisposable
         uint cb = checked((uint)sizeof(T) * (uint)count);
         fixed (T* pb = arr.Span)
         {
-            if (!Lci.LcRead(_h, pa, cb, (byte*)pb))
+            if (!Lci.LcRead(_handle, pa, cb, (byte*)pb))
             {
                 arr.Dispose();
                 return null;
@@ -240,7 +240,7 @@ public sealed class LeechCore : IDisposable
         uint cb = checked((uint)sizeof(T) * (uint)span.Length);
         fixed (T* pb = span)
         {
-            return Lci.LcRead(_h, pa, cb, (byte*)pb);
+            return Lci.LcRead(_handle, pa, cb, (byte*)pb);
         }
     }
 
@@ -258,7 +258,7 @@ public sealed class LeechCore : IDisposable
         uint cb = checked((uint)sizeof(T) * (uint)span.Length);
         fixed (T* pb = span)
         {
-            return Lci.LcWrite(_h, pa, cb, (byte*)pb);
+            return Lci.LcWrite(_handle, pa, cb, (byte*)pb);
         }
     }
 
@@ -284,7 +284,7 @@ public sealed class LeechCore : IDisposable
     /// <returns><see langword="true"/> on success; otherwise <see langword="false"/>.</returns>
     public unsafe bool Read(ulong pa, void* pb, uint cb)
     {
-        if (!Lci.LcRead(_h, pa, cb, (byte*)pb))
+        if (!Lci.LcRead(_handle, pa, cb, (byte*)pb))
         {
             return false;
         }
@@ -317,7 +317,7 @@ public sealed class LeechCore : IDisposable
             pMEM->qwA = pas[i] & ~(ulong)0xfff;
         }
 
-        Lci.LcReadScatter(_h, (uint)pas.Length, pppMEMs);
+        Lci.LcReadScatter(_handle, (uint)pas.Length, pppMEMs);
 
         var results = new PooledDictionary<ulong, ScatterData>(capacity: pas.Length);
         for (var i = 0; i < pas.Length; i++)
@@ -344,7 +344,7 @@ public sealed class LeechCore : IDisposable
     {
         _parent?.ThrowIfMemWritesDisabled();
         uint cb = (uint)sizeof(T);
-        return Lci.LcWrite(_h, pa, cb, (byte*)&value);
+        return Lci.LcWrite(_handle, pa, cb, (byte*)&value);
     }
 
     /// <summary>
@@ -361,7 +361,7 @@ public sealed class LeechCore : IDisposable
         uint cb = checked((uint)sizeof(T) * (uint)data.Length);
         fixed (T* pb = data)
         {
-            return Lci.LcWrite(_h, pa, cb, (byte*)pb);
+            return Lci.LcWrite(_handle, pa, cb, (byte*)pb);
         }
     }
 
@@ -388,7 +388,7 @@ public sealed class LeechCore : IDisposable
     public unsafe bool Write(ulong pa, void* pb, uint cb)
     {
         _parent?.ThrowIfMemWritesDisabled();
-        return Lci.LcWrite(_h, pa, cb, (byte*)pb);
+        return Lci.LcWrite(_handle, pa, cb, (byte*)pb);
     }
 
     /// <summary>
@@ -398,7 +398,7 @@ public sealed class LeechCore : IDisposable
     /// <returns>The option value on success; otherwise <see langword="null"/>.</returns>
     public ulong? GetOption(LcOption fOption)
     {
-        if (!Lci.GetOption(_h, fOption, out var pqwValue))
+        if (!Lci.GetOption(_handle, fOption, out var pqwValue))
         {
             return null;
         }
@@ -414,7 +414,7 @@ public sealed class LeechCore : IDisposable
     /// <returns><see langword="true"/> on success; otherwise <see langword="false"/>.</returns>
     public bool SetOption(LcOption fOption, ulong qwValue)
     {
-        return Lci.SetOption(_h, fOption, qwValue);
+        return Lci.SetOption(_handle, fOption, qwValue);
     }
 
     /// <summary>
@@ -435,7 +435,7 @@ public sealed class LeechCore : IDisposable
         dataOut = null;
         if (dataIn is null)
         {
-            if (!Lci.LcCommand(_h, fOption, 0, null, out pbDataOut, out cbDataOut))
+            if (!Lci.LcCommand(_handle, fOption, 0, null, out pbDataOut, out cbDataOut))
             {
                 return false;
             }
@@ -444,7 +444,7 @@ public sealed class LeechCore : IDisposable
         {
             fixed (byte* pbDataIn = dataIn)
             {
-                if (!Lci.LcCommand(_h, fOption, (uint)dataIn.Length, pbDataIn, out pbDataOut, out cbDataOut))
+                if (!Lci.LcCommand(_handle, fOption, (uint)dataIn.Length, pbDataIn, out pbDataOut, out cbDataOut))
                 {
                     return false;
                 }

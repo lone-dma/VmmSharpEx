@@ -4,7 +4,6 @@
 */
 
 using VmmSharpEx;
-using VmmSharpEx.Options;
 using VmmSharpEx_Tests.Fixtures;
 using Xunit.Abstractions;
 

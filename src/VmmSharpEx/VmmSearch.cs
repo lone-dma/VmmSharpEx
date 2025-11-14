@@ -109,7 +109,7 @@ public sealed unsafe class VmmSearch : IDisposable
 
     private void Dispose(bool disposing)
     {
-        if (!Interlocked.Exchange(ref _disposed, true))
+        if (Interlocked.Exchange(ref _disposed, true) == false)
         {
             if (!_thread.IsAlive)
             {
@@ -162,7 +162,7 @@ public sealed unsafe class VmmSearch : IDisposable
     public void Start()
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
-        if (Interlocked.Exchange(ref _started, true)) // Ensure start is only called once.
+        if (Interlocked.Exchange(ref _started, true) == true) // Ensure start is only called once.
         {
             return;
         }

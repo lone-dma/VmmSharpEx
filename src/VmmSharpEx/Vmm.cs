@@ -45,10 +45,10 @@ public sealed partial class Vmm : IDisposable
     /// <returns>The native VMM handle, or <see cref="IntPtr.Zero"/> if <paramref name="x"/> is <see langword="null"/>.</returns>
     public static implicit operator IntPtr(Vmm x)
     {
-        return x?._h ?? IntPtr.Zero;
+        return x?._handle ?? IntPtr.Zero;
     }
 
-    private IntPtr _h;
+    private IntPtr _handle;
 
     /// <summary>
     /// Gets the underlying <see cref="LeechCore"/> context associated with this <see cref="Vmm"/> instance.
@@ -81,7 +81,7 @@ public sealed partial class Vmm : IDisposable
     /// <inheritdoc />
     public override string ToString()
     {
-        return _h == IntPtr.Zero ? "Vmm:NULL" : $"Vmm:{_h:X}";
+        return _handle == IntPtr.Zero ? "Vmm:NULL" : $"Vmm:{_handle:X}";
     }
 
     /// <summary>
@@ -139,9 +139,9 @@ public sealed partial class Vmm : IDisposable
     {
         try
         {
-            _h = Create(out configErrorInfo, args);
+            _handle = Create(out configErrorInfo, args);
             LeechCore = new LeechCore(this);
-            Log($"VmmSharpEx Initialized ({_h:X16}).");
+            Log($"VmmSharpEx Initialized ({_handle:X16}).");
         }
         catch
         {
@@ -164,7 +164,7 @@ public sealed partial class Vmm : IDisposable
     /// Plugins are not initialized during <see cref="Vmm"/> construction by default.
     /// </remarks>
     /// <returns><see langword="true"/> if plugins are loaded successfully; otherwise <see langword="false"/>.</returns>
-    public bool InitializePlugins() => Vmmi.VMMDLL_InitializePlugins(_h);
+    public bool InitializePlugins() => Vmmi.VMMDLL_InitializePlugins(_handle);
 
     /// <summary>
     /// Finalizer to ensure the native handle is closed if <see cref="Dispose()"/> was not called.
@@ -190,7 +190,7 @@ public sealed partial class Vmm : IDisposable
     /// </param>
     private void Dispose(bool disposing)
     {
-        if (Interlocked.Exchange(ref _h, IntPtr.Zero) is IntPtr h && h != IntPtr.Zero)
+        if (Interlocked.Exchange(ref _handle, IntPtr.Zero) is IntPtr h && h != IntPtr.Zero)
         {
             LeechCore?.Dispose();
             Vmmi.VMMDLL_Close(h);
@@ -258,7 +258,7 @@ public sealed partial class Vmm : IDisposable
     /// <returns>The config value retrieved on success; otherwise <see langword="null"/>.</returns>
     public ulong? ConfigGet(VmmOption fOption)
     {
-        if (!Vmmi.VMMDLL_ConfigGet(_h, fOption, out var value))
+        if (!Vmmi.VMMDLL_ConfigGet(_handle, fOption, out var value))
         {
             return null;
         }
@@ -274,7 +274,7 @@ public sealed partial class Vmm : IDisposable
     /// <returns><see langword="true"/> on success; otherwise <see langword="false"/>.</returns>
     public bool ConfigSet(VmmOption fOption, ulong qwValue)
     {
-        return Vmmi.VMMDLL_ConfigSet(_h, fOption, qwValue);
+        return Vmmi.VMMDLL_ConfigSet(_handle, fOption, qwValue);
     }
 
     /// <summary>
@@ -359,7 +359,7 @@ public sealed partial class Vmm : IDisposable
             pMEM->qwA = vas[i] & ~0xffful;
         }
 
-        _ = Vmmi.VMMDLL_MemReadScatter(_h, pid, pppMEMs, (uint)vas.Length, flags);
+        _ = Vmmi.VMMDLL_MemReadScatter(_handle, pid, pppMEMs, (uint)vas.Length, flags);
 
         var results = new PooledDictionary<ulong, LeechCore.ScatterData>(capacity: vas.Length);
         for (var i = 0; i < vas.Length; i++)
@@ -391,7 +391,7 @@ public sealed partial class Vmm : IDisposable
         var arr = new byte[cb];
         fixed (byte* pb = arr)
         {
-            if (!Vmmi.VMMDLL_MemReadEx(_h, pid, va, (byte*)pb, cb, out cbRead, flags))
+            if (!Vmmi.VMMDLL_MemReadEx(_handle, pid, va, pb, cb, out cbRead, flags))
             {
                 return null;
             }
@@ -428,7 +428,7 @@ public sealed partial class Vmm : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public unsafe bool MemRead(uint pid, ulong va, void* pb, uint cb, out uint cbRead, VmmFlags flags = VmmFlags.NONE)
     {
-        return Vmmi.VMMDLL_MemReadEx(_h, pid, va, (byte*)pb, cb, out cbRead, flags);
+        return Vmmi.VMMDLL_MemReadEx(_handle, pid, va, (byte*)pb, cb, out cbRead, flags);
     }
 
     /// <summary>
@@ -447,7 +447,7 @@ public sealed partial class Vmm : IDisposable
         result = default;
         fixed (void* pb = &result)
         {
-            return Vmmi.VMMDLL_MemReadEx(_h, pid, va, (byte*)pb, cb, out var cbRead, flags) && cbRead == cb;
+            return Vmmi.VMMDLL_MemReadEx(_handle, pid, va, (byte*)pb, cb, out var cbRead, flags) && cbRead == cb;
         }
     }
 
@@ -470,7 +470,7 @@ public sealed partial class Vmm : IDisposable
         uint cb = checked((uint)sizeof(T) * (uint)count);
         fixed (T* pb = arr.Span)
         {
-            if (!Vmmi.VMMDLL_MemReadEx(_h, pid, va, (byte*)pb, cb, out var cbRead, flags) || cbRead != cb)
+            if (!Vmmi.VMMDLL_MemReadEx(_handle, pid, va, (byte*)pb, cb, out var cbRead, flags) || cbRead != cb)
             {
                 arr.Dispose();
                 return null;
@@ -494,7 +494,7 @@ public sealed partial class Vmm : IDisposable
         uint cb = checked((uint)sizeof(T) * (uint)span.Length);
         fixed (T* pb = span)
         {
-            return Vmmi.VMMDLL_MemReadEx(_h, pid, va, (byte*)pb, cb, out var cbRead, flags) && cbRead == cb;
+            return Vmmi.VMMDLL_MemReadEx(_handle, pid, va, (byte*)pb, cb, out var cbRead, flags) && cbRead == cb;
         }
     }
 
@@ -550,7 +550,7 @@ public sealed partial class Vmm : IDisposable
     {
         fixed (void* pb = vas)
         {
-            return Vmmi.VMMDLL_MemPrefetchPages(_h, pid, (byte*)pb, (uint)vas.Length);
+            return Vmmi.VMMDLL_MemPrefetchPages(_handle, pid, (byte*)pb, (uint)vas.Length);
         }
     }
 
@@ -580,7 +580,7 @@ public sealed partial class Vmm : IDisposable
     public unsafe bool MemWrite(uint pid, ulong va, void* pb, uint cb)
     {
         ThrowIfMemWritesDisabled();
-        return Vmmi.VMMDLL_MemWrite(_h, pid, va, (byte*)pb, cb);
+        return Vmmi.VMMDLL_MemWrite(_handle, pid, va, (byte*)pb, cb);
     }
 
     /// <summary>
@@ -596,7 +596,7 @@ public sealed partial class Vmm : IDisposable
     {
         ThrowIfMemWritesDisabled();
         uint cb = (uint)sizeof(T);
-        return Vmmi.VMMDLL_MemWrite(_h, pid, va, (byte*)&value, cb);
+        return Vmmi.VMMDLL_MemWrite(_handle, pid, va, (byte*)&value, cb);
     }
 
     /// <summary>
@@ -614,7 +614,7 @@ public sealed partial class Vmm : IDisposable
         uint cb = checked((uint)sizeof(T) * (uint)data.Length);
         fixed (T* pb = data)
         {
-            return Vmmi.VMMDLL_MemWrite(_h, pid, va, (byte*)pb, cb);
+            return Vmmi.VMMDLL_MemWrite(_handle, pid, va, (byte*)pb, cb);
         }
     }
 
@@ -633,7 +633,7 @@ public sealed partial class Vmm : IDisposable
         uint cb = checked((uint)sizeof(T) * (uint)span.Length);
         fixed (T* pb = span)
         {
-            return Vmmi.VMMDLL_MemWrite(_h, pid, va, (byte*)pb, cb);
+            return Vmmi.VMMDLL_MemWrite(_handle, pid, va, (byte*)pb, cb);
         }
     }
 
@@ -646,7 +646,7 @@ public sealed partial class Vmm : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public ulong MemVirt2Phys(uint pid, ulong va)
     {
-        _ = Vmmi.VMMDLL_MemVirt2Phys(_h, pid, va, out var pa);
+        _ = Vmmi.VMMDLL_MemVirt2Phys(_handle, pid, va, out var pa);
         return pa;
     }
 
@@ -788,7 +788,7 @@ public sealed partial class Vmm : IDisposable
         FileList._Reserved = 0;
         FileList.pfnAddFile = Marshal.GetFunctionPointerForDelegate(CallbackFile);
         FileList.pfnAddDirectory = Marshal.GetFunctionPointerForDelegate(CallbackDirectory);
-        return Vmmi.VMMDLL_VfsList(_h, path.Replace('/', '\\'), ref FileList);
+        return Vmmi.VMMDLL_VfsList(_handle, path.Replace('/', '\\'), ref FileList);
     }
 
     /// <summary>
@@ -824,7 +824,7 @@ public sealed partial class Vmm : IDisposable
         var data = new byte[size];
         fixed (byte* pb = data)
         {
-            ntStatus = Vmmi.VMMDLL_VfsRead(_h, fileName.Replace('/', '\\'), pb, size, out cbRead, offset);
+            ntStatus = Vmmi.VMMDLL_VfsRead(_handle, fileName.Replace('/', '\\'), pb, size, out cbRead, offset);
             var pbData = new byte[cbRead];
             if (cbRead > 0)
             {
@@ -859,7 +859,7 @@ public sealed partial class Vmm : IDisposable
         uint cbRead = 0;
         fixed (byte* pb = data)
         {
-            return Vmmi.VMMDLL_VfsWrite(_h, fileName.Replace('/', '\\'), pb, (uint)data.Length, out cbRead, offset);
+            return Vmmi.VMMDLL_VfsWrite(_handle, fileName.Replace('/', '\\'), pb, (uint)data.Length, out cbRead, offset);
         }
     }
 
@@ -879,7 +879,7 @@ public sealed partial class Vmm : IDisposable
     {
         bool result;
         ulong c = 0;
-        result = Vmmi.VMMDLL_PidList(_h, null, ref c);
+        result = Vmmi.VMMDLL_PidList(_handle, null, ref c);
         if (!result || c == 0)
         {
             return Array.Empty<uint>();
@@ -887,7 +887,7 @@ public sealed partial class Vmm : IDisposable
 
         fixed (byte* pb = new byte[c * 4])
         {
-            result = Vmmi.VMMDLL_PidList(_h, pb, ref c);
+            result = Vmmi.VMMDLL_PidList(_handle, pb, ref c);
             if (!result || c == 0)
             {
                 return Array.Empty<uint>();
@@ -914,7 +914,7 @@ public sealed partial class Vmm : IDisposable
     /// <returns><see langword="true"/> if successful; otherwise <see langword="false"/>.</returns>
     public bool PidGetFromName(string sProcName, out uint pdwPID)
     {
-        return Vmmi.VMMDLL_PidGetFromName(_h, sProcName, out pdwPID);
+        return Vmmi.VMMDLL_PidGetFromName(_handle, sProcName, out pdwPID);
     }
 
     /// <summary>
@@ -952,7 +952,7 @@ public sealed partial class Vmm : IDisposable
         var cbMAP = Marshal.SizeOf<Vmmi.VMMDLL_MAP_PTE>();
         var cbENTRY = Marshal.SizeOf<Vmmi.VMMDLL_MAP_PTEENTRY>();
         var m = Array.Empty<PteEntry>();
-        if (!Vmmi.VMMDLL_Map_GetPte(_h, pid, fIdentifyModules, out var pMap))
+        if (!Vmmi.VMMDLL_Map_GetPte(_handle, pid, fIdentifyModules, out var pMap))
         {
             goto fail;
         }
@@ -999,7 +999,7 @@ public sealed partial class Vmm : IDisposable
         var cbMAP = Marshal.SizeOf<Vmmi.VMMDLL_MAP_VAD>();
         var cbENTRY = Marshal.SizeOf<Vmmi.VMMDLL_MAP_VADENTRY>();
         var m = Array.Empty<VadEntry>();
-        if (!Vmmi.VMMDLL_Map_GetVad(_h, pid, fIdentifyModules, out var pMap))
+        if (!Vmmi.VMMDLL_Map_GetVad(_handle, pid, fIdentifyModules, out var pMap))
         {
             goto fail;
         }
@@ -1061,7 +1061,7 @@ public sealed partial class Vmm : IDisposable
         var cbMAP = Marshal.SizeOf<Vmmi.VMMDLL_MAP_VADEX>();
         var cbENTRY = Marshal.SizeOf<Vmmi.VMMDLL_MAP_VADEXENTRY>();
         var m = Array.Empty<VadExEntry>();
-        if (!Vmmi.VMMDLL_Map_GetVadEx(_h, pid, oPages, cPages, out var pMap))
+        if (!Vmmi.VMMDLL_Map_GetVadEx(_handle, pid, oPages, cPages, out var pMap))
         {
             goto fail;
         }
@@ -1107,7 +1107,7 @@ public sealed partial class Vmm : IDisposable
         var cbENTRY = Marshal.SizeOf<Vmmi.VMMDLL_MAP_MODULEENTRY>();
         var m = Array.Empty<ModuleEntry>();
         var flags = fExtendedInfo ? (uint)0xff : 0;
-        if (!Vmmi.VMMDLL_Map_GetModule(_h, pid, out var pMap, flags))
+        if (!Vmmi.VMMDLL_Map_GetModule(_handle, pid, out var pMap, flags))
         {
             goto fail;
         }
@@ -1202,7 +1202,7 @@ public sealed partial class Vmm : IDisposable
     {
         bool f = false;
         result = default;
-        if (!Vmmi.VMMDLL_Map_GetModuleFromName(_h, pid, module, out var pMap, 0))
+        if (!Vmmi.VMMDLL_Map_GetModuleFromName(_handle, pid, module, out var pMap, 0))
         {
             goto fail;
         }
@@ -1236,7 +1236,7 @@ public sealed partial class Vmm : IDisposable
         var cbMAP = Marshal.SizeOf<Vmmi.VMMDLL_MAP_UNLOADEDMODULE>();
         var cbENTRY = Marshal.SizeOf<Vmmi.VMMDLL_MAP_UNLOADEDMODULEENTRY>();
         var m = Array.Empty<UnloadedModuleEntry>();
-        if (!Vmmi.VMMDLL_Map_GetUnloadedModule(_h, pid, out var pMap))
+        if (!Vmmi.VMMDLL_Map_GetUnloadedModule(_handle, pid, out var pMap))
         {
             goto fail;
         }
@@ -1280,7 +1280,7 @@ public sealed partial class Vmm : IDisposable
         var cbMAP = Marshal.SizeOf<Vmmi.VMMDLL_MAP_EAT>();
         var cbENTRY = Marshal.SizeOf<Vmmi.VMMDLL_MAP_EATENTRY>();
         var m = Array.Empty<EATEntry>();
-        if (!Vmmi.VMMDLL_Map_GetEAT(_h, pid, module, out var pMap))
+        if (!Vmmi.VMMDLL_Map_GetEAT(_handle, pid, module, out var pMap))
         {
             goto fail;
         }
@@ -1329,7 +1329,7 @@ public sealed partial class Vmm : IDisposable
         var cbMAP = Marshal.SizeOf<Vmmi.VMMDLL_MAP_IAT>();
         var cbENTRY = Marshal.SizeOf<Vmmi.VMMDLL_MAP_IATENTRY>();
         var m = Array.Empty<IATEntry>();
-        if (!Vmmi.VMMDLL_Map_GetIAT(_h, pid, module, out var pMap))
+        if (!Vmmi.VMMDLL_Map_GetIAT(_handle, pid, module, out var pMap))
         {
             goto fail;
         }
@@ -1378,7 +1378,7 @@ public sealed partial class Vmm : IDisposable
         result = default;
         result.heaps = Array.Empty<HeapEntry>();
         result.segments = Array.Empty<HeapSegmentEntry>();
-        if (!Vmmi.VMMDLL_Map_GetHeap(_h, pid, out var pMap))
+        if (!Vmmi.VMMDLL_Map_GetHeap(_handle, pid, out var pMap))
         {
             goto fail;
         }
@@ -1424,7 +1424,7 @@ public sealed partial class Vmm : IDisposable
     {
         var cbMAP = Marshal.SizeOf<Vmmi.VMMDLL_MAP_HEAPALLOC>();
         var cbENTRY = Marshal.SizeOf<Vmmi.VMMDLL_MAP_HEAPALLOCENTRY>();
-        if (!Vmmi.VMMDLL_Map_GetHeapAlloc(_h, pid, vaHeapOrHeapNum, out var pHeapAllocMap))
+        if (!Vmmi.VMMDLL_Map_GetHeapAlloc(_handle, pid, vaHeapOrHeapNum, out var pHeapAllocMap))
         {
             return Array.Empty<HeapAllocEntry>();
         }
@@ -1459,7 +1459,7 @@ public sealed partial class Vmm : IDisposable
         var cbMAP = Marshal.SizeOf<Vmmi.VMMDLL_MAP_THREAD>();
         var cbENTRY = Marshal.SizeOf<Vmmi.VMMDLL_MAP_THREADENTRY>();
         var m = Array.Empty<ThreadEntry>();
-        if (!Vmmi.VMMDLL_Map_GetThread(_h, pid, out var pMap))
+        if (!Vmmi.VMMDLL_Map_GetThread(_handle, pid, out var pMap))
         {
             goto fail;
         }
@@ -1521,7 +1521,7 @@ public sealed partial class Vmm : IDisposable
         var cbMAP = Marshal.SizeOf<Vmmi.VMMDLL_MAP_THREAD_CALLSTACK>();
         var cbENTRY = Marshal.SizeOf<Vmmi.VMMDLL_MAP_THREAD_CALLSTACKENTRY>();
         var m = Array.Empty<ThreadCallstackEntry>();
-        if (!Vmmi.VMMDLL_Map_GetThread_Callstack(_h, pid, tid, flags, out var pMap))
+        if (!Vmmi.VMMDLL_Map_GetThread_Callstack(_handle, pid, tid, flags, out var pMap))
         {
             goto fail;
         }
@@ -1565,7 +1565,7 @@ public sealed partial class Vmm : IDisposable
         var cbMAP = Marshal.SizeOf<Vmmi.VMMDLL_MAP_HANDLE>();
         var cbENTRY = Marshal.SizeOf<Vmmi.VMMDLL_MAP_HANDLEENTRY>();
         var m = Array.Empty<HandleEntry>();
-        if (!Vmmi.VMMDLL_Map_GetHandle(_h, pid, out var pMap))
+        if (!Vmmi.VMMDLL_Map_GetHandle(_handle, pid, out var pMap))
         {
             goto fail;
         }
@@ -1639,7 +1639,7 @@ public sealed partial class Vmm : IDisposable
     /// <returns>The string value on success; otherwise an empty string.</returns>
     public unsafe string GetProcessInformationString(uint pid, uint fOptionString)
     {
-        var pb = Vmmi.VMMDLL_ProcessGetInformationString(_h, pid, fOptionString);
+        var pb = Vmmi.VMMDLL_ProcessGetInformationString(_handle, pid, fOptionString);
         if (pb == null)
         {
             return "";
@@ -1663,7 +1663,7 @@ public sealed partial class Vmm : IDisposable
         var cbENTRY = (uint)Marshal.SizeOf<Vmmi.VMMDLL_IMAGE_DATA_DIRECTORY>();
         fixed (byte* pb = new byte[16 * cbENTRY])
         {
-            result = Vmmi.VMMDLL_ProcessGetDirectories(_h, pid, sModule, pb);
+            result = Vmmi.VMMDLL_ProcessGetDirectories(_handle, pid, sModule, pb);
             if (!result)
             {
                 return Array.Empty<IMAGE_DATA_DIRECTORY>();
@@ -1694,7 +1694,7 @@ public sealed partial class Vmm : IDisposable
     {
         bool result;
         var cbENTRY = (uint)Marshal.SizeOf<Vmmi.VMMDLL_IMAGE_SECTION_HEADER>();
-        result = Vmmi.VMMDLL_ProcessGetSections(_h, pid, sModule, null, 0, out var cData);
+        result = Vmmi.VMMDLL_ProcessGetSections(_handle, pid, sModule, null, 0, out var cData);
         if (!result || cData == 0)
         {
             return Array.Empty<IMAGE_SECTION_HEADER>();
@@ -1702,7 +1702,7 @@ public sealed partial class Vmm : IDisposable
 
         fixed (byte* pb = new byte[cData * cbENTRY])
         {
-            result = Vmmi.VMMDLL_ProcessGetSections(_h, pid, sModule, pb, cData, out cData);
+            result = Vmmi.VMMDLL_ProcessGetSections(_handle, pid, sModule, pb, cData, out cData);
             if (!result || cData == 0)
             {
                 return Array.Empty<IMAGE_SECTION_HEADER>();
@@ -1739,7 +1739,7 @@ public sealed partial class Vmm : IDisposable
     /// <returns>The function virtual address on success; 0 on failure.</returns>
     public ulong ProcessGetProcAddress(uint pid, string wszModuleName, string szFunctionName)
     {
-        return Vmmi.VMMDLL_ProcessGetProcAddress(_h, pid, wszModuleName, szFunctionName);
+        return Vmmi.VMMDLL_ProcessGetProcAddress(_handle, pid, wszModuleName, szFunctionName);
     }
 
     /// <summary>
@@ -1750,7 +1750,7 @@ public sealed partial class Vmm : IDisposable
     /// <returns>The module base address on success; 0 on failure.</returns>
     public ulong ProcessGetModuleBase(uint pid, string wszModuleName)
     {
-        return Vmmi.VMMDLL_ProcessGetModuleBase(_h, pid, wszModuleName);
+        return Vmmi.VMMDLL_ProcessGetModuleBase(_handle, pid, wszModuleName);
     }
 
     /// <summary>
@@ -1767,7 +1767,7 @@ public sealed partial class Vmm : IDisposable
         {
             Marshal.WriteInt64(new IntPtr(pb + 0), unchecked((long)Vmmi.VMMDLL_PROCESS_INFORMATION_MAGIC));
             Marshal.WriteInt16(new IntPtr(pb + 8), unchecked((short)Vmmi.VMMDLL_PROCESS_INFORMATION_VERSION));
-            if (!Vmmi.VMMDLL_ProcessGetInformation(_h, pid, pb, ref cbENTRY))
+            if (!Vmmi.VMMDLL_ProcessGetInformation(_handle, pid, pb, ref cbENTRY))
             {
                 return false;
             }
@@ -1810,7 +1810,7 @@ public sealed partial class Vmm : IDisposable
     {
         var m = Array.Empty<ProcessInfo>();
         var cbENTRY = (uint)Marshal.SizeOf<Vmmi.VMMDLL_PROCESS_INFORMATION>();
-        if (!Vmmi.VMMDLL_ProcessGetInformationAll(_h, out var pMap, out uint pc))
+        if (!Vmmi.VMMDLL_ProcessGetInformationAll(_handle, out var pMap, out uint pc))
         {
             goto fail;
         }
@@ -2307,7 +2307,7 @@ public sealed partial class Vmm : IDisposable
     {
         bool result;
         var cbENTRY = Marshal.SizeOf<Vmmi.VMMDLL_REGISTRY_HIVE_INFORMATION>();
-        result = Vmmi.VMMDLL_WinReg_HiveList(_h, null, 0, out var cHives);
+        result = Vmmi.VMMDLL_WinReg_HiveList(_handle, null, 0, out var cHives);
         if (!result || cHives == 0)
         {
             return Array.Empty<RegHiveEntry>();
@@ -2315,7 +2315,7 @@ public sealed partial class Vmm : IDisposable
 
         fixed (byte* pb = new byte[cHives * cbENTRY])
         {
-            result = Vmmi.VMMDLL_WinReg_HiveList(_h, pb, cHives, out cHives);
+            result = Vmmi.VMMDLL_WinReg_HiveList(_handle, pb, cHives, out cHives);
             if (!result)
             {
                 return Array.Empty<RegHiveEntry>();
@@ -2359,7 +2359,7 @@ public sealed partial class Vmm : IDisposable
         var data = new byte[cb];
         fixed (byte* pb = data)
         {
-            if (!Vmmi.VMMDLL_WinReg_HiveReadEx(_h, vaCMHIVE, ra, pb, cb, out cbRead, flags))
+            if (!Vmmi.VMMDLL_WinReg_HiveReadEx(_handle, vaCMHIVE, ra, pb, cb, out cbRead, flags))
             {
                 return Array.Empty<byte>();
             }
@@ -2388,7 +2388,7 @@ public sealed partial class Vmm : IDisposable
         ThrowIfMemWritesDisabled();
         fixed (byte* pb = data)
         {
-            return Vmmi.VMMDLL_WinReg_HiveWrite(_h, vaCMHIVE, ra, pb, (uint)data.Length);
+            return Vmmi.VMMDLL_WinReg_HiveWrite(_handle, vaCMHIVE, ra, pb, (uint)data.Length);
         }
     }
 
@@ -2410,7 +2410,7 @@ public sealed partial class Vmm : IDisposable
         {
             i = 0;
             cchName = 0x800;
-            while (Vmmi.VMMDLL_WinReg_EnumKeyEx(_h, sKeyFullPath, i, pb, ref cchName, out var ftLastWriteTime))
+            while (Vmmi.VMMDLL_WinReg_EnumKeyEx(_handle, sKeyFullPath, i, pb, ref cchName, out var ftLastWriteTime))
             {
                 var e = new RegEnumKeyEntry
                 {
@@ -2424,7 +2424,7 @@ public sealed partial class Vmm : IDisposable
 
             i = 0;
             cchName = 0x800;
-            while (Vmmi.VMMDLL_WinReg_EnumValue(_h, sKeyFullPath, i, pb, ref cchName, out var lpType, null, ref cbData))
+            while (Vmmi.VMMDLL_WinReg_EnumValue(_handle, sKeyFullPath, i, pb, ref cchName, out var lpType, null, ref cbData))
             {
                 var e = new RegEnumValueEntry
                 {
@@ -2451,7 +2451,7 @@ public sealed partial class Vmm : IDisposable
     {
         bool result;
         uint cb = 0;
-        result = Vmmi.VMMDLL_WinReg_QueryValueEx(_h, sValueFullPath, out tp, null, ref cb);
+        result = Vmmi.VMMDLL_WinReg_QueryValueEx(_handle, sValueFullPath, out tp, null, ref cb);
         if (!result)
         {
             return null;
@@ -2460,7 +2460,7 @@ public sealed partial class Vmm : IDisposable
         var data = new byte[cb];
         fixed (byte* pb = data)
         {
-            result = Vmmi.VMMDLL_WinReg_QueryValueEx(_h, sValueFullPath, out tp, pb, ref cb);
+            result = Vmmi.VMMDLL_WinReg_QueryValueEx(_handle, sValueFullPath, out tp, pb, ref cb);
             return result ? data : null;
         }
     }
@@ -2685,7 +2685,7 @@ public sealed partial class Vmm : IDisposable
         var cbMAP = Marshal.SizeOf<Vmmi.VMMDLL_MAP_NET>();
         var cbENTRY = Marshal.SizeOf<Vmmi.VMMDLL_MAP_NETENTRY>();
         var m = Array.Empty<NetEntry>();
-        if (!Vmmi.VMMDLL_Map_GetNet(_h, out var pMap))
+        if (!Vmmi.VMMDLL_Map_GetNet(_handle, out var pMap))
         {
             goto fail;
         }
@@ -2733,7 +2733,7 @@ public sealed partial class Vmm : IDisposable
         var cbMAP = Marshal.SizeOf<Vmmi.VMMDLL_MAP_PHYSMEM>();
         var cbENTRY = Marshal.SizeOf<Vmmi.VMMDLL_MAP_PHYSMEMENTRY>();
         var m = Array.Empty<MemoryEntry>();
-        if (!Vmmi.VMMDLL_Map_GetPhysMem(_h, out var pMap))
+        if (!Vmmi.VMMDLL_Map_GetPhysMem(_handle, out var pMap))
         {
             goto fail;
         }
@@ -2768,7 +2768,7 @@ public sealed partial class Vmm : IDisposable
         var cbMAP = Marshal.SizeOf<Vmmi.VMMDLL_MAP_KDEVICE>();
         var cbENTRY = Marshal.SizeOf<Vmmi.VMMDLL_MAP_KDEVICEENTRY>();
         var m = Array.Empty<KDeviceEntry>();
-        if (!Vmmi.VMMDLL_Map_GetKDevice(_h, out var pMap))
+        if (!Vmmi.VMMDLL_Map_GetKDevice(_handle, out var pMap))
         {
             goto fail;
         }
@@ -2809,7 +2809,7 @@ public sealed partial class Vmm : IDisposable
         var cbMAP = Marshal.SizeOf<Vmmi.VMMDLL_MAP_KDRIVER>();
         var cbENTRY = Marshal.SizeOf<Vmmi.VMMDLL_MAP_KDRIVERENTRY>();
         var m = Array.Empty<KDriverEntry>();
-        if (!Vmmi.VMMDLL_Map_GetKDriver(_h, out var pMap))
+        if (!Vmmi.VMMDLL_Map_GetKDriver(_handle, out var pMap))
         {
             goto fail;
         }
@@ -2855,7 +2855,7 @@ public sealed partial class Vmm : IDisposable
         var cbMAP = Marshal.SizeOf<Vmmi.VMMDLL_MAP_KOBJECT>();
         var cbENTRY = Marshal.SizeOf<Vmmi.VMMDLL_MAP_KOBJECTENTRY>();
         var m = Array.Empty<KObjectEntry>();
-        if (!Vmmi.VMMDLL_Map_GetKObject(_h, out var pMap))
+        if (!Vmmi.VMMDLL_Map_GetKObject(_handle, out var pMap))
         {
             goto fail;
         }
@@ -2902,7 +2902,7 @@ public sealed partial class Vmm : IDisposable
         var cbMAP = Marshal.SizeOf<Vmmi.VMMDLL_MAP_POOL>();
         var cbENTRY = Marshal.SizeOf<Vmmi.VMMDLL_MAP_POOLENTRY>();
         var flags = isBigPoolOnly ? VmmPoolMapFlags.BIG : VmmPoolMapFlags.ALL;
-        if (!Vmmi.VMMDLL_Map_GetPool(_h, out var pN, flags))
+        if (!Vmmi.VMMDLL_Map_GetPool(_handle, out var pN, flags))
         {
             return Array.Empty<PoolEntry>();
         }
@@ -2943,7 +2943,7 @@ public sealed partial class Vmm : IDisposable
         var cbMAP = Marshal.SizeOf<Vmmi.VMMDLL_MAP_USER>();
         var cbENTRY = Marshal.SizeOf<Vmmi.VMMDLL_MAP_USERENTRY>();
         var m = Array.Empty<UserEntry>();
-        if (!Vmmi.VMMDLL_Map_GetUsers(_h, out var pMap))
+        if (!Vmmi.VMMDLL_Map_GetUsers(_handle, out var pMap))
         {
             goto fail;
         }
@@ -2979,7 +2979,7 @@ public sealed partial class Vmm : IDisposable
         var cbMAP = Marshal.SizeOf<Vmmi.VMMDLL_MAP_VM>();
         var cbENTRY = Marshal.SizeOf<Vmmi.VMMDLL_MAP_VMENTRY>();
         var m = Array.Empty<VirtualMachineEntry>();
-        if (!Vmmi.VMMDLL_Map_GetVM(_h, out var pMap))
+        if (!Vmmi.VMMDLL_Map_GetVM(_handle, out var pMap))
         {
             goto fail;
         }
@@ -3024,7 +3024,7 @@ public sealed partial class Vmm : IDisposable
         var cbMAP = Marshal.SizeOf<Vmmi.VMMDLL_MAP_SERVICE>();
         var cbENTRY = Marshal.SizeOf<Vmmi.VMMDLL_MAP_SERVICEENTRY>();
         var m = Array.Empty<ServiceEntry>();
-        if (!Vmmi.VMMDLL_Map_GetServices(_h, out var pMap))
+        if (!Vmmi.VMMDLL_Map_GetServices(_handle, out var pMap))
         {
             goto fail;
         }
@@ -3087,8 +3087,8 @@ public sealed partial class Vmm : IDisposable
             fixed (byte* pb = new byte[cbPfns])
             {
                 result =
-                    Vmmi.VMMDLL_Map_GetPfn(_h, (byte*)pbPfns, (uint)pfns.Length, null, ref cbPfns) &&
-                    Vmmi.VMMDLL_Map_GetPfn(_h, (byte*)pbPfns, (uint)pfns.Length, pb, ref cbPfns);
+                    Vmmi.VMMDLL_Map_GetPfn(_handle, (byte*)pbPfns, (uint)pfns.Length, null, ref cbPfns) &&
+                    Vmmi.VMMDLL_Map_GetPfn(_handle, (byte*)pbPfns, (uint)pfns.Length, pb, ref cbPfns);
                 if (!result)
                 {
                     return Array.Empty<PfnEntry>();
@@ -3148,7 +3148,7 @@ public sealed partial class Vmm : IDisposable
         var data = new byte[260];
         fixed (byte* pb = data)
         {
-            var result = Vmmi.VMMDLL_PdbLoad(_h, pid, vaModuleBase, pb);
+            var result = Vmmi.VMMDLL_PdbLoad(_handle, pid, vaModuleBase, pb);
             if (!result)
             {
                 return false;
@@ -3176,7 +3176,7 @@ public sealed partial class Vmm : IDisposable
         var data = new byte[260];
         fixed (byte* pb = data)
         {
-            var result = Vmmi.VMMDLL_PdbSymbolName(_h, szModule, cbSymbolAddressOrOffset, pb, out pdwSymbolDisplacement);
+            var result = Vmmi.VMMDLL_PdbSymbolName(_handle, szModule, cbSymbolAddressOrOffset, pb, out pdwSymbolDisplacement);
             if (!result)
             {
                 return false;
@@ -3198,7 +3198,7 @@ public sealed partial class Vmm : IDisposable
     /// <returns><see langword="true"/> on success; otherwise <see langword="false"/>.</returns>
     public bool PdbSymbolAddress(string szModule, string szSymbolName, out ulong pvaSymbolAddress)
     {
-        return Vmmi.VMMDLL_PdbSymbolAddress(_h, szModule, szSymbolName, out pvaSymbolAddress);
+        return Vmmi.VMMDLL_PdbSymbolAddress(_handle, szModule, szSymbolName, out pvaSymbolAddress);
     }
 
     /// <summary>
@@ -3210,7 +3210,7 @@ public sealed partial class Vmm : IDisposable
     /// <returns><see langword="true"/> on success; otherwise <see langword="false"/>.</returns>
     public bool PdbTypeSize(string szModule, string szTypeName, out uint pcbTypeSize)
     {
-        return Vmmi.VMMDLL_PdbTypeSize(_h, szModule, szTypeName, out pcbTypeSize);
+        return Vmmi.VMMDLL_PdbTypeSize(_handle, szModule, szTypeName, out pcbTypeSize);
     }
 
     /// <summary>
@@ -3223,7 +3223,7 @@ public sealed partial class Vmm : IDisposable
     /// <returns><see langword="true"/> on success; otherwise <see langword="false"/>.</returns>
     public bool PdbTypeChildOffset(string szModule, string szTypeName, string wszTypeChildName, out uint pcbTypeChildOffset)
     {
-        return Vmmi.VMMDLL_PdbTypeChildOffset(_h, szModule, szTypeName, wszTypeChildName, out pcbTypeChildOffset);
+        return Vmmi.VMMDLL_PdbTypeChildOffset(_handle, szModule, szTypeName, wszTypeChildName, out pcbTypeChildOffset);
     }
 
     #endregion
@@ -3286,11 +3286,12 @@ public sealed partial class Vmm : IDisposable
     /// <param name="MID">Module ID (default = API).</param>
     public void Log(string message, LogLevel logLevel = LogLevel.Info, uint MID = 0x80000011)
     {
-        Vmmi.VMMDLL_Log(_h, MID, logLevel, "%s", message);
+        Vmmi.VMMDLL_Log(_handle, MID, logLevel, "%s", message);
     }
 
     /// <summary>
     /// Delegate for VMM log callback functions.
+    /// Please make sure you root this delegate so it doesn't get garbage collected!
     /// </summary>
     /// <param name="hVMM">The <see cref="Vmm"/> native handle.</param>
     /// <param name="MID">Module ID.</param>
@@ -3318,7 +3319,36 @@ public sealed partial class Vmm : IDisposable
     /// <returns><see langword="true"/> if the callback was successfully registered/unregistered, otherwise <see langword="false"/>.</returns>
     public bool LogCallback(VMMDLL_LOG_CALLBACK_PFN pfnCB)
     {
-        return Vmmi.VMMDLL_LogCallback(_h, pfnCB);
+        return Vmmi.VMMDLL_LogCallback(_handle, pfnCB);
+    }
+
+    /// <summary>
+    /// Memory callback function definition.
+    /// Please make sure you root this delegate so it doesn't get garbage collected!
+    /// </summary>
+    /// <param name="ctxUser">User context pointer.</param>
+    /// <param name="dwPID">PID of target process; <c>(DWORD)-1</c> for physical memory.</param>
+    /// <param name="cpMEMs">Count of <paramref name="ppMEMs"/> entries.</param>
+    /// <param name="ppMEMs">Array of pointers to MEM scatter read headers.</param>
+    public unsafe delegate void VMMDLL_MEM_CALLBACK_PFN(
+        IntPtr ctxUser,
+        uint dwPID,
+        uint cpMEMs,
+        LeechCore.LcMemScatter** ppMEMs
+    );
+
+    /// <summary>
+    /// Register or unregister an optional memory access callback function.
+    /// It's possible to have one callback function registered for each type.
+    /// To clear an already registered callback function specify NULL as pfnCB.
+    /// </summary>
+    /// <param name="type">type of callback to register / unregister - VMMDLL_MEM_CALLBACK_*.</param>
+    /// <param name="context">user context pointer to be passed to the callback function.</param>
+    /// <param name="pfnCB">callback function to register / unregister.</param>
+    /// <returns><see langword="true"/> if the callback was successfully registered/unregistered, otherwise <see langword="false"/>.</returns>
+    public bool MemCallback(VmmMemCallbackType type, IntPtr context, VMMDLL_MEM_CALLBACK_PFN pfnCB)
+    {
+        return Vmmi.VMMDLL_MemCallback(_handle, type, context, pfnCB);
     }
 
     /// <summary>
@@ -3384,34 +3414,6 @@ public sealed partial class Vmm : IDisposable
     {
         RefreshManager.Unregister(this, option);
     }
-
-    #endregion
-
-    #region Vmm Mem Callbacks
-
-    /// <summary>
-    /// Memory callback function definition.
-    /// </summary>
-    /// <param name="ctxUser">User context pointer.</param>
-    /// <param name="dwPID">PID of target process; <c>(DWORD)-1</c> for physical memory.</param>
-    /// <param name="cpMEMs">Count of <paramref name="ppMEMs"/> entries.</param>
-    /// <param name="ppMEMs">Array of pointers to MEM scatter read headers.</param>
-    public unsafe delegate void VmmMemCallbackFn(
-        IntPtr ctxUser,
-        uint dwPID,
-        uint cpMEMs,
-        LeechCore.LcMemScatter** ppMEMs
-    );
-
-    /// <summary>
-    /// Register a memory callback function. Only one callback of each <see cref="VmmMemCallbackType"/> may be active at a time.
-    /// </summary>
-    /// <param name="type">Callback type.</param>
-    /// <param name="callback">Callback delegate.</param>
-    /// <param name="context">User context pointer to be passed to the callback function.</param>
-    /// <returns>A <see cref="VmmMemCallback"/> which unregisters the callback on <see cref="VmmMemCallback.Dispose"/>.</returns>
-    public VmmMemCallback CreateMemCallback(VmmMemCallbackType type, VmmMemCallbackFn callback, IntPtr context) =>
-        new VmmMemCallback(this, type, callback, context);
 
     #endregion
 }
