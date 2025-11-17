@@ -14,6 +14,7 @@ concurrency:
 
 jobs:
   test-build:
+    if: github.repository_owner == 'lone-dma'
     runs-on: windows-latest
     environment: production
     permissions:
