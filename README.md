@@ -10,6 +10,8 @@ Install-Package VmmSharpEx
 This library is **Windows Only**, and only bundles/targets the Windows x64 native libraries.
 
 ## Changelog
+- Version 3.100
+  - Added new VmmInputManager extension class that checks for User Input on the Target System (Win11 Only).
 - Version 3.92
   - Optimized Vmm MemCallback functionality.
   - Code/API Cleanup.
