@@ -50,6 +50,8 @@ namespace VmmSharpEx.Extensions.Input
         private readonly ulong _gafAsyncKeyStateExport;
         private readonly uint _winLogonPid;
 
+        private VmmInputManager() { }
+
         /// <summary>
         /// Extension class that queries user input state via Win32 Kernel Interop (Read-Only).
         /// </summary>
@@ -167,7 +169,7 @@ namespace VmmSharpEx.Extensions.Input
         /// Recommend calling <see cref="UpdateKeys"/> before calling this method to ensure the key states are up-to-date.
         /// </remarks>
         /// <param name="vkey">Windows virtual key.</param>
-        /// <returns></returns>
+        /// <returns><see langword="true"/> if key is down, otherwise <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool IsKeyDown(Win32VirtualKey vkey) => IsKeyDown((uint)vkey);
 
@@ -179,7 +181,7 @@ namespace VmmSharpEx.Extensions.Input
         /// Recommend calling <see cref="UpdateKeys"/> before calling this method to ensure the key states are up-to-date.
         /// </remarks>
         /// <param name="vkeyCode">Windows virtual key code.</param>
-        /// <returns></returns>
+        /// <returns><see langword="true"/> if key is down, otherwise <see langword="false"/>.</returns>
         public bool IsKeyDown(uint vkeyCode)
         {
             if (_gafAsyncKeyStateExport < 0x7FFFFFFFFFFF)
