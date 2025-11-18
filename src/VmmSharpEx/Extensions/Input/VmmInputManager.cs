@@ -29,7 +29,6 @@ SOFTWARE.
 
 // Thanks to Metick for the original implementation! https://github.com/Metick/DMALibrary/blob/Master/DMALibrary/Memory/InputManager.cpp
 
-using Collections.Pooled;
 using System.Runtime.CompilerServices;
 using VmmSharpEx.Internal;
 
@@ -148,8 +147,7 @@ namespace VmmSharpEx.Extensions.Input
         /// <exception cref="VmmException"></exception>
         public void UpdateKeys()
         {
-            using var previousKeyStateBitmapRent = new PooledMemory<byte>(64); // Rent 64 bytes, low allocation impact
-            var previousKeyStateBitmap = previousKeyStateBitmapRent.Span;
+            Span<byte> previousKeyStateBitmap = stackalloc byte[64];
             _stateBitmap.CopyTo(previousKeyStateBitmap);
 
             // Read 64 bytes from gafAsyncKeyStateExport
