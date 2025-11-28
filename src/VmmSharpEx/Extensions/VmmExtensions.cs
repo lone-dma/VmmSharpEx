@@ -81,8 +81,8 @@ namespace VmmSharpEx.Extensions
         {
             if (!Utilities.IsValidVA(va))
                 throw new VmmException(paramName is null ?
-                    $"Pointer 0x{va:X} is not a valid x64 virtual address!" :
-                    $"'{paramName}' Pointer 0x{va:X} is not a valid x64 virtual address!");
+                    $"Address 0x{va:X} is not a valid x64 virtual address!" :
+                    $"'{paramName}' Address 0x{va:X} is not a valid x64 virtual address!");
         }
 
         /// <summary>
@@ -96,8 +96,8 @@ namespace VmmSharpEx.Extensions
         {
             if (!Utilities.IsValidUserVA(va))
                 throw new VmmException(paramName is null ?
-                    $"Pointer 0x{va:X} is not a valid x64 user virtual address!" :
-                    $"'{paramName}' Pointer 0x{va:X} is not a valid x64 user virtual address!");
+                    $"Address 0x{va:X} is not a valid x64 user virtual address!" :
+                    $"'{paramName}' Address 0x{va:X} is not a valid x64 user virtual address!");
         }
 
         /// <summary>
@@ -111,8 +111,8 @@ namespace VmmSharpEx.Extensions
         {
             if (!Utilities.IsValidKernelVA(va))
                 throw new VmmException(paramName is null ?
-                    $"Pointer 0x{va:X} is not a valid x64 kernel virtual address!" :
-                    $"'{paramName}' Pointer 0x{va:X} is not a valid x64 kernel virtual address!");
+                    $"Address 0x{va:X} is not a valid x64 kernel virtual address!" :
+                    $"'{paramName}' Address 0x{va:X} is not a valid x64 kernel virtual address!");
         }
 
         /// <summary>
