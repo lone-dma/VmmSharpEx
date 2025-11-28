@@ -362,6 +362,33 @@ public sealed class VmmScatter : IDisposable
         return false;
     }
 
+
+
+    /// <summary>
+    /// Read memory from an address into an array of a certain type.
+    /// </summary>
+    /// <remarks>
+    /// NOTE: This method incurs a heap allocation for the returned byte array. For high-performance use other read methods instead. This should be called after <see cref="Execute"/>.
+    /// </remarks>
+    /// <typeparam name="T">The <see langword="unmanaged"/> struct type for this operation.</typeparam>
+    /// <param name="address">Address to read from.</param>
+    /// <param name="count">The number of array elements to read.</param>
+    /// <returns>An array on success; otherwise <see langword="null"/>.</returns>
+    public unsafe T[] ReadArray<T>(ulong address, int count)
+        where T : unmanaged
+    {
+        uint cb = checked((uint)sizeof(T) * (uint)count);
+        var array = new T[count];
+        fixed (T* pb = array)
+        {
+            if (!Vmmi.VMMDLL_Scatter_Read(_handle, address, cb, (byte*)pb, out var cbRead) || cbRead != cb)
+            {
+                return null;
+            }
+        }
+        return array;
+    }
+
     /// <summary>
     /// Read memory from an address into a pooled array of a certain type.
     /// </summary>
@@ -371,8 +398,8 @@ public sealed class VmmScatter : IDisposable
     /// <typeparam name="T">The <see langword="unmanaged"/> struct type for this operation.</typeparam>
     /// <param name="address">Address to read from.</param>
     /// <param name="count">The number of array elements to read.</param>
-    /// <returns><see cref="PooledMemory{T}"/> lease, or <see langword="null"/> if failed. Be sure to call <see cref="PooledMemory{T}.Dispose()"/> when done.</returns>
-    public unsafe PooledMemory<T> ReadArray<T>(ulong address, int count)
+    /// <returns><see cref="IMemoryOwner{T}"/> lease, or <see langword="null"/> if failed. Be sure to call <see cref="IDisposable.Dispose()"/> when done.</returns>
+    public unsafe IMemoryOwner<T> ReadPooled<T>(ulong address, int count)
         where T : unmanaged
     {
         uint cb = checked((uint)sizeof(T) * (uint)count);

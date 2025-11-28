@@ -452,18 +452,42 @@ public sealed partial class Vmm : IDisposable
     }
 
     /// <summary>
-    /// Read memory from a virtual address into a pooled array of type <typeparamref name="T"/>.
+    /// Read memory from a virtual address into an array of type <typeparamref name="T"/>.
     /// </summary>
     /// <remarks>
-    /// You must dispose the returned <see cref="PooledMemory{T}"/> when finished with it.
+    /// NOTE: This method incurs a heap allocation for the returned byte array. For high-performance use other read methods instead.
     /// </remarks>
     /// <typeparam name="T">Value type.</typeparam>
     /// <param name="pid">Process ID (PID) this operation will take place within.</param>
     /// <param name="va">Virtual address to read from.</param>
     /// <param name="count">Number of elements to read.</param>
     /// <param name="flags">VMM read flags.</param>
-    /// <returns>A <see cref="PooledMemory{T}"/> lease, or <see langword="null"/> if failed.</returns>
-    public unsafe PooledMemory<T> MemReadArray<T>(uint pid, ulong va, int count, VmmFlags flags = VmmFlags.NONE)
+    /// <returns>An array on success; otherwise <see langword="null"/>.</returns>
+    public unsafe T[] MemReadArray<T>(uint pid, ulong va, int count, VmmFlags flags = VmmFlags.NONE)
+        where T : unmanaged
+    {
+        var array = new T[count];
+        uint cb = checked((uint)sizeof(T) * (uint)count);
+        fixed (T* pb = array)
+        {
+            if (!Vmmi.VMMDLL_MemReadEx(_handle, pid, va, (byte*)pb, cb, out var cbRead, flags) || cbRead != cb)
+            {
+                return null;
+            }
+        }
+        return array;
+    }
+
+    /// <summary>
+    /// Read memory from a virtual address into a pooled array of type <typeparamref name="T"/>.
+    /// </summary>
+    /// <typeparam name="T">Value type.</typeparam>
+    /// <param name="pid">Process ID (PID) this operation will take place within.</param>
+    /// <param name="va">Virtual address to read from.</param>
+    /// <param name="count">Number of elements to read.</param>
+    /// <param name="flags">VMM read flags.</param>
+    /// <returns>A <see cref="IMemoryOwner{T}"/> lease, or <see langword="null"/> if failed. Be sure to call <see cref="IDisposable.Dispose()"/> when done.</returns>
+    public unsafe IMemoryOwner<T> MemReadPooled<T>(uint pid, ulong va, int count, VmmFlags flags = VmmFlags.NONE)
         where T : unmanaged
     {
         var arr = new PooledMemory<T>(count);

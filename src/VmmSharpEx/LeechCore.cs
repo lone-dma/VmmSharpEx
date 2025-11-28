@@ -16,6 +16,7 @@
 */
 
 using Collections.Pooled;
+using System.Buffers;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using VmmSharpEx.Internal;
@@ -205,13 +206,38 @@ public sealed class LeechCore : IDisposable
     }
 
     /// <summary>
+    /// Read physical memory into an array of <typeparamref name="T"/>.
+    /// </summary>
+    /// <remarks>
+    /// NOTE: This method incurs a heap allocation for the returned byte array. For high-performance use other read methods instead.
+    /// </remarks>
+    /// <typeparam name="T">An unmanaged value type.</typeparam>
+    /// <param name="pa">Physical address to read.</param>
+    /// <param name="count">Number of elements to read.</param>
+    /// <returns>An array on success; otherwise <see langword="null"/>.</returns>
+    public unsafe T[] ReadArray<T>(ulong pa, int count)
+        where T : unmanaged
+    {
+        var arr = new T[count];
+        uint cb = checked((uint)sizeof(T) * (uint)count);
+        fixed (T* pb = arr)
+        {
+            if (!Lci.LcRead(_handle, pa, cb, (byte*)pb))
+            {
+                return null;
+            }
+        }
+        return arr;
+    }
+
+    /// <summary>
     /// Read physical memory into a pooled array of <typeparamref name="T"/>.
     /// </summary>
     /// <typeparam name="T">An unmanaged value type.</typeparam>
     /// <param name="pa">Physical address to read.</param>
     /// <param name="count">Number of elements to read.</param>
-    /// <returns>A <see cref="PooledMemory{T}"/> lease on success; otherwise <see langword="null"/>.</returns>
-    public unsafe PooledMemory<T> ReadArray<T>(ulong pa, int count)
+    /// <returns>A <see cref="IMemoryOwner{T}"/> lease on success; otherwise <see langword="null"/>. Be sure to call <see cref="IDisposable.Dispose()"/> when done.</returns>
+    public unsafe IMemoryOwner<T> ReadPooled<T>(ulong pa, int count)
         where T : unmanaged
     {
         var arr = new PooledMemory<T>(count);
