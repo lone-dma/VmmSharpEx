@@ -189,7 +189,7 @@ public sealed class LeechCore : IDisposable
     /// <summary>
     /// Read physical memory into a value of type <typeparamref name="T"/>.
     /// </summary>
-    /// <typeparam name="T">An unmanaged value or <see langword="ref struct"/>.</typeparam>
+    /// <typeparam name="T">An unmanaged value or <see langword="struct"/>.</typeparam>
     /// <param name="pa">Physical address to read.</param>
     /// <param name="result">Receives the value read from memory on success.</param>
     /// <returns><see langword="true"/> if successful; otherwise <see langword="false"/>.</returns>
@@ -361,7 +361,7 @@ public sealed class LeechCore : IDisposable
     /// <summary>
     /// Write a single value of type <typeparamref name="T"/> to physical memory.
     /// </summary>
-    /// <typeparam name="T">An unmanaged value or <see langword="ref struct"/>.</typeparam>
+    /// <typeparam name="T">An unmanaged value or <see langword="struct"/>.</typeparam>
     /// <param name="pa">Physical address to write.</param>
     /// <param name="value">The value to write.</param>
     /// <returns><see langword="true"/> on success; otherwise <see langword="false"/>.</returns>

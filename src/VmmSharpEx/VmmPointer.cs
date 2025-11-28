@@ -4,6 +4,7 @@
 */
 
 using System.Runtime.CompilerServices;
+using VmmSharpEx.Extensions;
 using VmmSharpEx.Internal;
 
 namespace VmmSharpEx
@@ -23,18 +24,46 @@ namespace VmmSharpEx
         public readonly bool IsValid
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get => Utilities.IsValidVirtualAddress(Value);
+            get => Utilities.IsValidVA(Value);
         }
 
         /// <summary>
-        /// Throws an <see cref="VmmException"/> if the pointer is not valid.
+        /// True if the pointer is a valid usermode virtual address, otherwise False.
+        /// </summary>
+        public readonly bool IsValidUser
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get => Utilities.IsValidUserVA(Value);
+        }
+
+        /// <summary>
+        /// True if the pointer is a valid kernel virtual address, otherwise False.
+        /// </summary>
+        public readonly bool IsValidKernel
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get => Utilities.IsValidKernelVA(Value);
+        }
+
+        /// <summary>
+        /// Throws a <see cref="VmmException"/> if the pointer is not a valid virtual address.
         /// </summary>
         /// <exception cref="VmmException"></exception>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public readonly void ThrowIfInvalid()
-        {
-            if (!IsValid)
-                throw new VmmException($"Pointer 0x{Value:X} is not a valid x64 virtual address!");
-        }
+        public readonly void ThrowIfInvalidVA() => Value.ThrowIfInvalidVA();
+
+        /// <summary>
+        /// Throws a <see cref="VmmException"/> if the pointer is not a valid usermode virtual address.
+        /// </summary>
+        /// <exception cref="VmmException"></exception>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public readonly void ThrowIfInvalidUserVA() => Value.ThrowIfInvalidUserVA();
+
+        /// <summary>
+        /// Throws a <see cref="VmmException"/> if the pointer is not a valid kernel virtual address.
+        /// </summary>
+        /// <exception cref="VmmException"></exception>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public readonly void ThrowIfInvalidKernelVA() => Value.ThrowIfInvalidKernelVA();
     }
 }

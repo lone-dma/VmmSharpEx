@@ -3,7 +3,9 @@
  *  Copyright (C) 2025 AGPL-3.0
 */
 
+using System.Runtime.CompilerServices;
 using System.Text;
+using VmmSharpEx.Internal;
 using VmmSharpEx.Options;
 
 namespace VmmSharpEx.Extensions
@@ -13,6 +15,78 @@ namespace VmmSharpEx.Extensions
     /// </summary>
     public static class VmmExtensions
     {
+        /// <summary>
+        /// Checks if the given virtual address is valid within win-x64 architecture.
+        /// </summary>
+        /// <param name="va">Virtual address to validate.</param>
+        /// <returns><see langword="true"/> if valid; otherwise <see langword="false"/>.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static bool IsValidVA(this ulong va) =>
+            Utilities.IsValidVA(va);
+
+        /// <summary>
+        /// Checks if the given virtual address is a valid usermode address within win-x64 architecture.
+        /// </summary>
+        /// <param name="va">Virtual address to validate.</param>
+        /// <returns><see langword="true"/> if valid; otherwise <see langword="false"/>.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static bool IsValidUserVA(this ulong va) =>
+            Utilities.IsValidUserVA(va);
+
+        /// <summary>
+        /// Checks if the given virtual address is a valid kernel address within win-x64 architecture.
+        /// </summary>
+        /// <param name="va">Virtual address to validate.</param>
+        /// <returns><see langword="true"/> if valid; otherwise <see langword="false"/>.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static bool IsValidKernelVA(this ulong va) =>
+            Utilities.IsValidKernelVA(va);
+
+        /// <summary>
+        /// Throws a <see cref="VmmException"/> if the given virtual address is not valid within win-x64 architecture.
+        /// </summary>
+        /// <param name="va">Virtual address to validate.</param>
+        /// <param name="paramName">Parameter name for the exception message.</param>
+        /// <exception cref="VmmException"></exception>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void ThrowIfInvalidVA(this ulong va, string paramName = null)
+        {
+            if (!Utilities.IsValidVA(va))
+                throw new VmmException(paramName is null ?
+                    $"Pointer 0x{va:X} is not a valid x64 virtual address!" :
+                    $"'{paramName}' Pointer 0x{va:X} is not a valid x64 virtual address!");
+        }
+
+        /// <summary>
+        /// Throws a <see cref="VmmException"/> if the given virtual address is not a valid usermode address within win-x64 architecture.
+        /// </summary>
+        /// <param name="va">Virtual address to validate.</param>
+        /// <param name="paramName">Parameter name for the exception message.</param>
+        /// <exception cref="VmmException"></exception>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void ThrowIfInvalidUserVA(this ulong va, string paramName = null)
+        {
+            if (!Utilities.IsValidUserVA(va))
+                throw new VmmException(paramName is null ?
+                    $"Pointer 0x{va:X} is not a valid x64 user virtual address!" :
+                    $"'{paramName}' Pointer 0x{va:X} is not a valid x64 user virtual address!");
+        }
+
+        /// <summary>
+        /// Throws a <see cref="VmmException"/> if the given virtual address is not a valid kernel address within win-x64 architecture.
+        /// </summary>
+        /// <param name="va">Virtual address to validate.</param>
+        /// <param name="paramName">Parameter name for the exception message.</param>
+        /// <exception cref="VmmException"></exception>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void ThrowIfInvalidKernelVA(this ulong va, string paramName = null)
+        {
+            if (!Utilities.IsValidKernelVA(va))
+                throw new VmmException(paramName is null ?
+                    $"Pointer 0x{va:X} is not a valid x64 kernel virtual address!" :
+                    $"'{paramName}' Pointer 0x{va:X} is not a valid x64 kernel virtual address!");
+        }
+
         /// <summary>
         /// This fixes the database shuffling that EAC does.
         /// It fixes it by iterating over all DTB's that exist within your system and looks for specific ones
@@ -90,6 +164,25 @@ namespace VmmSharpEx.Extensions
             }
 
             return false;
+        }
+
+        /// <summary>
+        /// Find a signature within a process' memory.
+        /// </summary>
+        /// <param name="vmm">Vmm instance.</param>
+        /// <param name="pid">Process to search within.</param>
+        /// <param name="signature">Signature to search for (max 32 bytes). Hex Characters (separated by space) with optional ?? wildcard mask. Ex: 0F 1F ?? ?? 90 AA</param>
+        /// <param name="module">Module to search within. The search will be bounded within this module.</param>
+        /// <returns>Address of first occurrence of signature, otherwise 0 if failed.</returns>
+        public static ulong FindSignature(this Vmm vmm, uint pid, string signature, string module)
+        {
+            if (!vmm.Map_GetModuleFromName(pid, module, out var moduleInfo))
+                throw new VmmException($"Failed to get module info for module '{module}'");
+            return vmm.FindSignature(
+                pid: pid,
+                signature: signature,
+                addrMin: moduleInfo.vaBase,
+                addrMax: moduleInfo.vaBase + moduleInfo.cbImageSize);
         }
 
         /// <summary>

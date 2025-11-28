@@ -60,10 +60,10 @@ public unsafe class VmmSharpEx_VmmScatterTests
         Assert.True(_vmm.MemWriteArray<ushort>(Vmm.PID_PHYSICALMEMORY, addr, source));
         Assert.True(scatter.PrepareReadArray<ushort>(addr, source.Length));
         scatter.Execute();
-        using var result = scatter.ReadArray<ushort>(addr, source.Length);
+        using var result = scatter.ReadPooled<ushort>(addr, source.Length);
         Assert.NotNull(result);
-        Assert.Equal(source.Length, result.Span.Length);
-        for (int i = 0; i < source.Length; i++) Assert.Equal(source[i], result.Span[i]);
+        Assert.Equal(source.Length, result.Memory.Span.Length);
+        for (int i = 0; i < source.Length; i++) Assert.Equal(source[i], result.Memory.Span[i]);
     }
 
     [Fact]
@@ -131,7 +131,7 @@ public unsafe class VmmSharpEx_VmmScatterTests
         Assert.True(scatter.PrepareReadPtr(storedPtrAddr));
         scatter.Execute();
         Assert.True(scatter.ReadPtr(storedPtrAddr, out var ptr));
-        ptr.ThrowIfInvalid();
+        ptr.ThrowIfInvalidVA();
         Assert.Equal(fakeValidVa, (ulong)ptr);
     }
 
@@ -171,10 +171,10 @@ public unsafe class VmmSharpEx_VmmScatterTests
         scatter.Execute();
         Assert.True(scatter.ReadValue<int>(addrValue, out var valueRead));
         Assert.Equal(value, valueRead);
-        using var arrRead = scatter.ReadArray<uint>(addrArray, arraySrc.Length);
+        using var arrRead = scatter.ReadPooled<uint>(addrArray, arraySrc.Length);
         Assert.NotNull(arrRead);
-        Assert.Equal(arraySrc.Length, arrRead.Span.Length);
-        for (int i = 0; i < arraySrc.Length; i++) Assert.Equal(arraySrc[i], arrRead.Span[i]);
+        Assert.Equal(arraySrc.Length, arrRead.Memory.Span.Length);
+        for (int i = 0; i < arraySrc.Length; i++) Assert.Equal(arraySrc[i], arrRead.Memory.Span[i]);
         var bytesRead = scatter.Read(addrBytes, (uint)bytesSrc.Length, out var cbRead);
         Assert.NotNull(bytesRead);
         Assert.Equal((uint)bytesSrc.Length, cbRead);

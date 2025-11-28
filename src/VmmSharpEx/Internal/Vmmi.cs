@@ -175,7 +175,7 @@ internal static partial class Vmmi
         public string Name;
 
         public uint MiscPhysicalAddressOrVirtualSize;
-        public uint VirtualAddress;
+        public uint VA;
         public uint SizeOfRawData;
         public uint PointerToRawData;
         public uint PointerToRelocations;
@@ -188,7 +188,7 @@ internal static partial class Vmmi
     [StructLayout(LayoutKind.Sequential)]
     public struct VMMDLL_IMAGE_DATA_DIRECTORY
     {
-        public uint VirtualAddress;
+        public uint VA;
         public uint Size;
     }
 

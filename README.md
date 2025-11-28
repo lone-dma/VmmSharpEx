@@ -10,6 +10,9 @@ Install-Package VmmSharpEx
 This library is **Windows Only**, and only bundles/targets the Windows x64 native libraries.
 
 ## Changelog
+- Version 3.110
+  - Reworked ReadArray APIs to have a clear distinction between Array (non-pooled) and Pooled (using a backing IMemoryOwner).
+  - Added new extension methods and cleaned up API.
 - Version 3.100
   - Added new VmmInputManager extension class that checks for User Input on the Target System (Win11 Only).
 - Version 3.92

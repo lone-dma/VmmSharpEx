@@ -139,10 +139,10 @@ public unsafe class VmmSharpEx_VmmTests
         ulong addr = HeapAddr(0x400);
         var src = Enumerable.Range(1, 32).Select(i => (uint)(i * 0x10u)).ToArray();
         Assert.True(_vmm.MemWriteArray<uint>(Vmm.PID_PHYSICALMEMORY, addr, src));
-        using var pooled = _vmm.MemReadArray<uint>(Vmm.PID_PHYSICALMEMORY, addr, src.Length);
+        using var pooled = _vmm.MemReadPooled<uint>(Vmm.PID_PHYSICALMEMORY, addr, src.Length);
         Assert.NotNull(pooled);
-        Assert.Equal(src.Length, pooled.Span.Length);
-        for (int i = 0; i < src.Length; i++) Assert.Equal(src[i], pooled.Span[i]);
+        Assert.Equal(src.Length, pooled.Memory.Span.Length);
+        for (int i = 0; i < src.Length; i++) Assert.Equal(src[i], pooled.Memory.Span[i]);
     }
 
     [Fact]

@@ -282,7 +282,7 @@ public sealed partial class Vmm : IDisposable
     /// </summary>
     /// <param name="applyMap">If <see langword="true"/>, applies the memory map to the current <see cref="Vmm"/>/<see cref="LeechCore"/> instance.</param>
     /// <param name="outputFile">If non-<see langword="null"/>, writes the memory map to disk at the specified output location.</param>
-    /// <returns>Memory map result in string format.</returns>
+    /// <returns>Memory map ptr in string format.</returns>
     /// <exception cref="VmmException">Thrown if the memory map cannot be retrieved or applied.</exception>
     public string GetMemoryMap(
         bool applyMap = false,
@@ -432,7 +432,25 @@ public sealed partial class Vmm : IDisposable
     }
 
     /// <summary>
-    /// Read memory from a virtual address into a <see langword="ref struct"/> of type <typeparamref name="T"/>.
+    /// Read memory from a virtual address into a <see langword="struct"/> of type <typeparamref name="T"/>.
+    /// </summary>
+    /// <typeparam name="T">Struct/Ref struct type.</typeparam>
+    /// <param name="pid">Process ID (PID) this operation will take place within.</param>
+    /// <param name="va">Virtual address to read from.</param>
+    /// <param name="flags">VMM read flags.</param>
+    /// <returns><typeparamref name="T"/> value.</returns>
+    /// <exception cref="VmmException"></exception>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public unsafe T MemReadValue<T>(uint pid, ulong va, VmmFlags flags = VmmFlags.NONE)
+        where T : unmanaged, allows ref struct
+    {
+        if (!MemReadValue<T>(pid, va, out var result, flags))
+            throw new VmmException("Memory Read Failed!");
+        return result;
+    }
+
+    /// <summary>
+    /// Read memory from a virtual address into a <see langword="struct"/> of type <typeparamref name="T"/>.
     /// </summary>
     /// <typeparam name="T">Struct/Ref struct type.</typeparam>
     /// <param name="pid">Process ID (PID) this operation will take place within.</param>
@@ -934,7 +952,7 @@ public sealed partial class Vmm : IDisposable
     /// This only returns the first PID found for the process name. For multiple PIDs, use <see cref="PidGetAllFromName(string)"/>.
     /// </remarks>
     /// <param name="sProcName">Name of the process to look up.</param>
-    /// <param name="pdwPID">Receives the PID result.</param>
+    /// <param name="pdwPID">Receives the PID ptr.</param>
     /// <returns><see langword="true"/> if successful; otherwise <see langword="false"/>.</returns>
     public bool PidGetFromName(string sProcName, out uint pdwPID)
     {
@@ -1391,7 +1409,7 @@ public sealed partial class Vmm : IDisposable
     /// Retrieve heap information for a process.
     /// </summary>
     /// <param name="pid">Process ID (PID) for this operation.</param>
-    /// <param name="result">Receives the <see cref="HeapMap"/> result on success.</param>
+    /// <param name="result">Receives the <see cref="HeapMap"/> ptr on success.</param>
     /// <returns><see langword="true"/> if successful; otherwise <see langword="false"/>.</returns>
     public unsafe bool Map_GetHeap(uint pid, out HeapMap result)
     {
@@ -1699,7 +1717,7 @@ public sealed partial class Vmm : IDisposable
                 var n = Marshal.PtrToStructure<Vmmi.VMMDLL_IMAGE_DATA_DIRECTORY>((IntPtr)(pb + i * cbENTRY));
                 IMAGE_DATA_DIRECTORY e;
                 e.name = PE_DATA_DIRECTORIES[i];
-                e.VirtualAddress = n.VirtualAddress;
+                e.VA = n.VA;
                 e.Size = n.Size;
                 m[i] = e;
             }
@@ -1739,7 +1757,7 @@ public sealed partial class Vmm : IDisposable
                 IMAGE_SECTION_HEADER e;
                 e.Name = n.Name;
                 e.MiscPhysicalAddressOrVirtualSize = n.MiscPhysicalAddressOrVirtualSize;
-                e.VirtualAddress = n.VirtualAddress;
+                e.VA = n.VA;
                 e.SizeOfRawData = n.SizeOfRawData;
                 e.PointerToRawData = n.PointerToRawData;
                 e.PointerToRelocations = n.PointerToRelocations;
@@ -2140,7 +2158,7 @@ public sealed partial class Vmm : IDisposable
     }
 
     /// <summary>
-    /// Heap map result containing heaps and segments.
+    /// Heap map ptr containing heaps and segments.
     /// </summary>
     public struct HeapMap
     {
@@ -2253,7 +2271,7 @@ public sealed partial class Vmm : IDisposable
     {
         public string Name;
         public uint MiscPhysicalAddressOrVirtualSize;
-        public uint VirtualAddress;
+        public uint VA;
         public uint SizeOfRawData;
         public uint PointerToRawData;
         public uint PointerToRelocations;
@@ -2269,7 +2287,7 @@ public sealed partial class Vmm : IDisposable
     public struct IMAGE_DATA_DIRECTORY
     {
         public string name;
-        public uint VirtualAddress;
+        public uint VA;
         public uint Size;
     }
 
@@ -2314,7 +2332,7 @@ public sealed partial class Vmm : IDisposable
     }
 
     /// <summary>
-    /// Registry enumeration result containing keys and values.
+    /// Registry enumeration ptr containing keys and values.
     /// </summary>
     public struct RegEnumEntry
     {

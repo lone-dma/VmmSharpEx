@@ -15,9 +15,33 @@ namespace VmmSharpEx.Internal
         /// <param name="va">Virtual Address to validate.</param>
         /// <returns>True if valid, otherwise False.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool IsValidVirtualAddress(ulong va)
+        public static bool IsValidVA(ulong va)
+        {
+            ulong high = va >> 47;
+            return va >= 0x10000 && (high == 0 || high == 0x1FFFF);
+        }
+
+        /// <summary>
+        /// Checks if a Virtual Address is a valid User-Mode Virtual Address.
+        /// </summary>
+        /// <param name="va">Virtual Address to validate.</param>
+        /// <returns>True if valid, otherwise False.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static bool IsValidUserVA(ulong va)
         {
             return va >= 0x10000 && ((long)va << 16) >> 16 == (long)va;
+        }
+
+        /// <summary>
+        /// Checks if a Virtual Address is a valid Kernel-Mode Virtual Address.
+        /// </summary>
+        /// <param name="va">Virtual Address to validate.</param>
+        /// <returns>True if valid, otherwise False.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static bool IsValidKernelVA(ulong va)
+        {
+            ulong high = va >> 47;
+            return va >= 0xFFFF800000000000 && high == 0x1FFFF;
         }
 
         /// <summary>

@@ -49,10 +49,10 @@ public unsafe class VmmSharpEx_LeechCoreTests
         ulong pa = HeapAddr(0x180);
         var src = Enumerable.Range(0, 32).Select(i => (uint)(i * 0x11111111u)).ToArray();
         Assert.True(_lc.WriteArray(pa, src));
-        using var pooled = _lc.ReadArray<uint>(pa, src.Length);
+        using var pooled = _lc.ReadPooled<uint>(pa, src.Length);
         Assert.NotNull(pooled);
-        Assert.Equal(src.Length, pooled.Span.Length);
-        for (int i = 0; i < src.Length; i++) Assert.Equal(src[i], pooled.Span[i]);
+        Assert.Equal(src.Length, pooled.Memory.Span.Length);
+        for (int i = 0; i < src.Length; i++) Assert.Equal(src[i], pooled.Memory.Span[i]);
     }
 
     [Fact]

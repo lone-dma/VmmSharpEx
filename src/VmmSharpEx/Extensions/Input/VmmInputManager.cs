@@ -86,7 +86,7 @@ namespace VmmSharpEx.Extensions.Input
                     if (gSessionPtr == 0)
                     {
                         gSessionPtr = _vmm.FindSignature(pid, "48 8B 05 ?? ?? ?? ?? FF C9", win32kBase, win32kBase + win32kSize);
-                        if (!Utilities.IsValidVirtualAddress(gSessionPtr))
+                        if (!Utilities.IsValidVA(gSessionPtr))
                             throw new ArgumentOutOfRangeException(nameof(gSessionPtr), "Failed to find gSessionPtr signature");
                     }
                     int relative = Read<int>(pid, gSessionPtr + 3);

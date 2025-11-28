@@ -160,7 +160,7 @@ public sealed class VmmScatter : IDisposable
     /// Prepare to read memory from an array of a certain struct.
     /// </summary>
     /// <remarks>
-    /// Corresponds with the <see cref="ReadArray{T}(ulong, int)"/> or <see cref="ReadSpan{T}(ulong, Span{T})"/> methods, that should be called after <see cref="Execute"/>.
+    /// Corresponds with the <see cref="ReadArray{T}(ulong, int)"/>, <see cref="ReadPooled{T}(ulong, int)"/>, or <see cref="ReadSpan{T}(ulong, Span{T})"/> methods, that should be called after <see cref="Execute"/>.
     /// </remarks>
     /// <typeparam name="T">The <see langword="unmanaged"/> struct type for this operation.</typeparam>
     /// <param name="address">Address of the array to be read.</param>
