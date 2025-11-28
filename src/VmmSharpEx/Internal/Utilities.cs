@@ -29,7 +29,8 @@ namespace VmmSharpEx.Internal
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool IsValidUserVA(ulong va)
         {
-            return va >= 0x10000 && ((long)va << 16) >> 16 == (long)va;
+            ulong high = va >> 47;
+            return va >= 0x10000 && high == 0;
         }
 
         /// <summary>
