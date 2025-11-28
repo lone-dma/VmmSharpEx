@@ -24,7 +24,7 @@ namespace VmmSharpEx
         public readonly bool IsValid
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get => Utilities.IsValidVA(Value);
+            get => Value.IsValidVA();
         }
 
         /// <summary>
@@ -33,7 +33,7 @@ namespace VmmSharpEx
         public readonly bool IsValidUser
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get => Utilities.IsValidUserVA(Value);
+            get => Value.IsValidUserVA();
         }
 
         /// <summary>
@@ -42,7 +42,7 @@ namespace VmmSharpEx
         public readonly bool IsValidKernel
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get => Utilities.IsValidKernelVA(Value);
+            get => Value.IsValidKernelVA();
         }
 
         /// <summary>
