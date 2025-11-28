@@ -30,7 +30,6 @@ SOFTWARE.
 // Thanks to Metick for the original implementation! https://github.com/Metick/DMALibrary/blob/Master/DMALibrary/Memory/InputManager.cpp
 
 using System.Runtime.CompilerServices;
-using VmmSharpEx.Internal;
 
 namespace VmmSharpEx.Extensions.Input
 {
@@ -58,14 +57,12 @@ namespace VmmSharpEx.Extensions.Input
         /// NOTE: Only works on Windows Version 22000 and newer (Windows 11).
         /// </remarks>
         /// <param name="vmm">Parent VMM Instance (must be already initialized).</param>
-        /// <exception cref="InvalidOperationException"></exception>
-        /// <exception cref="ArgumentOutOfRangeException"></exception>
-        /// <exception cref="AggregateException"></exception>
+        /// <exception cref="VmmException"></exception>
         public VmmInputManager(Vmm vmm)
         {
             _vmm = vmm;
-            if (!vmm.PidGetFromName("winlogon.exe", out _winLogonPid))
-                throw new InvalidOperationException("Failed to get winlogon.exe PID");
+            if (!_vmm.PidGetFromName("winlogon.exe", out _winLogonPid))
+                throw new VmmException("Failed to get winlogon.exe PID");
             var pids = _vmm.PidGetAllFromName("csrss.exe");
             ulong gafAsyncKeyStateExport = 0;
 
@@ -77,7 +74,7 @@ namespace VmmSharpEx.Extensions.Input
                     if (!_vmm.Map_GetModuleFromName(pid, "win32ksgd.sys", out var win32kModuleInfo))
                     {
                         if (!_vmm.Map_GetModuleFromName(pid, "win32k.sys", out win32kModuleInfo))
-                            throw new InvalidOperationException("Failed to get win32kModule");
+                            throw new VmmException("Failed to get win32kModule");
                     }
                     ulong win32kBase = win32kModuleInfo.vaBase;
                     ulong win32kSize = win32kModuleInfo.cbImageSize;
@@ -86,37 +83,31 @@ namespace VmmSharpEx.Extensions.Input
                     if (gSessionPtr == 0)
                     {
                         gSessionPtr = _vmm.FindSignature(pid, "48 8B 05 ?? ?? ?? ?? FF C9", win32kBase, win32kBase + win32kSize);
-                        if (!Utilities.IsValidVA(gSessionPtr))
-                            throw new ArgumentOutOfRangeException(nameof(gSessionPtr), "Failed to find gSessionPtr signature");
+                        if (gSessionPtr == 0)
+                            throw new VmmException("failed to find gSessionPtr signature");
                     }
-                    int relative = Read<int>(pid, gSessionPtr + 3);
+                    int relative = _vmm.MemReadValue<int>(pid, gSessionPtr + 3);
                     ulong gSessionGlobalSlots = gSessionPtr + 7 + (ulong)relative;
                     ulong userSessionState = 0;
                     for (int i = 0; i < 4; i++)
                     {
-                        userSessionState = Read<ulong>(pid, Read<ulong>(pid, Read<ulong>(pid, gSessionGlobalSlots) + (ulong)(8 * i)));
-                        if (userSessionState > 0x7FFFFFFFFFFF)
+                        userSessionState = _vmm.MemReadValue<ulong>(pid, _vmm.MemReadValue<ulong>(pid, _vmm.MemReadValue<ulong>(pid, gSessionGlobalSlots) + (ulong)(8 * i)));
+                        if (userSessionState.IsValidKernelVA())
                             break;
                     }
 
                     if (!_vmm.Map_GetModuleFromName(pid, "win32kbase.sys", out var win32kbaseModule))
-                        throw new InvalidOperationException("failed to get module win32kbase info");
+                        throw new VmmException("failed to get module win32kbase info");
                     ulong win32kbaseBase = win32kbaseModule.vaBase;
                     ulong win32kbaseSize = win32kbaseModule.cbImageSize;
 
                     ulong ptr = _vmm.FindSignature(pid, "48 8D 90 ?? ?? ?? ?? E8 ?? ?? ?? ?? 0F 57 C0", win32kbaseBase, win32kbaseBase + win32kbaseSize);
-                    uint sessionOffset = 0;
-                    if (ptr != 0)
-                    {
-                        sessionOffset = Read<uint>(pid, ptr + 3);
-                        gafAsyncKeyStateExport = userSessionState + sessionOffset;
-                    }
-                    else
-                    {
-                        throw new InvalidOperationException("failed to find offset for gafAyncKeyStateExport");
-                    }
+                    if (ptr == 0)
+                        throw new VmmException("failed to find gafAsyncKeyStateExport signature");
+                    uint sessionOffset = _vmm.MemReadValue<uint>(pid, ptr + 3);
+                    gafAsyncKeyStateExport = userSessionState + sessionOffset;
 
-                    if (gafAsyncKeyStateExport > 0x7FFFFFFFFFFF)
+                    if (gafAsyncKeyStateExport.IsValidKernelVA())
                         break;
                 }
                 catch (Exception ex)
@@ -124,18 +115,9 @@ namespace VmmSharpEx.Extensions.Input
                     exceptions.Add(ex);
                 }
             }
-            if (gafAsyncKeyStateExport <= 0x7FFFFFFFFFFF)
-                throw new AggregateException("Invalid gafAsyncKeyStateExport", exceptions);
+            gafAsyncKeyStateExport.ThrowIfInvalidKernelVA(nameof(gafAsyncKeyStateExport));
 
             _gafAsyncKeyStateExport = gafAsyncKeyStateExport;
-        }
-
-        private T Read<T>(uint pid, ulong address)
-            where T : unmanaged
-        {
-            if (!_vmm.MemReadValue<T>(pid, address, out var result))
-                throw new VmmException("Memory Read Failed!");
-            return result;
         }
 
         /// <summary>
@@ -182,7 +164,7 @@ namespace VmmSharpEx.Extensions.Input
         /// <returns><see langword="true"/> if key is down, otherwise <see langword="false"/>.</returns>
         public bool IsKeyDown(uint vkeyCode)
         {
-            if (_gafAsyncKeyStateExport < 0x7FFFFFFFFFFF)
+            if (!_gafAsyncKeyStateExport.IsValidKernelVA())
                 return false;
             int idx = (int)(vkeyCode * 2 / 8);
             int bit = 1 << ((int)vkeyCode % 4 * 2);
