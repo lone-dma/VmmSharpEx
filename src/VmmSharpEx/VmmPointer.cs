@@ -5,7 +5,6 @@
 
 using System.Runtime.CompilerServices;
 using VmmSharpEx.Extensions;
-using VmmSharpEx.Internal;
 
 namespace VmmSharpEx
 {

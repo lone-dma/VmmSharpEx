@@ -253,7 +253,7 @@ namespace VmmSharpEx.Extensions
                 search: searchBytes,
                 skipmask: skipBytes);
             var result = vmmSearch.Result;
-            if (result.Results.IsEmpty)
+            if (result.Results.Count == 0)
             {
                 return 0;
             }
