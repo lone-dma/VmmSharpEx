@@ -166,7 +166,6 @@ public sealed class VmmSearch : IDisposable
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
         const int maxLength = 32;
-        ObjectDisposedException.ThrowIf(_disposed, this);
         var e = new Vmmi.VMMDLL_MEM_SEARCH_CONTEXT_SEARCHENTRY
         {
             cbAlign = align,
@@ -186,6 +185,7 @@ public sealed class VmmSearch : IDisposable
     /// <summary>
     /// Start the search. Non-blocking.
     /// </summary>
+    /// <exception cref="InvalidOperationException">The search has already been started.</exception>
     public void Start()
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
