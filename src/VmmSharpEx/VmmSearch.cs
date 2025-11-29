@@ -27,7 +27,6 @@ namespace VmmSharpEx;
 /// </summary>
 public sealed class VmmSearch : IDisposable
 {
-    private readonly CancellationTokenSource _cts = new();
     private readonly SearchContext _managed = new();
     private readonly uint _pid;
     private readonly List<Vmmi.VMMDLL_MEM_SEARCH_CONTEXT_SEARCHENTRY> _searches = new();
@@ -40,12 +39,6 @@ public sealed class VmmSearch : IDisposable
     private VmmSearch() { }
 
     /// <summary>
-    /// The current status of the search task.
-    /// Set to <see cref="TaskStatus.WaitingForActivation"/> if the search has not been started.
-    /// </summary>
-    public TaskStatus Status => _worker?.Status ?? TaskStatus.WaitingForActivation;
-
-    /// <summary>
     /// Get the result of the search: Blocking / wait until finish.
     /// </summary>
     /// <remarks>
@@ -53,6 +46,20 @@ public sealed class VmmSearch : IDisposable
     /// </remarks>
     /// <returns></returns>
     public SearchContext Result => GetResult();
+
+    /// <summary>
+    /// Event fired when the search is completed.
+    /// </summary>
+    /// <remarks>
+    /// Will be fired on a thread pool thread immediately before the <see cref="GetResult"/> and <see cref="GetResultAsync"/> methods return.
+    /// If you never call <see cref="Start"/>, this event will never be fired.
+    /// </remarks>
+    public event EventHandler<VmmSearch> Completed;
+    private void OnCompleted()
+    {
+        _managed.IsCompleted = true;
+        Completed?.Invoke(this, this);
+    }
 
     internal VmmSearch(Vmm vmm, uint pid, ulong addr_min = 0, ulong addr_max = ulong.MaxValue, uint cMaxResult = 0, uint readFlags = 0)
     {
@@ -185,42 +192,43 @@ public sealed class VmmSearch : IDisposable
     /// <summary>
     /// Start the search. Non-blocking.
     /// </summary>
-    /// <exception cref="InvalidOperationException">The search has already been started.</exception>
     public void Start()
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
-        if (_worker is not null)
-            throw new InvalidOperationException("Start has already been called.");
-
-        _worker = Task.Run(Worker);
-        _managed._task = _worker;
+        _worker ??= Task.Run(Worker);
     }
 
     private unsafe SearchContext Worker()
     {
-        ObjectDisposedException.ThrowIf(_disposed, this);
-        _cts.Token.ThrowIfCancellationRequested();
-
-        if (_searches.Count == 0)
-        {
-            _managed.IsCompletedSuccess = false;
-            return _managed;
-        }
-
-        var searches = _searches.ToArray();
-        var hSearches = GCHandle.Alloc(searches, GCHandleType.Pinned);
         try
         {
-            _native->cSearch = (uint)searches.Length;
-            _native->search = hSearches.AddrOfPinnedObject();
-            var fResult = Vmmi.VMMDLL_MemSearch(_vmm, _pid, _native, IntPtr.Zero, IntPtr.Zero);
-            _cts.Token.ThrowIfCancellationRequested();
-            _managed.IsCompletedSuccess = fResult && _native->fAbortRequested == 0;
-            return _managed;
+            ObjectDisposedException.ThrowIf(_disposed, this);
+
+            if (_searches.Count == 0)
+            {
+                _managed.IsCompletedSuccess = false;
+                return _managed;
+            }
+
+            var searches = _searches.ToArray();
+            var hSearches = GCHandle.Alloc(searches, GCHandleType.Pinned);
+            try
+            {
+                _native->cSearch = (uint)searches.Length;
+                _native->search = hSearches.AddrOfPinnedObject();
+                bool fResult = Vmmi.VMMDLL_MemSearch(_vmm, _pid, _native, IntPtr.Zero, IntPtr.Zero);
+                ObjectDisposedException.ThrowIf(_disposed, this);
+                _managed.IsCompletedSuccess = fResult && _native->fAbortRequested == 0;
+                return _managed;
+            }
+            finally
+            {
+                hSearches.Free();
+            }
         }
         finally
         {
-            hSearches.Free();
+            OnCompleted();
         }
     }
 
@@ -231,8 +239,8 @@ public sealed class VmmSearch : IDisposable
             Address = va,
             SearchTermId = iSearch
         };
-        _managed.AddResult(e);
-        return _managed.Results.Count < ctx.cMaxResult;
+        _managed._results.Add(e);
+        return _managed._results.Count < ctx.cMaxResult;
     }
 
     /// <summary>
@@ -250,8 +258,7 @@ public sealed class VmmSearch : IDisposable
         {
             if (disposing)
             {
-                _cts.Cancel();
-                _cts.Dispose();
+                Completed = null;
             }
             if (_worker is null || _worker.Status != TaskStatus.Running)
             {
@@ -284,15 +291,15 @@ public sealed class VmmSearch : IDisposable
     /// </summary>
     public sealed class SearchContext
     {
-        internal Task<SearchContext> _task;
         internal SearchContext() { }
 
         /// <summary>
         /// If <see cref="IsCompleted"/> is <see langword="true"/> this indicates if the search was completed.
         /// </summary>
-        public bool IsCompleted => _task?.IsCompleted ?? false;
+        public bool IsCompleted { get; internal set; }
+
         /// <summary>
-        /// If <see cref="IsCompletedSuccess"/> is <see langword="true"/> this indicates if the search was completed successfully.
+        /// If <see cref="IsCompletedSuccess"/> is <see langword="true"/> this indicates if the search had at least one search item and completed without any errors.
         /// </summary>
         public bool IsCompletedSuccess { get; internal set; }
 
@@ -316,16 +323,11 @@ public sealed class VmmSearch : IDisposable
         /// </summary>
         public ulong TotalReadBytes { get; internal set; }
 
-        private readonly ConcurrentBag<SearchResult> _results = new();
+        internal readonly ConcurrentBag<SearchResult> _results = new();
         /// <summary>
         /// The search results.
         /// </summary>
         public IReadOnlyCollection<SearchResult> Results => _results;
-
-        internal void AddResult(SearchResult result)
-        {
-            _results.Add(result);
-        }
     }
 
     /// <summary>

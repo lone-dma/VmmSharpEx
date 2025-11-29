@@ -93,10 +93,13 @@ public class VmmSharpEx_VmmSearchTests
     }
 
     [Fact]
-    public void VmmSearch_DoubleStart()
+    public void VmmSearch_EmptySearch()
     {
         using var search = _vmm.CreateSearch(_pid);
-        search.Start();
-        Assert.Throws<InvalidOperationException>(() => search.Start());
+        var result = search.GetResult();
+        Assert.NotNull(result);
+        Assert.True(result.IsCompleted);
+        Assert.False(result.IsCompletedSuccess);
+        Assert.Empty(result.Results);
     }
 }
