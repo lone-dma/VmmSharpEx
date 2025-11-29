@@ -80,17 +80,21 @@ namespace VmmSharpEx.Extensions
             (BYTE_OFFSET(va) + size + (0x1000ul - 1)) >> 12;
 
         /// <summary>
-        /// Returns a length aligned to 8 bytes.
+        /// Returns a length aligned to the specified alignment.
         /// Always rounds up.
         /// </summary>
+        /// <param name="length">The length to align.</param>
+        /// <param name="alignment">The alignment boundary (must be a power of 2).</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static uint AlignLength(uint length) => (length + 7) & ~7u;
+        public static uint AlignLength(uint length, uint alignment = 8) => (length + alignment - 1) & ~(alignment - 1);
 
         /// <summary>
-        /// Returns an address aligned to 8 bytes.
-        /// Always the next aligned address.
+        /// Returns an address aligned to the specified alignment.
+        /// Always the current/next aligned address.
         /// </summary>
+        /// <param name="address">The address to align.</param>
+        /// <param name="alignment">The alignment boundary (must be a power of 2).</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static ulong AlignAddress(ulong address) => (address + 7) & ~7ul;
+        public static ulong AlignAddress(ulong address, ulong alignment = 8) => (address + alignment - 1) & ~(alignment - 1);
     }
 }
