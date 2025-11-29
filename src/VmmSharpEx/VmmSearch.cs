@@ -1,4 +1,4 @@
-﻿/*  
+/*  
 *  C# API wrapper 'vmmsharp' for MemProcFS 'vmm.dll' and LeechCore 'leechcore.dll' APIs.
 *  
 *  Please see the example project in vmmsharp_example for additional information.
@@ -279,7 +279,7 @@ public sealed class VmmSearch : IDisposable
                         NativeMemory.Free(_native);
                         _native = null;
                     }
-                }).ConfigureAwait(false);
+                });
             }
         }
     }
