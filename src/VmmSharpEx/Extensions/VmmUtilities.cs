@@ -3,9 +3,9 @@
 namespace VmmSharpEx.Extensions
 {
     /// <summary>
-    /// Contains memory-related utility methods.
+    /// Contains Vmm/memory-related utility methods.
     /// </summary>
-    public static class MemoryUtilities
+    public static class VmmUtilities
     {
         /// <summary>
         /// Checks if a Virtual Address is valid.
