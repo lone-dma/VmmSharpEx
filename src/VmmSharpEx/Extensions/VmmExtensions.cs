@@ -5,7 +5,6 @@
 
 using System.Runtime.CompilerServices;
 using System.Text;
-using VmmSharpEx.Internal;
 using VmmSharpEx.Options;
 
 namespace VmmSharpEx.Extensions
@@ -50,7 +49,7 @@ namespace VmmSharpEx.Extensions
         /// <returns><see langword="true"/> if valid; otherwise <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool IsValidVA(this ulong va) =>
-            Utilities.IsValidVA(va);
+            MemoryUtilities.IsValidVA(va);
 
         /// <summary>
         /// Checks if the given virtual address is a valid usermode address within win-x64 architecture.
@@ -59,7 +58,7 @@ namespace VmmSharpEx.Extensions
         /// <returns><see langword="true"/> if valid; otherwise <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool IsValidUserVA(this ulong va) =>
-            Utilities.IsValidUserVA(va);
+            MemoryUtilities.IsValidUserVA(va);
 
         /// <summary>
         /// Checks if the given virtual address is a valid kernel address within win-x64 architecture.
@@ -68,7 +67,7 @@ namespace VmmSharpEx.Extensions
         /// <returns><see langword="true"/> if valid; otherwise <see langword="false"/>.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool IsValidKernelVA(this ulong va) =>
-            Utilities.IsValidKernelVA(va);
+            MemoryUtilities.IsValidKernelVA(va);
 
         /// <summary>
         /// Throws a <see cref="VmmException"/> if the given virtual address is not valid within win-x64 architecture.
@@ -79,7 +78,7 @@ namespace VmmSharpEx.Extensions
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void ThrowIfInvalidVA(this ulong va, string paramName = null)
         {
-            if (!Utilities.IsValidVA(va))
+            if (!MemoryUtilities.IsValidVA(va))
                 throw new VmmException(paramName is null ?
                     $"Address 0x{va:X} is not a valid x64 virtual address!" :
                     $"'{paramName}' Address 0x{va:X} is not a valid x64 virtual address!");
@@ -94,7 +93,7 @@ namespace VmmSharpEx.Extensions
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void ThrowIfInvalidUserVA(this ulong va, string paramName = null)
         {
-            if (!Utilities.IsValidUserVA(va))
+            if (!MemoryUtilities.IsValidUserVA(va))
                 throw new VmmException(paramName is null ?
                     $"Address 0x{va:X} is not a valid x64 user virtual address!" :
                     $"'{paramName}' Address 0x{va:X} is not a valid x64 user virtual address!");
@@ -109,7 +108,7 @@ namespace VmmSharpEx.Extensions
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void ThrowIfInvalidKernelVA(this ulong va, string paramName = null)
         {
-            if (!Utilities.IsValidKernelVA(va))
+            if (!MemoryUtilities.IsValidKernelVA(va))
                 throw new VmmException(paramName is null ?
                     $"Address 0x{va:X} is not a valid x64 kernel virtual address!" :
                     $"'{paramName}' Address 0x{va:X} is not a valid x64 kernel virtual address!");
