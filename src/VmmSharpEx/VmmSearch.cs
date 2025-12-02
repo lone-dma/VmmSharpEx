@@ -260,12 +260,12 @@ public sealed class VmmSearch : IDisposable
             {
                 Completed = null;
             }
-            if (_worker is null || _worker.Status != TaskStatus.Running)
+            if (_worker is null || _worker.IsCompleted)
             {
                 NativeMemory.Free(_native);
                 _native = null;
             }
-            else
+            else // Still running
             {
                 _ = Task.Run(() => // Ensure Cleanup in the background
                 {
