@@ -115,7 +115,7 @@ namespace VmmSharpEx.Extensions
         }
 
         /// <summary>
-        /// This fixes the database shuffling that EAC does.
+        /// This fixes cr3 database shuffling.
         /// It fixes it by iterating over all DTB's that exist within your system and looks for specific ones
         /// that nolonger have a PID assigned to them, aka their pid is 0
         /// it then puts it in a vector to later try each possible DTB to find the DTB of the process.
@@ -126,7 +126,7 @@ namespace VmmSharpEx.Extensions
         /// <param name="processName">Process name to fix.</param>
         /// <param name="pid">PID of process to fix.</param>
         /// <returns>TRUE if successful, otherwise FALSE.</returns>
-        public static bool FixCr3_EAC(this Vmm vmm, string processName, uint pid)
+        public static bool FixCr3(this Vmm vmm, string processName, uint pid)
         {
             // If already mapped successfully, skip
             if (vmm.Map_GetModuleFromName(pid, processName, out var mod) && mod.fValid)
