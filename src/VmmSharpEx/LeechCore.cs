@@ -19,7 +19,6 @@ using Collections.Pooled;
 using System.Buffers;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using VmmSharpEx.Extensions;
 using VmmSharpEx.Internal;
 using VmmSharpEx.Options;
 
@@ -64,15 +63,23 @@ public sealed class LeechCore : IDisposable
             dwVersion = LC_CONFIG_VERSION,
             szDevice = strDevice
         };
-
-        var hLC = Lci.LcCreate(ref cfg);
-        if (hLC == IntPtr.Zero)
+        var cfgNative = Marshal.AllocHGlobal(Marshal.SizeOf<LCConfig>());
+        try
         {
-            throw new VmmException("LeechCore: failed to create object.");
-        }
+            Marshal.StructureToPtr(cfg, cfgNative, true);
+            var hLC = Lci.LcCreate(cfgNative);
+            if (hLC == IntPtr.Zero)
+            {
+                throw new VmmException("LeechCore: failed to create object.");
+            }
 
-        _handle = hLC;
-        _parent = vmm;
+            _handle = hLC;
+            _parent = vmm;
+        }
+        finally
+        {
+            Marshal.FreeHGlobal(cfgNative);
+        }
     }
 
     /// <summary>
@@ -115,38 +122,47 @@ public sealed class LeechCore : IDisposable
     public static LeechCore Create(ref LCConfig pLcCreateConfig, out LCConfigErrorInfo configErrorInfo)
     {
         var cbERROR_INFO = Marshal.SizeOf<Lci.LC_CONFIG_ERRORINFO>();
-        var hLC = Lci.LcCreateEx(ref pLcCreateConfig, out var pLcErrorInfo);
-        configErrorInfo = new LCConfigErrorInfo
+        var pLcCreateConfigNative = Marshal.AllocHGlobal(Marshal.SizeOf<LCConfig>());
+        try
         {
-            strUserText = ""
-        };
-        if (pLcErrorInfo != IntPtr.Zero && hLC != IntPtr.Zero)
-        {
-            return new LeechCore(hLC);
-        }
-
-        if (hLC != IntPtr.Zero)
-        {
-            Lci.LcClose(hLC);
-        }
-
-        if (pLcErrorInfo != IntPtr.Zero)
-        {
-            var e = Marshal.PtrToStructure<Lci.LC_CONFIG_ERRORINFO>(pLcErrorInfo);
-            if (e.dwVersion == LC_CONFIG_ERRORINFO_VERSION)
+            Marshal.StructureToPtr(pLcCreateConfig, pLcCreateConfigNative, true);
+            var hLC = Lci.LcCreateEx(pLcCreateConfigNative, out var pLcErrorInfo);
+            configErrorInfo = new LCConfigErrorInfo
             {
-                configErrorInfo.fValid = true;
-                configErrorInfo.fUserInputRequest = e.fUserInputRequest;
-                if (e.cwszUserText > 0)
-                {
-                    configErrorInfo.strUserText = Marshal.PtrToStringUni((IntPtr)(pLcErrorInfo.ToInt64() + cbERROR_INFO));
-                }
+                strUserText = ""
+            };
+            if (pLcErrorInfo != IntPtr.Zero && hLC != IntPtr.Zero)
+            {
+                return new LeechCore(hLC);
             }
 
-            Lci.LcMemFree(pLcErrorInfo);
-        }
+            if (hLC != IntPtr.Zero)
+            {
+                Lci.LcClose(hLC);
+            }
 
-        return null;
+            if (pLcErrorInfo != IntPtr.Zero)
+            {
+                var e = Marshal.PtrToStructure<Lci.LC_CONFIG_ERRORINFO>(pLcErrorInfo);
+                if (e.dwVersion == LC_CONFIG_ERRORINFO_VERSION)
+                {
+                    configErrorInfo.fValid = true;
+                    configErrorInfo.fUserInputRequest = e.fUserInputRequest;
+                    if (e.cwszUserText > 0)
+                    {
+                        configErrorInfo.strUserText = Marshal.PtrToStringUni((IntPtr)(pLcErrorInfo.ToInt64() + cbERROR_INFO));
+                    }
+                }
+
+                Lci.LcMemFree(pLcErrorInfo);
+            }
+
+            return null;
+        }
+        finally
+        {
+            Marshal.FreeHGlobal(pLcCreateConfigNative);
+        }
     }
 
     ~LeechCore()
@@ -639,140 +655,60 @@ public sealed class LeechCore : IDisposable
     /// <summary>
     /// Managed representation of native <c>LC_CONFIG</c> used when creating a LeechCore context.
     /// </summary>
-    [StructLayout(LayoutKind.Sequential)]
-    public unsafe struct LCConfig
+    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Ansi)]
+    public struct LCConfig
     {
-        // Fields //
-
         /// <summary>
-        /// Structure version. Must be set to <see cref="LeechCore.LC_CONFIG_VERSION"/>.
+        /// Structure version. Must be set to <see cref="LC_CONFIG_VERSION"/>.
         /// </summary>
         public uint dwVersion;
-
         /// <summary>
         /// Printf verbosity level.
         /// </summary>
         public uint dwPrintfVerbosity;
 
-        private fixed byte _szDevice[260];
-        private fixed byte _szRemote[260];
+        /// <summary>
+        /// Device string, e.g. <c>fpga://...</c> or <c>existing://0xHANDLE</c>.
+        /// </summary>
+        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 260)]
+        public string szDevice;
+
+        /// <summary>
+        /// Remote target string, if applicable.
+        /// </summary>
+        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 260)]
+        public string szRemote;
 
         /// <summary>
         /// Optional printf callback.
         /// </summary>
         public IntPtr pfn_printf_opt;
-
         /// <summary>
         /// Maximum physical address to use.
         /// </summary>
         public ulong paMax;
-
-        private int _fVolatile;
-        private int _fWritable;
-        private int _fRemote;
-        private int _fRemoteDisableCompress;
-        private fixed byte _szDeviceName[260];
-
-        // Properties //
-
-        /// <summary>
-        /// Device string, e.g. <c>fpga://...</c> or <c>existing://0xHANDLE</c>.
-        /// </summary>
-        public string szDevice
-        {
-            readonly get
-            {
-                fixed (byte* p = _szDevice)
-                {
-                    return VmmUtilities.ReadAnsi(p, 260);
-                }
-            }
-            set
-            {
-                fixed (byte* p = _szDevice)
-                {
-                    VmmUtilities.WriteAnsi(p, 260, value);
-                }
-            }
-        }
-
-        /// <summary>
-        /// Remote target string, if applicable.
-        /// </summary>
-        public string szRemote
-        {
-            readonly get
-            {
-                fixed (byte* p = _szRemote)
-                {
-                    return VmmUtilities.ReadAnsi(p, 260);
-                }
-            }
-            set
-            {
-                fixed (byte* p = _szRemote)
-                {
-                    VmmUtilities.WriteAnsi(p, 260, value);
-                }
-            }
-        }
-
         /// <summary>
         /// If <see langword="true"/>, volatile mode is enabled.
         /// </summary>
-        public bool fVolatile
-        {
-            readonly get => _fVolatile != 0;
-            set => _fVolatile = value ? 1 : 0;
-        }
-
+        public bool fVolatile;
         /// <summary>
         /// If <see langword="true"/>, writes are allowed.
         /// </summary>
-        public bool fWritable
-        {
-            readonly get => _fWritable != 0;
-            set => _fWritable = value ? 1 : 0;
-        }
-
+        public bool fWritable;
         /// <summary>
         /// If <see langword="true"/>, operates in remote mode.
         /// </summary>
-        public bool fRemote
-        {
-            readonly get => _fRemote != 0;
-            set => _fRemote = value ? 1 : 0;
-        }
-
+        public bool fRemote;
         /// <summary>
         /// If <see langword="true"/>, disables compression in remote mode.
         /// </summary>
-        public bool fRemoteDisableCompress
-        {
-            readonly get => _fRemoteDisableCompress != 0;
-            set => _fRemoteDisableCompress = value ? 1 : 0;
-        }
+        public bool fRemoteDisableCompress;
 
         /// <summary>
         /// Optional device name.
         /// </summary>
-        public string szDeviceName
-        {
-            readonly get
-            {
-                fixed (byte* p = _szDeviceName)
-                {
-                    return VmmUtilities.ReadAnsi(p, 260);
-                }
-            }
-            set
-            {
-                fixed (byte* p = _szDeviceName)
-                {
-                    VmmUtilities.WriteAnsi(p, 260, value);
-                }
-            }
-        }
+        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 260)]
+        public string szDeviceName;
     }
 
 

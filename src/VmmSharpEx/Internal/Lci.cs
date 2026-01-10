@@ -71,9 +71,9 @@ internal static partial class Lci
     }
 
     [LibraryImport("leechcore.dll", EntryPoint = "LcCreate")]
-    public static partial IntPtr LcCreate(ref LeechCore.LCConfig pLcCreateConfig);
+    public static partial IntPtr LcCreate(IntPtr pLcCreateConfig);
 
     [LibraryImport("leechcore.dll", EntryPoint = "LcCreateEx")]
-    public static partial IntPtr LcCreateEx(ref LeechCore.LCConfig pLcCreateConfig, out IntPtr ppLcCreateErrorInfo);
+    public static partial IntPtr LcCreateEx(IntPtr pLcCreateConfig, out IntPtr ppLcCreateErrorInfo);
 
 }
