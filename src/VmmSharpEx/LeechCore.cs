@@ -64,9 +64,9 @@ public sealed class LeechCore : IDisposable
             szDevice = strDevice
         };
         var cfgNative = Marshal.AllocHGlobal(Marshal.SizeOf<LCConfig>());
+        Marshal.StructureToPtr(cfg, cfgNative, false);
         try
         {
-            Marshal.StructureToPtr(cfg, cfgNative, true);
             var hLC = Lci.LcCreate(cfgNative);
             if (hLC == IntPtr.Zero)
             {
@@ -78,6 +78,7 @@ public sealed class LeechCore : IDisposable
         }
         finally
         {
+            Marshal.DestroyStructure<LCConfig>(cfgNative);
             Marshal.FreeHGlobal(cfgNative);
         }
     }
@@ -123,9 +124,9 @@ public sealed class LeechCore : IDisposable
     {
         var cbERROR_INFO = Marshal.SizeOf<Lci.LC_CONFIG_ERRORINFO>();
         var pLcCreateConfigNative = Marshal.AllocHGlobal(Marshal.SizeOf<LCConfig>());
+        Marshal.StructureToPtr(pLcCreateConfig, pLcCreateConfigNative, false);
         try
         {
-            Marshal.StructureToPtr(pLcCreateConfig, pLcCreateConfigNative, true);
             var hLC = Lci.LcCreateEx(pLcCreateConfigNative, out var pLcErrorInfo);
             configErrorInfo = new LCConfigErrorInfo
             {
@@ -161,6 +162,7 @@ public sealed class LeechCore : IDisposable
         }
         finally
         {
+            Marshal.DestroyStructure<LCConfig>(pLcCreateConfigNative);
             Marshal.FreeHGlobal(pLcCreateConfigNative);
         }
     }
