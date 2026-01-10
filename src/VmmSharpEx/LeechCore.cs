@@ -19,7 +19,6 @@ using Collections.Pooled;
 using System.Buffers;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using System.Text;
 using VmmSharpEx.Extensions;
 using VmmSharpEx.Internal;
 using VmmSharpEx.Options;
@@ -65,6 +64,7 @@ public sealed class LeechCore : IDisposable
             dwVersion = LC_CONFIG_VERSION,
             szDevice = strDevice
         };
+
         var hLC = Lci.LcCreate(ref cfg);
         if (hLC == IntPtr.Zero)
         {
@@ -654,6 +654,9 @@ public sealed class LeechCore : IDisposable
         /// </summary>
         public uint dwPrintfVerbosity;
 
+        private fixed byte _szDevice[260];
+        private fixed byte _szRemote[260];
+
         /// <summary>
         /// Optional printf callback.
         /// </summary>
@@ -664,8 +667,6 @@ public sealed class LeechCore : IDisposable
         /// </summary>
         public ulong paMax;
 
-        private fixed byte _szDevice[260];
-        private fixed byte _szRemote[260];
         private int _fVolatile;
         private int _fWritable;
         private int _fRemote;

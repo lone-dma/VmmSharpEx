@@ -116,7 +116,10 @@ namespace VmmSharpEx.Extensions
             if (string.IsNullOrEmpty(value))
                 return;
 
-            _ = Encoding.ASCII.GetBytes(value, span);
+            var bytes = Encoding.ASCII.GetBytes(value);
+            if (bytes.Length > max - 1)
+                throw new ArgumentException($"String too long to fit in buffer of {max} bytes (including null terminator).", nameof(value));
+            bytes.CopyTo(span);
         }
     }
 }
