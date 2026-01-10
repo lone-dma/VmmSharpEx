@@ -57,4 +57,9 @@
 	  <PackageReference Include="Collections.Pooled.V2" Version="2.2.2" />
 	</ItemGroup>
 
+	<PropertyGroup>
+		<IsAotCompatible>true</IsAotCompatible>
+		<IsTrimmable>false</IsTrimmable> <!-- Disable trimming due to heavy interop usage -->
+	</PropertyGroup>
+	
 </Project>

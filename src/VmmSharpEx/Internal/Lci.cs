@@ -70,13 +70,10 @@ internal static partial class Lci
         // szUserText
     }
 
-#pragma warning disable SYSLIB1054 // Use 'LibraryImportAttribute' instead of 'DllImportAttribute' to generate P/Invoke marshalling code at compile time
+    [LibraryImport("leechcore.dll", EntryPoint = "LcCreate")]
+    public static partial IntPtr LcCreate(ref LeechCore.LCConfig pLcCreateConfig);
 
-    [DllImport("leechcore.dll", EntryPoint = "LcCreate")]
-    public static extern IntPtr LcCreate(ref LeechCore.LCConfig pLcCreateConfig);
+    [LibraryImport("leechcore.dll", EntryPoint = "LcCreateEx")]
+    public static partial IntPtr LcCreateEx(ref LeechCore.LCConfig pLcCreateConfig, out IntPtr ppLcCreateErrorInfo);
 
-    [DllImport("leechcore.dll", EntryPoint = "LcCreateEx")]
-    public static extern IntPtr LcCreateEx(ref LeechCore.LCConfig pLcCreateConfig, out IntPtr ppLcCreateErrorInfo);
-
-#pragma warning restore SYSLIB1054 // Use 'LibraryImportAttribute' instead of 'DllImportAttribute' to generate P/Invoke marshalling code at compile time
 }

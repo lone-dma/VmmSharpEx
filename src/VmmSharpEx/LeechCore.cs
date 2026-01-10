@@ -19,6 +19,8 @@ using Collections.Pooled;
 using System.Buffers;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Text;
+using VmmSharpEx.Extensions;
 using VmmSharpEx.Internal;
 using VmmSharpEx.Options;
 
@@ -637,61 +639,141 @@ public sealed class LeechCore : IDisposable
     /// <summary>
     /// Managed representation of native <c>LC_CONFIG</c> used when creating a LeechCore context.
     /// </summary>
-    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Ansi)]
-    public struct LCConfig
+    [StructLayout(LayoutKind.Sequential)]
+    public unsafe struct LCConfig
     {
+        // Fields //
+
         /// <summary>
-        /// Structure version. Must be set to <see cref="LC_CONFIG_VERSION"/>.
+        /// Structure version. Must be set to <see cref="LeechCore.LC_CONFIG_VERSION"/>.
         /// </summary>
         public uint dwVersion;
+
         /// <summary>
         /// Printf verbosity level.
         /// </summary>
         public uint dwPrintfVerbosity;
 
         /// <summary>
-        /// Device string, e.g. <c>fpga://...</c> or <c>existing://0xHANDLE</c>.
-        /// </summary>
-        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 260)]
-        public string szDevice;
-
-        /// <summary>
-        /// Remote target string, if applicable.
-        /// </summary>
-        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 260)]
-        public string szRemote;
-
-        /// <summary>
         /// Optional printf callback.
         /// </summary>
         public IntPtr pfn_printf_opt;
+
         /// <summary>
         /// Maximum physical address to use.
         /// </summary>
         public ulong paMax;
+
+        private fixed byte _szDevice[260];
+        private fixed byte _szRemote[260];
+        private int _fVolatile;
+        private int _fWritable;
+        private int _fRemote;
+        private int _fRemoteDisableCompress;
+        private fixed byte _szDeviceName[260];
+
+        // Properties //
+
+        /// <summary>
+        /// Device string, e.g. <c>fpga://...</c> or <c>existing://0xHANDLE</c>.
+        /// </summary>
+        public string szDevice
+        {
+            readonly get
+            {
+                fixed (byte* p = _szDevice)
+                {
+                    return VmmUtilities.ReadAnsi(p, 260);
+                }
+            }
+            set
+            {
+                fixed (byte* p = _szDevice)
+                {
+                    VmmUtilities.WriteAnsi(p, 260, value);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Remote target string, if applicable.
+        /// </summary>
+        public string szRemote
+        {
+            readonly get
+            {
+                fixed (byte* p = _szRemote)
+                {
+                    return VmmUtilities.ReadAnsi(p, 260);
+                }
+            }
+            set
+            {
+                fixed (byte* p = _szRemote)
+                {
+                    VmmUtilities.WriteAnsi(p, 260, value);
+                }
+            }
+        }
+
         /// <summary>
         /// If <see langword="true"/>, volatile mode is enabled.
         /// </summary>
-        public bool fVolatile;
+        public bool fVolatile
+        {
+            readonly get => _fVolatile != 0;
+            set => _fVolatile = value ? 1 : 0;
+        }
+
         /// <summary>
         /// If <see langword="true"/>, writes are allowed.
         /// </summary>
-        public bool fWritable;
+        public bool fWritable
+        {
+            readonly get => _fWritable != 0;
+            set => _fWritable = value ? 1 : 0;
+        }
+
         /// <summary>
         /// If <see langword="true"/>, operates in remote mode.
         /// </summary>
-        public bool fRemote;
+        public bool fRemote
+        {
+            readonly get => _fRemote != 0;
+            set => _fRemote = value ? 1 : 0;
+        }
+
         /// <summary>
         /// If <see langword="true"/>, disables compression in remote mode.
         /// </summary>
-        public bool fRemoteDisableCompress;
+        public bool fRemoteDisableCompress
+        {
+            readonly get => _fRemoteDisableCompress != 0;
+            set => _fRemoteDisableCompress = value ? 1 : 0;
+        }
 
         /// <summary>
         /// Optional device name.
         /// </summary>
-        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 260)]
-        public string szDeviceName;
+        public string szDeviceName
+        {
+            readonly get
+            {
+                fixed (byte* p = _szDeviceName)
+                {
+                    return VmmUtilities.ReadAnsi(p, 260);
+                }
+            }
+            set
+            {
+                fixed (byte* p = _szDeviceName)
+                {
+                    VmmUtilities.WriteAnsi(p, 260, value);
+                }
+            }
+        }
     }
+
 
     /// <summary>
     /// Extended create-time error information corresponding to native <c>LC_CONFIG_ERRORINFO</c>.

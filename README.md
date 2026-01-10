@@ -10,6 +10,9 @@ Install-Package VmmSharpEx
 This library is **Windows Only**, and only bundles/targets the Windows x64 native libraries.
 
 ## Changelog
+- Version 3.120
+  - Bump MemProcFS to 5.16.9 (fixes rare TLP bug on PCIe x1)
+  - Extra AOT Support
 - Version 3.110
   - Reworked ReadArray APIs to have a clear distinction between Array (non-pooled) and Pooled (using a backing IMemoryOwner).
   - Added new extension methods and cleaned up API.

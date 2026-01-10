@@ -1463,17 +1463,14 @@ internal static partial class Vmmi
 
     // MEMORY SEARCH FUNCTIONALITY BELOW:
 
-#pragma warning disable SYSLIB1054
-
-    [DllImport("vmm.dll", EntryPoint = "VMMDLL_MemSearch")]
-    public static extern unsafe bool VMMDLL_MemSearch(
+    [LibraryImport("vmm.dll", EntryPoint = "VMMDLL_MemSearch")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static unsafe partial bool VMMDLL_MemSearch(
         IntPtr hVMM,
         uint dwPID,
         void* ctx,
         IntPtr ppva,
         IntPtr pcva);
-
-#pragma warning restore SYSLIB1054
 
     [LibraryImport("vmm.dll", EntryPoint = "VMMDLL_UtilFillHexAscii")]
     [return: MarshalAs(UnmanagedType.Bool)]

@@ -1,4 +1,5 @@
 ﻿using System.Runtime.CompilerServices;
+using System.Text;
 
 namespace VmmSharpEx.Extensions
 {
@@ -96,5 +97,26 @@ namespace VmmSharpEx.Extensions
         /// <param name="alignment">The alignment boundary (must be a power of 2).</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static ulong AlignAddress(ulong address, ulong alignment = 8) => (address + alignment - 1) & ~(alignment - 1);
+
+        internal static unsafe string ReadAnsi(byte* buffer, int max)
+        {
+            var span = new ReadOnlySpan<byte>(buffer, max);
+            int len = span.IndexOf((byte)0);
+            if (len == -1)
+                len = max;
+
+            return Encoding.ASCII.GetString(span.Slice(0, len));
+        }
+
+        internal static unsafe void WriteAnsi(byte* buffer, int max, string value)
+        {
+            var span = new Span<byte>(buffer, max);
+            span.Clear();
+
+            if (string.IsNullOrEmpty(value))
+                return;
+
+            _ = Encoding.ASCII.GetBytes(value, span);
+        }
     }
 }
