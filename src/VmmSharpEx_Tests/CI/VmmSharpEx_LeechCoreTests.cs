@@ -5,19 +5,20 @@
 
 using System.Runtime.InteropServices;
 using VmmSharpEx;
-using VmmSharpEx_Tests.Fixtures;
+using VmmSharpEx_Tests.CI.Internal;
 
-namespace VmmSharpEx_Tests;
+namespace VmmSharpEx_Tests.CI;
 
-[Collection(nameof(VmmCollection))]
-public unsafe class VmmSharpEx_LeechCoreTests
+[Collection(nameof(CICollection))]
+[Trait("RunScope", "CI")]
+public unsafe class VmmSharpEx_LeechCoreTests : CITest
 {
     private readonly Vmm _vmm;
     private readonly LeechCore _lc;
     private readonly ulong _heapBase;
     private readonly int _heapLen;
 
-    public VmmSharpEx_LeechCoreTests(VmmFixture fixture)
+    public VmmSharpEx_LeechCoreTests(CIVmmFixture fixture)
     {
         _vmm = fixture.Vmm;
         _lc = _vmm.LeechCore;

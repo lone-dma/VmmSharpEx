@@ -66,7 +66,7 @@ jobs:
       - name: Run Tests
         run: |
           mkdir -p artifacts
-          dotnet test src/VmmSharpEx_Tests/VmmSharpEx_Tests.csproj --logger "console;verbosity=detailed" | tee artifacts/test-output.txt
+          dotnet test src/VmmSharpEx_Tests/VmmSharpEx_Tests.csproj --filter "RunScope=CI" --logger "console;verbosity=detailed" | tee artifacts/test-output.txt
 
       - name: Get version info
         uses: dotnet/nbgv@master

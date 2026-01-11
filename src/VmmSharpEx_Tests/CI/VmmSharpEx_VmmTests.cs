@@ -8,18 +8,18 @@ using System.Runtime.InteropServices;
 using System.Text;
 using VmmSharpEx;
 using VmmSharpEx.Options;
-using VmmSharpEx_Tests.Fixtures;
+using VmmSharpEx_Tests.CI.Internal;
 
-namespace VmmSharpEx_Tests;
+namespace VmmSharpEx_Tests.CI;
 
-[Collection(nameof(VmmCollection))]
-public unsafe class VmmSharpEx_VmmTests
+[Collection(nameof(CICollection))]
+public unsafe class VmmSharpEx_VmmTests : CITest
 {
     private readonly Vmm _vmm;
     private readonly ulong _heapBase;
     private readonly int _heapLen;
 
-    public VmmSharpEx_VmmTests(VmmFixture fixture)
+    public VmmSharpEx_VmmTests(CIVmmFixture fixture)
     {
         _vmm = fixture.Vmm;
         Assert.NotNull(_vmm);

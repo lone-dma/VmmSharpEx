@@ -10,6 +10,10 @@ Install-Package VmmSharpEx
 This library is **Windows Only**, and only bundles/targets the Windows x64 native libraries.
 
 ## Changelog
+- Version 3.130
+  - Optimized lots of methods and implementations.
+  - Some breaking changes with a few renames and changed Map_Get return values to return NULL on failure instead of an empty array.
+  - Changed many methods to accept Span<byte>.
 - Version 3.120
   - Bump MemProcFS to 5.16.9 (fixes rare TLP bug on PCIe x1)
   - Extra AOT Support

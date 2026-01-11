@@ -120,7 +120,7 @@ public sealed class LeechCore : IDisposable
     /// <param name="pLcCreateConfig">The LC configuration to use.</param>
     /// <param name="configErrorInfo">Receives extended create-time error information, if available.</param>
     /// <returns>An initialized <see cref="LeechCore"/> instance on success; otherwise <see langword="null"/>.</returns>
-    public static LeechCore Create(ref LCConfig pLcCreateConfig, out LCConfigErrorInfo configErrorInfo)
+    public static unsafe LeechCore Create(ref LCConfig pLcCreateConfig, out LCConfigErrorInfo configErrorInfo)
     {
         var cbERROR_INFO = Marshal.SizeOf<Lci.LC_CONFIG_ERRORINFO>();
         var pLcCreateConfigNative = Marshal.AllocHGlobal(Marshal.SizeOf<LCConfig>());
@@ -155,7 +155,7 @@ public sealed class LeechCore : IDisposable
                     }
                 }
 
-                Lci.LcMemFree(pLcErrorInfo);
+                Lci.LcMemFree(pLcErrorInfo.ToPointer());
             }
 
             return null;
@@ -474,12 +474,12 @@ public sealed class LeechCore : IDisposable
     /// <param name="dataIn">Optional input data.</param>
     /// <param name="dataOut">Receives any output data returned by the command.</param>
     /// <returns><see langword="true"/> on success; otherwise <see langword="false"/>.</returns>
-    public unsafe bool ExecuteCommand(LcCmd fOption, byte[] dataIn, out byte[] dataOut)
+    public unsafe bool ExecuteCommand(LcCmd fOption, ReadOnlySpan<byte> dataIn, out byte[] dataOut)
     {
         uint cbDataOut;
         IntPtr pbDataOut;
         dataOut = null;
-        if (dataIn is null)
+        if (dataIn.IsEmpty)
         {
             if (!Lci.LcCommand(_handle, fOption, 0, null, out pbDataOut, out cbDataOut))
             {
@@ -502,7 +502,7 @@ public sealed class LeechCore : IDisposable
         {
             var src = new ReadOnlySpan<byte>(pbDataOut.ToPointer(), checked((int)cbDataOut));
             src.CopyTo(dataOut);
-            Lci.LcMemFree(pbDataOut);
+            Lci.LcMemFree(pbDataOut.ToPointer());
         }
 
         return true;
@@ -548,7 +548,7 @@ public sealed class LeechCore : IDisposable
             GC.SuppressFinalize(this);
         }
 
-        private void Dispose(bool disposing)
+        private unsafe void Dispose(bool disposing)
         {
             if (Interlocked.Exchange(ref _mems, IntPtr.Zero) is IntPtr h && h != IntPtr.Zero)
             {
@@ -556,7 +556,7 @@ public sealed class LeechCore : IDisposable
                 {
                     _results.Dispose();
                 }
-                Lci.LcMemFree(h);
+                Lci.LcMemFree(h.ToPointer());
             }
         }
 

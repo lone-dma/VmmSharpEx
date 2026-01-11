@@ -169,7 +169,7 @@ public sealed class VmmSearch : IDisposable
     /// <param name="skipmask">Skip mask (max 32 bytes). Excess will be truncated.</param>
     /// <param name="align">Alignment</param>
     /// <returns>TRUE if added OK otherwise FALSE.</returns>
-    public unsafe void AddEntry(byte[] search, byte[] skipmask = null, uint align = 1)
+    public unsafe void AddEntry(ReadOnlySpan<byte> search, ReadOnlySpan<byte> skipmask = default, uint align = 1)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
         const int maxLength = 32;
@@ -179,11 +179,11 @@ public sealed class VmmSearch : IDisposable
             cb = (uint)search.Length
         };
         var pbSearch = new Span<byte>(e.pb, maxLength);
-        search.AsSpan(0, Math.Min(search.Length, maxLength)).CopyTo(pbSearch);
-        if (skipmask is not null && skipmask.Length > 0)
+        search.Slice(0, Math.Min(search.Length, maxLength)).CopyTo(pbSearch);
+        if (!skipmask.IsEmpty && skipmask.Length > 0)
         {
             var pbSkipMask = new Span<byte>(e.pbSkipMask, maxLength);
-            skipmask.AsSpan(0, Math.Min(skipmask.Length, maxLength)).CopyTo(pbSkipMask);
+            skipmask.Slice(0, Math.Min(skipmask.Length, maxLength)).CopyTo(pbSkipMask);
         }
 
         _searches.Add(e);

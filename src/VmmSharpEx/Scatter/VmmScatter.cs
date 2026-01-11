@@ -355,7 +355,7 @@ public sealed class VmmScatter : IDisposable
     /// <returns><see langword="true"/> if the operation is successful, otherwise <see langword="false"/>.</returns>
     public bool ReadPtr(ulong address, out VmmPointer result)
     {
-        if (ReadValue<VmmPointer>(address, out result) && result.IsValid)
+        if (ReadValue<VmmPointer>(address, out result) && result.IsValidVA)
         {
             return true;
         }

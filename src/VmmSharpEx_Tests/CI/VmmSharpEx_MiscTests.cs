@@ -4,19 +4,19 @@
 */
 
 using VmmSharpEx;
-using VmmSharpEx_Tests.Fixtures;
+using VmmSharpEx_Tests.CI.Internal;
 using Xunit.Abstractions;
 
-namespace VmmSharpEx_Tests;
+namespace VmmSharpEx_Tests.CI;
 
-[Collection(nameof(VmmCollection))]
-public class VmmSharpEx_MiscTests
+[Collection(nameof(CICollection))]
+public class VmmSharpEx_MiscTests : CITest
 {
-    private readonly VmmFixture _fixture;
+    private readonly CIVmmFixture _fixture;
     private readonly Vmm _vmm;
     private readonly ITestOutputHelper _output;
 
-    public VmmSharpEx_MiscTests(VmmFixture fixture, ITestOutputHelper output)
+    public VmmSharpEx_MiscTests(CIVmmFixture fixture, ITestOutputHelper output)
     {
         _fixture = fixture;
         _vmm = fixture.Vmm; // Shortcut

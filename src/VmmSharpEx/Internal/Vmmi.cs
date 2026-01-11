@@ -17,40 +17,12 @@
 
 using System.Runtime.InteropServices;
 using VmmSharpEx.Options;
-using static VmmSharpEx.Vmm;
 
 namespace VmmSharpEx.Internal;
 
 internal static partial class Vmmi
 {
     #region Types/Constants
-
-    public const string VMMDLL_VfsListX = "VMMDLL_VfsListU";
-    public const string VMMDLL_VfsReadX = "VMMDLL_VfsReadU";
-    public const string VMMDLL_VfsWriteX = "VMMDLL_VfsWriteU";
-    public const string VMMDLL_ProcessGetProcAddressX = "VMMDLL_ProcessGetProcAddressU";
-    public const string VMMDLL_ProcessGetModuleBaseX = "VMMDLL_ProcessGetModuleBaseU";
-    public const string VMMDLL_ProcessGetDirectoriesX = "VMMDLL_ProcessGetDirectoriesU";
-    public const string VMMDLL_ProcessGetSectionsX = "VMMDLL_ProcessGetSectionsU";
-    public const string VMMDLL_Map_GetPteX = "VMMDLL_Map_GetPteU";
-    public const string VMMDLL_Map_GetVadX = "VMMDLL_Map_GetVadU";
-    public const string VMMDLL_Map_GetModuleX = "VMMDLL_Map_GetModuleU";
-    public const string VMMDLL_Map_GetModuleFromNameX = "VMMDLL_Map_GetModuleFromNameU";
-    public const string VMMDLL_Map_GetUnloadedModuleX = "VMMDLL_Map_GetUnloadedModuleU";
-    public const string VMMDLL_Map_GetEATX = "VMMDLL_Map_GetEATU";
-    public const string VMMDLL_Map_GetIATX = "VMMDLL_Map_GetIATU";
-    public const string VMMDLL_Map_GetHandleX = "VMMDLL_Map_GetHandleU";
-    public const string VMMDLL_Map_GetNetX = "VMMDLL_Map_GetNetU";
-    public const string VMMDLL_Map_GetKDeviceX = "VMMDLL_Map_GetKDeviceU";
-    public const string VMMDLL_Map_GetKDriverX = "VMMDLL_Map_GetKDriverU";
-    public const string VMMDLL_Map_GetKObjectX = "VMMDLL_Map_GetKObjectU";
-    public const string VMMDLL_Map_GetThread_CallstackX = "VMMDLL_Map_GetThread_CallstackU";
-    public const string VMMDLL_Map_GetUsersX = "VMMDLL_Map_GetUsersU";
-    public const string VMMDLL_Map_GetVMX = "VMMDLL_Map_GetVMU";
-    public const string VMMDLL_Map_GetServicesX = "VMMDLL_Map_GetServicesU";
-    public const string VMMDLL_WinReg_EnumKeyExX = "VMMDLL_WinReg_EnumKeyExU";
-    public const string VMMDLL_WinReg_EnumValueX = "VMMDLL_WinReg_EnumValueU";
-    public const string VMMDLL_WinReg_QueryValueExX = "VMMDLL_WinReg_QueryValueExU";
 
     public const ulong MAX_PATH = 260;
     public const uint VMMDLL_MAP_PTE_VERSION = 2;
@@ -88,7 +60,7 @@ internal static partial class Vmmi
         public uint _Reserved;
         public IntPtr pfnAddFile;
         public IntPtr pfnAddDirectory;
-        public ulong h;
+        public IntPtr h;
     }
 
     public const ulong VMMDLL_PROCESS_INFORMATION_MAGIC = 0xc0ffee663df9301e;
@@ -972,7 +944,7 @@ internal static partial class Vmmi
 
     [LibraryImport("vmm.dll", EntryPoint = "VMMDLL_MemFree")]
     public static unsafe partial void VMMDLL_MemFree(
-        byte* pvMem);
+        void* pvMem);
 
     // VFS (VIRTUAL FILE SYSTEM) FUNCTIONALITY BELOW:
 
@@ -1095,10 +1067,6 @@ internal static partial class Vmmi
         uint cb,
         byte* pb,
         out uint pcbRead);
-
-    [LibraryImport("vmm.dll", EntryPoint = "VMMDLL_Scatter_Clear")]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    public static partial bool SVMMDLL_Scatter_Clear(IntPtr hS, uint dwPID, VmmFlags flags);
 
     [LibraryImport("vmm.dll", EntryPoint = "VMMDLL_Scatter_Clear")]
     [return: MarshalAs(UnmanagedType.Bool)]
@@ -1502,7 +1470,7 @@ internal static partial class Vmmi
         IntPtr hVMM,
         VmmMemCallbackType tp,
         IntPtr ctxUser,
-        VMMDLL_MEM_CALLBACK_PFN pfnCB);
+        Vmm.VMMDLL_MEM_CALLBACK_PFN pfnCB);
 
     #endregion
 }

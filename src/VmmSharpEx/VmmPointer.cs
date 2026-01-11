@@ -20,7 +20,7 @@ namespace VmmSharpEx
         /// <summary>
         /// True if the pointer is a valid virtual address, otherwise False.
         /// </summary>
-        public readonly bool IsValid
+        public readonly bool IsValidVA
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get => Value.IsValidVA();
@@ -29,7 +29,7 @@ namespace VmmSharpEx
         /// <summary>
         /// True if the pointer is a valid usermode virtual address, otherwise False.
         /// </summary>
-        public readonly bool IsValidUser
+        public readonly bool IsValidUserVA
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get => Value.IsValidUserVA();
@@ -38,7 +38,7 @@ namespace VmmSharpEx
         /// <summary>
         /// True if the pointer is a valid kernel virtual address, otherwise False.
         /// </summary>
-        public readonly bool IsValidKernel
+        public readonly bool IsValidKernelVA
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get => Value.IsValidKernelVA();

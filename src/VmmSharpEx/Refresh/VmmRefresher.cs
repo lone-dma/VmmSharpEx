@@ -23,10 +23,18 @@ internal sealed class VmmRefresher : IDisposable
     private static async Task RunAsync(Vmm instance, RefreshOption option, TimeSpan interval, CancellationToken ct)
     {
         using var timer = new PeriodicTimer(interval);
-        while (await timer.WaitForNextTickAsync(ct))
+        while (!ct.IsCancellationRequested)
         {
-            if (!instance.ConfigSet((VmmOption)option, 1))
-                instance.Log($"WARNING: {option} Auto Refresh Failed!", Vmm.LogLevel.Warning);
+            try
+            {
+                while (await timer.WaitForNextTickAsync(ct))
+                {
+                    if (!instance.ConfigSet((VmmOption)option, 1))
+                        instance.Log($"WARNING: {option} Auto Refresh Failed!", Vmm.LogLevel.Warning);
+                }
+            }
+            catch (OperationCanceledException) { throw; }
+            catch { }
         }
     }
 
