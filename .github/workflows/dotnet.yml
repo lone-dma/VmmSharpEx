@@ -5,6 +5,7 @@ on:
     branches:
       - master
     paths:
+      - 'native/**'
       - 'src/VmmSharpEx/**'
   workflow_dispatch:
 
