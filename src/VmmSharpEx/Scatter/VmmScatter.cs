@@ -60,7 +60,7 @@ public sealed class VmmScatter : IDisposable
     /// <summary>
     /// Event is fired upon completion of <see cref="Execute"/>. Exceptions are handled/ignored.
     /// </summary>
-    public event EventHandler<VmmScatter> Completed;
+    public event EventHandler<VmmScatter>? Completed;
     private void OnCompleted()
     {
         foreach (var callback in Completed?.GetInvocationList() ?? Enumerable.Empty<Delegate>())
@@ -73,7 +73,7 @@ public sealed class VmmScatter : IDisposable
         }
     }
 
-    private VmmScatter() { }
+    private VmmScatter() { throw new NotImplementedException(); }
 
     internal VmmScatter(Vmm vmm, uint pid, VmmFlags flags = VmmFlags.NONE)
     {
@@ -280,7 +280,7 @@ public sealed class VmmScatter : IDisposable
     /// <param name="cb">Count of bytes to be read.</param>
     /// <param name="cbRead">Count of bytes actually read.</param>
     /// <returns>A byte array with the read memory, otherwise <see langword="null"/>. Be sure to also check <paramref name="cbRead"/>.</returns>
-    public unsafe byte[] Read(ulong address, uint cb, out uint cbRead)
+    public unsafe byte[]? Read(ulong address, uint cb, out uint cbRead)
     {
         var arr = new byte[cb];
         fixed (byte* pb = arr)
@@ -374,7 +374,7 @@ public sealed class VmmScatter : IDisposable
     /// <param name="address">Address to read from.</param>
     /// <param name="count">The number of array elements to read.</param>
     /// <returns>An array on success; otherwise <see langword="null"/>.</returns>
-    public unsafe T[] ReadArray<T>(ulong address, int count)
+    public unsafe T[]? ReadArray<T>(ulong address, int count)
         where T : unmanaged
     {
         uint cb = checked((uint)sizeof(T) * (uint)count);
@@ -399,7 +399,7 @@ public sealed class VmmScatter : IDisposable
     /// <param name="address">Address to read from.</param>
     /// <param name="count">The number of array elements to read.</param>
     /// <returns><see cref="IMemoryOwner{T}"/> lease, or <see langword="null"/> if failed. Be sure to call <see cref="IDisposable.Dispose()"/> when done.</returns>
-    public unsafe IMemoryOwner<T> ReadPooled<T>(ulong address, int count)
+    public unsafe IMemoryOwner<T>? ReadPooled<T>(ulong address, int count)
         where T : unmanaged
     {
         uint cb = checked((uint)sizeof(T) * (uint)count);
@@ -445,10 +445,10 @@ public sealed class VmmScatter : IDisposable
     /// <param name="cb">Count of bytes to read. Keep in mind some string encodings are 2-4 bytes per character.</param>
     /// <param name="encoding">String Encoding for this read.</param>
     /// <returns>C# Managed <see cref="System.String"/>. Otherwise, <see langword="null"/> if failed.</returns>
-    public string ReadString(ulong address, int cb, Encoding encoding)
+    public string? ReadString(ulong address, int cb, Encoding encoding)
     {
-        byte[] rentedBytes = null;
-        char[] rentedChars = null;
+        byte[]? rentedBytes = null;
+        char[]? rentedChars = null;
         try
         {
             Span<byte> bytesSource = cb <= 256 ?
@@ -495,7 +495,7 @@ public sealed class VmmScatter : IDisposable
         if (pid is uint p)
             _pid = p;
         _isPrepared = default;
-        Completed = default;
+        Completed = null;
         if (!Vmmi.VMMDLL_Scatter_Clear(_handle, _pid, _flags))
             throw new VmmException("Failed to clear VmmScatter Handle.");
     }

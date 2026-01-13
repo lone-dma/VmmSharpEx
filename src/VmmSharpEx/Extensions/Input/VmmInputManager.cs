@@ -48,7 +48,7 @@ namespace VmmSharpEx.Extensions.Input
         private readonly ulong _gafAsyncKeyStateExport;
         private readonly uint _winLogonPid;
 
-        private VmmInputManager() { }
+        private VmmInputManager() { throw new NotImplementedException(); }
 
         /// <summary>
         /// Extension class that queries user input state via Win32 Kernel Interop (Read-Only).
@@ -64,6 +64,8 @@ namespace VmmSharpEx.Extensions.Input
             if (!_vmm.PidGetFromName("winlogon.exe", out _winLogonPid))
                 throw new VmmException("Failed to get winlogon.exe PID");
             var pids = _vmm.PidGetAllFromName("csrss.exe");
+            if (pids is null || pids.Length == 0)
+                throw new VmmException("Failed to get csrss.exe PIDs");
             ulong gafAsyncKeyStateExport = 0;
 
             var exceptions = new List<Exception>();

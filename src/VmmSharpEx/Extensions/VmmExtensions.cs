@@ -76,7 +76,7 @@ namespace VmmSharpEx.Extensions
         /// <param name="paramName">Parameter name for the exception message.</param>
         /// <exception cref="VmmException"></exception>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void ThrowIfInvalidVA(this ulong va, string paramName = null)
+        public static void ThrowIfInvalidVA(this ulong va, string? paramName = null)
         {
             if (!VmmUtilities.IsValidVA(va))
                 throw new VmmException(paramName is null ?
@@ -91,7 +91,7 @@ namespace VmmSharpEx.Extensions
         /// <param name="paramName">Parameter name for the exception message.</param>
         /// <exception cref="VmmException"></exception>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void ThrowIfInvalidUserVA(this ulong va, string paramName = null)
+        public static void ThrowIfInvalidUserVA(this ulong va, string? paramName = null)
         {
             if (!VmmUtilities.IsValidUserVA(va))
                 throw new VmmException(paramName is null ?
@@ -106,7 +106,7 @@ namespace VmmSharpEx.Extensions
         /// <param name="paramName">Parameter name for the exception message.</param>
         /// <exception cref="VmmException"></exception>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void ThrowIfInvalidKernelVA(this ulong va, string paramName = null)
+        public static void ThrowIfInvalidKernelVA(this ulong va, string? paramName = null)
         {
             if (!VmmUtilities.IsValidKernelVA(va))
                 throw new VmmException(paramName is null ?
@@ -145,7 +145,7 @@ namespace VmmSharpEx.Extensions
             while (true)
             {
                 var percentBytes = vmm.VfsRead(@"\misc\procinfo\progress_percent.txt", 4);
-                if (percentBytes.Length > 0 &&
+                if (percentBytes is not null &&
                     int.TryParse(Encoding.ASCII.GetString(percentBytes).Trim(), out int percent) &&
                     percent == 100)
                     break;
@@ -154,9 +154,9 @@ namespace VmmSharpEx.Extensions
             }
 
             // VFS list and read DTBs
-            var vfsEntries = vmm.VfsList(@"\misc\procinfo\");
+            //var vfsEntries = vmm.VfsList(@"\misc\procinfo\");
             var dtbRaw = vmm.VfsRead(@"\misc\procinfo\dtb.txt", 0x1000);
-            if (dtbRaw.Length == 0)
+            if (dtbRaw is null)
                 return false;
 
             var possibleDtbs = new List<ulong>();

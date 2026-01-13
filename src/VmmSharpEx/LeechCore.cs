@@ -38,11 +38,12 @@ public sealed class LeechCore : IDisposable
     private readonly Vmm _parent;
     private IntPtr _handle;
 
-    private LeechCore() { }
+    private LeechCore() { throw new NotImplementedException(); }
 
     private LeechCore(IntPtr hLC)
     {
         _handle = hLC;
+        _parent = null!;  // Required for nullable, but will be set in internal constructor
     }
 
     /// <summary>
@@ -120,7 +121,7 @@ public sealed class LeechCore : IDisposable
     /// <param name="pLcCreateConfig">The LC configuration to use.</param>
     /// <param name="configErrorInfo">Receives extended create-time error information, if available.</param>
     /// <returns>An initialized <see cref="LeechCore"/> instance on success; otherwise <see langword="null"/>.</returns>
-    public static unsafe LeechCore Create(ref LCConfig pLcCreateConfig, out LCConfigErrorInfo configErrorInfo)
+    public static unsafe LeechCore? Create(ref LCConfig pLcCreateConfig, out LCConfigErrorInfo configErrorInfo)
     {
         var cbERROR_INFO = Marshal.SizeOf<Lci.LC_CONFIG_ERRORINFO>();
         var pLcCreateConfigNative = Marshal.AllocHGlobal(Marshal.SizeOf<LCConfig>());
@@ -151,7 +152,7 @@ public sealed class LeechCore : IDisposable
                     configErrorInfo.fUserInputRequest = e.fUserInputRequest;
                     if (e.cwszUserText > 0)
                     {
-                        configErrorInfo.strUserText = Marshal.PtrToStringUni((IntPtr)(pLcErrorInfo.ToInt64() + cbERROR_INFO));
+                        configErrorInfo.strUserText = Marshal.PtrToStringUni((IntPtr)(pLcErrorInfo.ToInt64() + cbERROR_INFO)) ?? "";
                     }
                 }
 
@@ -193,7 +194,7 @@ public sealed class LeechCore : IDisposable
     /// <param name="pa">Physical address to read from.</param>
     /// <param name="cb">Count of bytes to read.</param>
     /// <returns>A byte array with the read memory, otherwise <see langword="null"/>.</returns>
-    public unsafe byte[] Read(ulong pa, uint cb)
+    public unsafe byte[]? Read(ulong pa, uint cb)
     {
         var arr = new byte[cb];
         fixed (byte* pb = arr)
@@ -235,7 +236,7 @@ public sealed class LeechCore : IDisposable
     /// <param name="pa">Physical address to read.</param>
     /// <param name="count">Number of elements to read.</param>
     /// <returns>An array on success; otherwise <see langword="null"/>.</returns>
-    public unsafe T[] ReadArray<T>(ulong pa, int count)
+    public unsafe T[]? ReadArray<T>(ulong pa, int count)
         where T : unmanaged
     {
         var arr = new T[count];
@@ -257,7 +258,7 @@ public sealed class LeechCore : IDisposable
     /// <param name="pa">Physical address to read.</param>
     /// <param name="count">Number of elements to read.</param>
     /// <returns>A <see cref="IMemoryOwner{T}"/> lease on success; otherwise <see langword="null"/>. Be sure to call <see cref="IDisposable.Dispose()"/> when done.</returns>
-    public unsafe IMemoryOwner<T> ReadPooled<T>(ulong pa, int count)
+    public unsafe IMemoryOwner<T>? ReadPooled<T>(ulong pa, int count)
         where T : unmanaged
     {
         var arr = new PooledMemory<T>(count);
@@ -474,7 +475,7 @@ public sealed class LeechCore : IDisposable
     /// <param name="dataIn">Optional input data.</param>
     /// <param name="dataOut">Receives any output data returned by the command.</param>
     /// <returns><see langword="true"/> on success; otherwise <see langword="false"/>.</returns>
-    public unsafe bool ExecuteCommand(LcCmd fOption, ReadOnlySpan<byte> dataIn, out byte[] dataOut)
+    public unsafe bool ExecuteCommand(LcCmd fOption, ReadOnlySpan<byte> dataIn, out byte[]? dataOut)
     {
         uint cbDataOut;
         IntPtr pbDataOut;
@@ -512,7 +513,7 @@ public sealed class LeechCore : IDisposable
     /// Wraps native memory returned from a scatter read invocation.
     /// </summary>
     /// <remarks>
-    /// The underlying native scatter page buffers are released via <see cref="Lci.LcMemFree(IntPtr)"/> when this handle
+    /// The underlying native scatter page buffers are released via <see cref="Lci.LcMemFree(void*)"/> when this handle
     /// is disposed.
     /// </remarks>
     public sealed class LcScatterHandle : IDisposable
@@ -520,7 +521,10 @@ public sealed class LeechCore : IDisposable
         private readonly PooledDictionary<ulong, ScatterData> _results;
         private IntPtr _mems;
 
-        private LcScatterHandle() { }
+        private LcScatterHandle()
+        {
+            _results = new PooledDictionary<ulong, ScatterData>();
+        }
 
         internal LcScatterHandle(PooledDictionary<ulong, ScatterData> results, IntPtr mems)
         {
@@ -648,7 +652,7 @@ public sealed class LeechCore : IDisposable
         /// A read-only view over the page contents pointed at by <see cref="pb"/>.
         /// </summary>
         /// <remarks>
-        /// DANGER: Do not access this memory after the memory is freed via <see cref="Lci.LcMemFree(IntPtr)"/>.
+        /// DANGER: Do not access this memory after the memory is freed via <see cref="Lci.LcMemFree(void*)"/>.
         /// </remarks>
         public readonly unsafe ReadOnlySpan<byte> Data =>
             new ReadOnlySpan<byte>(pb.ToPointer(), checked((int)cb));
@@ -730,7 +734,7 @@ public sealed class LeechCore : IDisposable
         /// <summary>
         /// Optional user text provided by the native layer.
         /// </summary>
-        public string strUserText;
+        public string? strUserText;
     }
 
     #endregion

@@ -32,11 +32,11 @@ public sealed class VmmSearch : IDisposable
     private readonly List<Vmmi.VMMDLL_MEM_SEARCH_CONTEXT_SEARCHENTRY> _searches = new();
     private readonly Vmmi.SearchResultCallback _searchResultCallback; // Root the delegate to prevent it from being garbage collected.
     private readonly Vmm _vmm;
-    private Task<SearchContext> _worker;
+    private Task<SearchContext>? _worker;
     private bool _disposed;
     private unsafe Vmmi.VMMDLL_MEM_SEARCH_CONTEXT* _native;
 
-    private VmmSearch() { }
+    private VmmSearch() { throw new NotImplementedException(); }
 
     /// <summary>
     /// Get the result of the search: Blocking / wait until finish.
@@ -54,7 +54,7 @@ public sealed class VmmSearch : IDisposable
     /// Will be fired on a thread pool thread immediately before the <see cref="GetResult"/> and <see cref="GetResultAsync"/> methods return.
     /// If you never call <see cref="Start"/>, this event will never be fired.
     /// </remarks>
-    public event EventHandler<VmmSearch> Completed;
+    public event EventHandler<VmmSearch>? Completed;
     private void OnCompleted()
     {
         _managed.IsCompleted = true;

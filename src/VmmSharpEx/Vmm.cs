@@ -128,7 +128,7 @@ public sealed partial class Vmm : IDisposable
     /// Initializes a new instance of the <see cref="Vmm"/> class.
     /// </summary>
     /// <remarks>This private constructor prevents parameterless instantiation.</remarks>
-    private Vmm() { }
+    private Vmm() { throw new NotImplementedException(); }
 
     /// <summary>
     /// Initialize a new <see cref="Vmm"/> instance with command line arguments and capture extended error information.
@@ -284,12 +284,12 @@ public sealed partial class Vmm : IDisposable
     /// <param name="outputFile">If non-<see langword="null"/>, writes the memory map to disk at the specified output location.</param>
     /// <returns>Memory map ptr in string format.</returns>
     /// <exception cref="VmmException">Thrown if the memory map cannot be retrieved or applied.</exception>
-    public string GetMemoryMap(
+    public string? GetMemoryMap(
         bool applyMap = false,
-        string outputFile = null)
+        string? outputFile = null)
     {
         var map = Map_GetPhysMem();
-        if (map.Length == 0)
+        if (map is null)
         {
             throw new VmmException("Failed to get memory map.");
         }
@@ -386,7 +386,7 @@ public sealed partial class Vmm : IDisposable
     /// <param name="cbRead">Count of bytes actually read.</param>
     /// <param name="flags">VMM read flags.</param>
     /// <returns>A byte array with the read memory, otherwise <see langword="null"/>. Be sure to also check <paramref name="cbRead"/>.</returns>
-    public unsafe byte[] MemRead(uint pid, ulong va, uint cb, out uint cbRead, VmmFlags flags = VmmFlags.NONE)
+    public unsafe byte[]? MemRead(uint pid, ulong va, uint cb, out uint cbRead, VmmFlags flags = VmmFlags.NONE)
     {
         var arr = new byte[cb];
         fixed (byte* pb = arr)
@@ -481,7 +481,7 @@ public sealed partial class Vmm : IDisposable
     /// <param name="count">Number of elements to read.</param>
     /// <param name="flags">VMM read flags.</param>
     /// <returns>An array on success; otherwise <see langword="null"/>.</returns>
-    public unsafe T[] MemReadArray<T>(uint pid, ulong va, int count, VmmFlags flags = VmmFlags.NONE)
+    public unsafe T[]? MemReadArray<T>(uint pid, ulong va, int count, VmmFlags flags = VmmFlags.NONE)
         where T : unmanaged
     {
         var array = new T[count];
@@ -505,7 +505,7 @@ public sealed partial class Vmm : IDisposable
     /// <param name="count">Number of elements to read.</param>
     /// <param name="flags">VMM read flags.</param>
     /// <returns>A <see cref="IMemoryOwner{T}"/> lease, or <see langword="null"/> if failed. Be sure to call <see cref="IDisposable.Dispose()"/> when done.</returns>
-    public unsafe IMemoryOwner<T> MemReadPooled<T>(uint pid, ulong va, int count, VmmFlags flags = VmmFlags.NONE)
+    public unsafe IMemoryOwner<T>? MemReadPooled<T>(uint pid, ulong va, int count, VmmFlags flags = VmmFlags.NONE)
         where T : unmanaged
     {
         var arr = new PooledMemory<T>(count);
@@ -549,11 +549,11 @@ public sealed partial class Vmm : IDisposable
     /// <param name="encoding">String encoding for this read.</param>
     /// <param name="flags">VMM read flags.</param>
     /// <returns>A managed <see cref="string"/> on success; otherwise <see langword="null"/>.</returns>
-    public unsafe string MemReadString(uint pid, ulong va, int cb, Encoding encoding,
+    public unsafe string? MemReadString(uint pid, ulong va, int cb, Encoding encoding,
         VmmFlags flags = VmmFlags.NONE)
     {
-        byte[] rentedBytes = null;
-        char[] rentedChars = null;
+        byte[]? rentedBytes = null;
+        char[]? rentedChars = null;
         try
         {
             Span<byte> bytesSource = cb <= 256 ?
@@ -807,7 +807,7 @@ public sealed partial class Vmm : IDisposable
 
     private static bool VfsList_AddFileCB(GCHandle h, [MarshalAs(UnmanagedType.LPUTF8Str)] string sName, ulong cb, IntPtr pExInfo)
     {
-        var ctx = (VfsContext)h.Target ?? throw new ArgumentNullException(nameof(h));
+        var ctx = (VfsContext?)h.Target ?? throw new ArgumentNullException(nameof(h));
         var e = new VfsEntry
         {
             name = sName,
@@ -825,7 +825,7 @@ public sealed partial class Vmm : IDisposable
 
     private static bool VfsList_AddDirectoryCB(GCHandle h, [MarshalAs(UnmanagedType.LPUTF8Str)] string sName, IntPtr pExInfo)
     {
-        var ctx = (VfsContext)h.Target ?? throw new ArgumentNullException(nameof(h));
+        var ctx = (VfsContext?)h.Target ?? throw new ArgumentNullException(nameof(h));
         var e = new VfsEntry
         {
             name = sName,
@@ -943,7 +943,7 @@ public sealed partial class Vmm : IDisposable
     /// Get all process IDs (PIDs) currently running on the target system.
     /// </summary>
     /// <returns>Array of PIDs; null array on failure.</returns>
-    public unsafe uint[] PidGetList()
+    public unsafe uint[]? PidGetList()
     {
         bool result;
         ulong c = 0;
@@ -990,14 +990,13 @@ public sealed partial class Vmm : IDisposable
     /// </summary>
     /// <param name="sProcName">Name of the process to look up.</param>
     /// <returns>Array of PIDs that match; null array if no matches.</returns>
-    /// <exception cref="VmmException">Thrown if process information cannot be retrieved.</exception>
-    public uint[] PidGetAllFromName(string sProcName)
+    public uint[]? PidGetAllFromName(string sProcName)
     {
         var pids = new List<uint>();
         var procInfo = ProcessGetInformationAll();
-        if (procInfo.Length == 0)
+        if (procInfo is null)
         {
-            throw new VmmException("ProcessGetInformationAll FAIL");
+            return null;
         }
         for (var i = 0; i < procInfo.Length; i++)
         {
@@ -1015,7 +1014,7 @@ public sealed partial class Vmm : IDisposable
     /// <param name="pid">Process ID (PID) for this operation.</param>
     /// <param name="fIdentifyModules">If <see langword="true"/>, attempt to identify modules for regions.</param>
     /// <returns>Array of PTEs on success; null array on failure.</returns>
-    public unsafe PteEntry[] Map_GetPTE(uint pid, bool fIdentifyModules = true)
+    public unsafe PteEntry[]? Map_GetPTE(uint pid, bool fIdentifyModules = true)
     {
         var cbMAP = Marshal.SizeOf<Vmmi.VMMDLL_MAP_PTE>();
         var cbENTRY = Marshal.SizeOf<Vmmi.VMMDLL_MAP_PTEENTRY>();
@@ -1066,7 +1065,7 @@ public sealed partial class Vmm : IDisposable
     /// <param name="pid">Process ID (PID) for this operation.</param>
     /// <param name="fIdentifyModules">If <see langword="true"/>, attempt to identify modules for regions.</param>
     /// <returns>Array of VAD entries on success; null array on failure.</returns>
-    public unsafe VadEntry[] Map_GetVad(uint pid, bool fIdentifyModules = true)
+    public unsafe VadEntry[]? Map_GetVad(uint pid, bool fIdentifyModules = true)
     {
         var cbMAP = Marshal.SizeOf<Vmmi.VMMDLL_MAP_VAD>();
         var cbENTRY = Marshal.SizeOf<Vmmi.VMMDLL_MAP_VADENTRY>();
@@ -1132,7 +1131,7 @@ public sealed partial class Vmm : IDisposable
     /// <param name="oPages">Page offset.</param>
     /// <param name="cPages">Number of pages.</param>
     /// <returns>Array of extended VAD entries on success; null array on failure.</returns>
-    public unsafe VadExEntry[] Map_GetVadEx(uint pid, uint oPages, uint cPages)
+    public unsafe VadExEntry[]? Map_GetVadEx(uint pid, uint oPages, uint cPages)
     {
         var cbMAP = Marshal.SizeOf<Vmmi.VMMDLL_MAP_VADEX>();
         var cbENTRY = Marshal.SizeOf<Vmmi.VMMDLL_MAP_VADEXENTRY>();
@@ -1182,7 +1181,7 @@ public sealed partial class Vmm : IDisposable
     /// <param name="pid">Process ID (PID) for this operation.</param>
     /// <param name="fExtendedInfo">If <see langword="true"/>, attempts to include extended debug/version information.</param>
     /// <returns>An array of <see cref="ModuleEntry"/> on success; an null array on failure.</returns>
-    public unsafe ModuleEntry[] Map_GetModule(uint pid, bool fExtendedInfo = false)
+    public unsafe ModuleEntry[]? Map_GetModule(uint pid, bool fExtendedInfo = false)
     {
         var cbMAP = Marshal.SizeOf<Vmmi.VMMDLL_MAP_MODULE>();
         var cbENTRY = Marshal.SizeOf<Vmmi.VMMDLL_MAP_MODULEENTRY>();
@@ -1320,7 +1319,7 @@ public sealed partial class Vmm : IDisposable
     /// </summary>
     /// <param name="pid">Process ID (PID) for this operation.</param>
     /// <returns>An array of <see cref="UnloadedModuleEntry"/> on success; an null array on failure.</returns>
-    public unsafe UnloadedModuleEntry[] Map_GetUnloadedModule(uint pid)
+    public unsafe UnloadedModuleEntry[]? Map_GetUnloadedModule(uint pid)
     {
         var cbMAP = Marshal.SizeOf<Vmmi.VMMDLL_MAP_UNLOADEDMODULE>();
         var cbENTRY = Marshal.SizeOf<Vmmi.VMMDLL_MAP_UNLOADEDMODULEENTRY>();
@@ -1367,7 +1366,7 @@ public sealed partial class Vmm : IDisposable
     /// <param name="module">Module name to query.</param>
     /// <param name="info">Receives high-level <see cref="EATInfo"/> for the module.</param>
     /// <returns>An array of <see cref="EATEntry"/> on success; an null array on failure.</returns>
-    public unsafe EATEntry[] Map_GetEAT(uint pid, string module, out EATInfo info)
+    public unsafe EATEntry[]? Map_GetEAT(uint pid, string module, out EATInfo info)
     {
         info = new EATInfo();
         var cbMAP = Marshal.SizeOf<Vmmi.VMMDLL_MAP_EAT>();
@@ -1423,7 +1422,7 @@ public sealed partial class Vmm : IDisposable
     /// <param name="pid">Process ID (PID) for this operation.</param>
     /// <param name="module">Module name to query.</param>
     /// <returns>An array of <see cref="IATEntry"/> on success; an null array on failure.</returns>
-    public unsafe IATEntry[] Map_GetIAT(uint pid, string module)
+    public unsafe IATEntry[]? Map_GetIAT(uint pid, string module)
     {
         var cbMAP = Marshal.SizeOf<Vmmi.VMMDLL_MAP_IAT>();
         var cbENTRY = Marshal.SizeOf<Vmmi.VMMDLL_MAP_IATENTRY>();
@@ -1526,7 +1525,7 @@ public sealed partial class Vmm : IDisposable
     /// <param name="pid">Process ID (PID) for this operation.</param>
     /// <param name="vaHeapOrHeapNum">Heap base address or heap index.</param>
     /// <returns>An array of <see cref="HeapAllocEntry"/> on success; an null array on failure.</returns>
-    public unsafe HeapAllocEntry[] Map_GetHeapAlloc(uint pid, ulong vaHeapOrHeapNum)
+    public unsafe HeapAllocEntry[]? Map_GetHeapAlloc(uint pid, ulong vaHeapOrHeapNum)
     {
         var cbMAP = Marshal.SizeOf<Vmmi.VMMDLL_MAP_HEAPALLOC>();
         var cbENTRY = Marshal.SizeOf<Vmmi.VMMDLL_MAP_HEAPALLOCENTRY>();
@@ -1566,7 +1565,7 @@ public sealed partial class Vmm : IDisposable
     /// </summary>
     /// <param name="pid">Process ID (PID) for this operation.</param>
     /// <returns>An array of <see cref="ThreadEntry"/> on success; an null array on failure.</returns>
-    public unsafe ThreadEntry[] Map_GetThread(uint pid)
+    public unsafe ThreadEntry[]? Map_GetThread(uint pid)
     {
         var cbMAP = Marshal.SizeOf<Vmmi.VMMDLL_MAP_THREAD>();
         var cbENTRY = Marshal.SizeOf<Vmmi.VMMDLL_MAP_THREADENTRY>();
@@ -1632,7 +1631,7 @@ public sealed partial class Vmm : IDisposable
     /// <param name="tid">Thread ID to retrieve the call stack for.</param>
     /// <param name="flags">Supported <see cref="VmmFlags"/> values include <see cref="VmmFlags.NONE"/>, <see cref="VmmFlags.NOCACHE"/>, and <see cref="VmmFlags.FORCECACHE_READ"/>.</param>
     /// <returns>An array of <see cref="ThreadCallstackEntry"/> on success; an null array on failure.</returns>
-    public unsafe ThreadCallstackEntry[] Map_GetThread_Callstack(uint pid, uint tid, VmmFlags flags = VmmFlags.NONE)
+    public unsafe ThreadCallstackEntry[]? Map_GetThread_Callstack(uint pid, uint tid, VmmFlags flags = VmmFlags.NONE)
     {
         var cbMAP = Marshal.SizeOf<Vmmi.VMMDLL_MAP_THREAD_CALLSTACK>();
         var cbENTRY = Marshal.SizeOf<Vmmi.VMMDLL_MAP_THREAD_CALLSTACKENTRY>();
@@ -1681,7 +1680,7 @@ public sealed partial class Vmm : IDisposable
     /// </summary>
     /// <param name="pid">Process ID (PID) for this operation.</param>
     /// <returns>An array of <see cref="HandleEntry"/> on success; an null array on failure.</returns>
-    public unsafe HandleEntry[] Map_GetHandle(uint pid)
+    public unsafe HandleEntry[]? Map_GetHandle(uint pid)
     {
         var cbMAP = Marshal.SizeOf<Vmmi.VMMDLL_MAP_HANDLE>();
         var cbENTRY = Marshal.SizeOf<Vmmi.VMMDLL_MAP_HANDLEENTRY>();
@@ -1730,8 +1729,8 @@ public sealed partial class Vmm : IDisposable
     /// Get the user-mode path of the process image.
     /// </summary>
     /// <param name="pid">Process ID (PID) for this operation.</param>
-    /// <returns>A string path on success; otherwise an empty string.</returns>
-    public string GetProcessPathUser(uint pid)
+    /// <returns>A string path on success; otherwise null.</returns>
+    public string? GetProcessPathUser(uint pid)
     {
         return GetProcessInformationString(pid, VMMDLL_PROCESS_INFORMATION_OPT_STRING_PATH_USER_IMAGE);
     }
@@ -1740,8 +1739,8 @@ public sealed partial class Vmm : IDisposable
     /// Get the kernel-mode path of the process image.
     /// </summary>
     /// <param name="pid">Process ID (PID) for this operation.</param>
-    /// <returns>A string path on success; otherwise an empty string.</returns>
-    public string GetProcessPathKernel(uint pid)
+    /// <returns>A string path on success; otherwise null.</returns>
+    public string? GetProcessPathKernel(uint pid)
     {
         return GetProcessInformationString(pid, VMMDLL_PROCESS_INFORMATION_OPT_STRING_PATH_KERNEL);
     }
@@ -1750,8 +1749,8 @@ public sealed partial class Vmm : IDisposable
     /// Get the process command line.
     /// </summary>
     /// <param name="pid">Process ID (PID) for this operation.</param>
-    /// <returns>The command line string on success; otherwise an empty string.</returns>
-    public string GetProcessCmdline(uint pid)
+    /// <returns>The command line string on success; otherwise null.</returns>
+    public string? GetProcessCmdline(uint pid)
     {
         return GetProcessInformationString(pid, VMMDLL_PROCESS_INFORMATION_OPT_STRING_CMDLINE);
     }
@@ -1761,13 +1760,13 @@ public sealed partial class Vmm : IDisposable
     /// </summary>
     /// <param name="pid">Process ID (PID) for this operation.</param>
     /// <param name="fOptionString">A VMMDLL_PROCESS_INFORMATION_OPT_* flag indicating which string to fetch.</param>
-    /// <returns>The string value on success; otherwise an empty string.</returns>
-    public unsafe string GetProcessInformationString(uint pid, uint fOptionString)
+    /// <returns>The string value on success; otherwise null.</returns>
+    public unsafe string? GetProcessInformationString(uint pid, uint fOptionString)
     {
         var pb = Vmmi.VMMDLL_ProcessGetInformationString(_handle, pid, fOptionString);
         if (pb == null)
         {
-            return "";
+            return null;
         }
 
         var s = Marshal.PtrToStringAnsi((IntPtr)pb);
@@ -1781,7 +1780,7 @@ public sealed partial class Vmm : IDisposable
     /// <param name="pid">Process ID (PID) for this operation.</param>
     /// <param name="sModule">Module name.</param>
     /// <returns>An array of <see cref="IMAGE_DATA_DIRECTORY"/>; null array on failure.</returns>
-    public unsafe IMAGE_DATA_DIRECTORY[] ProcessGetDirectories(uint pid, string sModule)
+    public unsafe IMAGE_DATA_DIRECTORY[]? ProcessGetDirectories(uint pid, string sModule)
     {
         var PE_DATA_DIRECTORIES = new string[16] { "EXPORT", "IMPORT", "RESOURCE", "EXCEPTION", "SECURITY", "BASERELOC", "DEBUG", "ARCHITECTURE", "GLOBALPTR", "TLS", "LOAD_CONFIG", "BOUND_IMPORT", "IAT", "DELAY_IMPORT", "COM_DESCRIPTOR", "RESERVED" };
         bool result;
@@ -1815,7 +1814,7 @@ public sealed partial class Vmm : IDisposable
     /// <param name="pid">Process ID (PID) for this operation.</param>
     /// <param name="sModule">Module name.</param>
     /// <returns>An array of <see cref="IMAGE_SECTION_HEADER"/>; null array on failure.</returns>
-    public unsafe IMAGE_SECTION_HEADER[] ProcessGetSections(uint pid, string sModule)
+    public unsafe IMAGE_SECTION_HEADER[]? ProcessGetSections(uint pid, string sModule)
     {
         bool result;
         var cbENTRY = (uint)Marshal.SizeOf<Vmmi.VMMDLL_IMAGE_SECTION_HEADER>();
@@ -1931,7 +1930,7 @@ public sealed partial class Vmm : IDisposable
     /// Get process information for all processes.
     /// </summary>
     /// <returns>An array of <see cref="ProcessInfo"/>; null array on failure.</returns>
-    public unsafe ProcessInfo[] ProcessGetInformationAll()
+    public unsafe ProcessInfo[]? ProcessGetInformationAll()
     {
         var cbENTRY = (uint)Marshal.SizeOf<Vmmi.VMMDLL_PROCESS_INFORMATION>();
         IntPtr pMap = default;
@@ -2286,8 +2285,8 @@ public sealed partial class Vmm : IDisposable
         public ulong vaStackLimitUser;
         public ulong vaStackBaseKernel;
         public ulong vaStackLimitKernel;
-        public ulong vaTrapFrame;
         public ulong vaImpersonationToken;
+        public ulong vaTrapFrame;
         public ulong vaRIP;
         public ulong vaRSP;
         public ulong qwAffinity;
@@ -2433,7 +2432,7 @@ public sealed partial class Vmm : IDisposable
     /// List the registry hives.
     /// </summary>
     /// <returns>An array of <see cref="RegHiveEntry"/> on success; an null array on failure.</returns>
-    public unsafe RegHiveEntry[] WinReg_HiveList()
+    public unsafe RegHiveEntry[]? WinReg_HiveList()
     {
         bool result;
         var cbENTRY = Marshal.SizeOf<Vmmi.VMMDLL_REGISTRY_HIVE_INFORMATION>();
@@ -2483,7 +2482,7 @@ public sealed partial class Vmm : IDisposable
     /// <param name="cb">Number of bytes to read.</param>
     /// <param name="flags">Optional <see cref="VmmFlags"/> to control the read.</param>
     /// <returns>Data read on success (length may differ from requested read size); null array on failure.</returns>
-    public unsafe byte[] WinReg_HiveReadEx(ulong vaCMHIVE, uint ra, uint cb, VmmFlags flags = VmmFlags.NONE)
+    public unsafe byte[]? WinReg_HiveReadEx(ulong vaCMHIVE, uint ra, uint cb, VmmFlags flags = VmmFlags.NONE)
     {
         uint cbRead;
         var data = new byte[cb];
@@ -2515,7 +2514,6 @@ public sealed partial class Vmm : IDisposable
     /// <returns><see langword="true"/> on success; otherwise <see langword="false"/>.</returns>
     public unsafe bool WinReg_HiveWrite(ulong vaCMHIVE, uint ra, ReadOnlySpan<byte> data)
     {
-        ThrowIfMemWritesDisabled();
         fixed (byte* pb = data)
         {
             return Vmmi.VMMDLL_WinReg_HiveWrite(_handle, vaCMHIVE, ra, pb, (uint)data.Length);
@@ -2577,7 +2575,7 @@ public sealed partial class Vmm : IDisposable
     /// <param name="sValueFullPath">Full registry value path.</param>
     /// <param name="tp">Receives the registry value type.</param>
     /// <returns>Value data on success; otherwise <see langword="null"/>.</returns>
-    public unsafe byte[] WinReg_QueryValue(string sValueFullPath, out uint tp)
+    public unsafe byte[]? WinReg_QueryValue(string sValueFullPath, out uint tp)
     {
         bool result;
         uint cb = 0;
@@ -2795,7 +2793,6 @@ public sealed partial class Vmm : IDisposable
         public uint dwPfn;
         public PfnType tp;
         public PfnTypeExtended tpExtended;
-        public ulong va;
         public ulong vaPte;
         public ulong OriginalPte;
         public uint dwPID;
@@ -2810,7 +2807,7 @@ public sealed partial class Vmm : IDisposable
     /// Retrieve active network connections.
     /// </summary>
     /// <returns>An array of <see cref="NetEntry"/>; null array on failure.</returns>
-    public unsafe NetEntry[] Map_GetNet()
+    public unsafe NetEntry[]? Map_GetNet()
     {
         var cbMAP = Marshal.SizeOf<Vmmi.VMMDLL_MAP_NET>();
         var cbENTRY = Marshal.SizeOf<Vmmi.VMMDLL_MAP_NETENTRY>();
@@ -2862,7 +2859,7 @@ public sealed partial class Vmm : IDisposable
     /// Retrieve the physical memory map.
     /// </summary>
     /// <returns>An array of <see cref="MemoryEntry"/> elements; null array on failure.</returns>
-    public unsafe MemoryEntry[] Map_GetPhysMem()
+    public unsafe MemoryEntry[]? Map_GetPhysMem()
     {
         var cbMAP = Marshal.SizeOf<Vmmi.VMMDLL_MAP_PHYSMEM>();
         var cbENTRY = Marshal.SizeOf<Vmmi.VMMDLL_MAP_PHYSMEMENTRY>();
@@ -2901,7 +2898,7 @@ public sealed partial class Vmm : IDisposable
     /// Retrieve the kernel devices on the system.
     /// </summary>
     /// <returns>An array of <see cref="KDeviceEntry"/> elements; null array on failure.</returns>
-    public unsafe KDeviceEntry[] Map_GetKDevice()
+    public unsafe KDeviceEntry[]? Map_GetKDevice()
     {
         var cbMAP = Marshal.SizeOf<Vmmi.VMMDLL_MAP_KDEVICE>();
         var cbENTRY = Marshal.SizeOf<Vmmi.VMMDLL_MAP_KDEVICEENTRY>();
@@ -2946,7 +2943,7 @@ public sealed partial class Vmm : IDisposable
     /// Retrieve the kernel drivers on the system.
     /// </summary>
     /// <returns>An array of <see cref="KDriverEntry"/> elements; null array on failure.</returns>
-    public unsafe KDriverEntry[] Map_GetKDriver()
+    public unsafe KDriverEntry[]? Map_GetKDriver()
     {
         var cbMAP = Marshal.SizeOf<Vmmi.VMMDLL_MAP_KDRIVER>();
         var cbENTRY = Marshal.SizeOf<Vmmi.VMMDLL_MAP_KDRIVERENTRY>();
@@ -2996,7 +2993,7 @@ public sealed partial class Vmm : IDisposable
     /// Retrieve the kernel named objects on the system.
     /// </summary>
     /// <returns>An array of <see cref="KObjectEntry"/> elements; null array on failure.</returns>
-    public unsafe KObjectEntry[] Map_GetKObject()
+    public unsafe KObjectEntry[]? Map_GetKObject()
     {
         var cbMAP = Marshal.SizeOf<Vmmi.VMMDLL_MAP_KOBJECT>();
         var cbENTRY = Marshal.SizeOf<Vmmi.VMMDLL_MAP_KOBJECTENTRY>();
@@ -3046,7 +3043,7 @@ public sealed partial class Vmm : IDisposable
     /// Set to <see langword="true"/> to only retrieve big pool allocations (faster). Default is to retrieve all allocations.
     /// </param>
     /// <returns>An array of <see cref="PoolEntry"/> elements; null array on failure.</returns>
-    public unsafe PoolEntry[] Map_GetPool(bool isBigPoolOnly = false)
+    public unsafe PoolEntry[]? Map_GetPool(bool isBigPoolOnly = false)
     {
         byte[] tag = { 0, 0, 0, 0 };
         var cbMAP = Marshal.SizeOf<Vmmi.VMMDLL_MAP_POOL>();
@@ -3093,7 +3090,7 @@ public sealed partial class Vmm : IDisposable
     /// Retrieve the detected users on the system.
     /// </summary>
     /// <returns>An array of <see cref="UserEntry"/> elements; null array on failure.</returns>
-    public unsafe UserEntry[] Map_GetUsers()
+    public unsafe UserEntry[]? Map_GetUsers()
     {
         var cbMAP = Marshal.SizeOf<Vmmi.VMMDLL_MAP_USER>();
         var cbENTRY = Marshal.SizeOf<Vmmi.VMMDLL_MAP_USERENTRY>();
@@ -3133,7 +3130,7 @@ public sealed partial class Vmm : IDisposable
     /// Retrieve the detected virtual machines on the system. This includes Hyper-V, WSL and other virtual machines running on top of the Windows Hypervisor Platform.
     /// </summary>
     /// <returns>An array of <see cref="VirtualMachineEntry"/> elements; null array on failure.</returns>
-    public unsafe VirtualMachineEntry[] Map_GetVM()
+    public unsafe VirtualMachineEntry[]? Map_GetVM()
     {
         var cbMAP = Marshal.SizeOf<Vmmi.VMMDLL_MAP_VM>();
         var cbENTRY = Marshal.SizeOf<Vmmi.VMMDLL_MAP_VMENTRY>();
@@ -3182,7 +3179,7 @@ public sealed partial class Vmm : IDisposable
     /// Retrieve the services on the system.
     /// </summary>
     /// <returns>An array of <see cref="ServiceEntry"/> elements; null array on failure.</returns>
-    public unsafe ServiceEntry[] Map_GetServices()
+    public unsafe ServiceEntry[]? Map_GetServices()
     {
         var cbMAP = Marshal.SizeOf<Vmmi.VMMDLL_MAP_SERVICE>();
         var cbENTRY = Marshal.SizeOf<Vmmi.VMMDLL_MAP_SERVICEENTRY>();
@@ -3237,7 +3234,7 @@ public sealed partial class Vmm : IDisposable
     /// </summary>
     /// <param name="pfns">The PFN numbers to retrieve information for.</param>
     /// <returns>An array of <see cref="PfnEntry"/>; null array on failure.</returns>
-    public unsafe PfnEntry[] Map_GetPfn(params Span<uint> pfns)
+    public unsafe PfnEntry[]? Map_GetPfn(params Span<uint> pfns)
     {
         bool result;
         uint cbPfns;
@@ -3286,7 +3283,7 @@ public sealed partial class Vmm : IDisposable
                     };
                     if (e.tp == PfnType.Active && !e.fPrototype)
                     {
-                        e.va = n.va;
+                        e.vaPte = n.va;
                         e.dwPID = n.dwPfnPte[0];
                     }
 

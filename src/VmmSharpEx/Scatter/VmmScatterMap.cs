@@ -24,10 +24,10 @@ namespace VmmSharpEx.Scatter
         /// <summary>
         /// Event is fired upon completion of <see cref="Execute"/>.
         /// </summary>
-        public event EventHandler Completed;
+        public event EventHandler? Completed;
         private void OnCompleted() => Completed?.Invoke(this, EventArgs.Empty);
 
-        private VmmScatterMap() { }
+        private VmmScatterMap() { throw new NotImplementedException(); }
 
         internal VmmScatterMap(Vmm vmm, uint pid)
         {

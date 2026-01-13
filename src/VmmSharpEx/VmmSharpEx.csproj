@@ -5,9 +5,13 @@
 		<LangVersion>latest</LangVersion>
 		<TargetFrameworks>net9.0-windows;net10.0-windows</TargetFrameworks>
 		<ImplicitUsings>enable</ImplicitUsings>
-		<Nullable>warnings</Nullable>
 		<Platforms>x64</Platforms>
 		<AllowUnsafeBlocks>True</AllowUnsafeBlocks>
+	</PropertyGroup>
+
+	<PropertyGroup>
+		<Nullable>enable</Nullable>
+		<WarningsAsErrors>nullable</WarningsAsErrors>
 	</PropertyGroup>
 
 	<ItemGroup Label="NuGet Pack">
