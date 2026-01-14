@@ -495,7 +495,7 @@ public sealed class VmmScatter : IDisposable
         if (pid is uint p)
             _pid = p;
         _isPrepared = default;
-        Completed = null;
+        Completed = default;
         if (!Vmmi.VMMDLL_Scatter_Clear(_handle, _pid, _flags))
             throw new VmmException("Failed to clear VmmScatter Handle.");
     }

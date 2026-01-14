@@ -40,7 +40,7 @@ public class VmmSharpEx_VfsTests
     public void TestVfsRead()
     {
         const string file = "LICENSE.txt";
-        var data = _vmm.VfsRead($"/{file}");
+        _ = _vmm.VfsRead($"/{file}", out var data);
         Assert.NotNull(data);
         Assert.NotEmpty(data);
         _output.WriteLine(Encoding.UTF8.GetString(data));

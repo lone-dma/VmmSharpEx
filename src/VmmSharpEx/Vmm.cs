@@ -284,7 +284,7 @@ public sealed partial class Vmm : IDisposable
     /// <param name="outputFile">If non-<see langword="null"/>, writes the memory map to disk at the specified output location.</param>
     /// <returns>Memory map ptr in string format.</returns>
     /// <exception cref="VmmException">Thrown if the memory map cannot be retrieved or applied.</exception>
-    public string? GetMemoryMap(
+    public string GetMemoryMap(
         bool applyMap = false,
         string? outputFile = null)
     {
@@ -684,12 +684,12 @@ public sealed partial class Vmm : IDisposable
     /// </summary>
     /// <param name="pid">Process ID (PID) this operation will take place within.</param>
     /// <param name="va">Virtual address to translate from.</param>
-    /// <returns>Physical address if successful; otherwise 0 on failure.</returns>
+    /// <param name="pa">Translated physical address if successful, otherwise 0.</param>
+    /// <returns>True if successful, otherwise False.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public ulong MemVirt2Phys(uint pid, ulong va)
+    public bool MemVirt2Phys(uint pid, ulong va, out ulong pa)
     {
-        _ = Vmmi.VMMDLL_MemVirt2Phys(_handle, pid, va, out var pa);
-        return pa;
+        return Vmmi.VMMDLL_MemVirt2Phys(_handle, pid, va, out pa);
     }
 
     /// <summary>
@@ -865,11 +865,12 @@ public sealed partial class Vmm : IDisposable
     /// VFS list files and directories in a virtual file system path.
     /// </summary>
     /// <param name="path">Virtual path to enumerate.</param>
-    /// <returns>A list with file and directory entries on success; an empty list on failure.</returns>
-    public List<VfsEntry> VfsList(string path)
+    /// <returns>A list with file and directory entries on success; a null list on failure.</returns>
+    public List<VfsEntry>? VfsList(string path)
     {
         using var ctx = new VfsContext();
-        VfsList(path, ctx, VfsList_AddFileCB, VfsList_AddDirectoryCB);
+        if (!VfsList(path, ctx, VfsList_AddFileCB, VfsList_AddDirectoryCB))
+            return null;
         return ctx.Entries;
     }
 
@@ -877,11 +878,11 @@ public sealed partial class Vmm : IDisposable
     /// VFS read data from a virtual file.
     /// </summary>
     /// <param name="fileName">The file name/path within the VFS.</param>
-    /// <param name="ntStatus">Receives the NTSTATUS value of the operation (success = 0).</param>
+    /// <param name="data">The data read from the operation on success; otherwise null.</param>
     /// <param name="size">The maximum number of bytes to read. 0 = default = 16MB.</param>
     /// <param name="offset">Optional offset within the file to start reading at.</param>
-    /// <returns>The data read on success. Zero-length data on failure. NB! Data read may be shorter than <paramref name="size"/>.</returns>
-    public unsafe byte[] VfsRead(string fileName, out uint ntStatus, uint size = 0, ulong offset = 0)
+    /// <returns>The NTSTATUS value of the operation (success = 0).</returns>
+    public unsafe uint VfsRead(string fileName, out byte[]? data, uint size = 0, ulong offset = 0)
     {
         uint cbRead = 0;
         if (size == 0)
@@ -889,30 +890,24 @@ public sealed partial class Vmm : IDisposable
             size = 0x01000000; // 16MB
         }
 
-        var data = new byte[size];
-        fixed (byte* pb = data)
+        var dataLocal = new byte[size];
+        fixed (byte* pb = dataLocal)
         {
-            ntStatus = Vmmi.VMMDLL_VfsRead(_handle, fileName.Replace('/', '\\'), pb, size, out cbRead, offset);
-            var pbData = new byte[cbRead];
-            if (cbRead > 0)
+            uint ret = Vmmi.VMMDLL_VfsRead(_handle, fileName.Replace('/', '\\'), pb, size, out cbRead, offset);
+            if (ret == 0) // STATUS_SUCCESS
             {
-                data.AsSpan(0, pbData.Length).CopyTo(pbData);
+                if (cbRead < size)
+                {
+                    Array.Resize(ref dataLocal, (int)cbRead);
+                }
+                data = dataLocal;
             }
-
-            return pbData;
+            else
+            {
+                data = null;
+            }
+            return ret;
         }
-    }
-
-    /// <summary>
-    /// VFS read data from a virtual file.
-    /// </summary>
-    /// <param name="fileName">The file name/path within the VFS.</param>
-    /// <param name="size">The maximum number of bytes to read. 0 = default = 16MB.</param>
-    /// <param name="offset">Optional offset within the file to start reading at.</param>
-    /// <returns>The data read on success. Zero-length data on failure. NB! Data read may be shorter than <paramref name="size"/>.</returns>
-    public byte[] VfsRead(string fileName, uint size = 0, ulong offset = 0)
-    {
-        return VfsRead(fileName, out _, size, offset);
     }
 
     /// <summary>
@@ -989,7 +984,7 @@ public sealed partial class Vmm : IDisposable
     /// Get all process IDs (PIDs) for a given process name.
     /// </summary>
     /// <param name="sProcName">Name of the process to look up.</param>
-    /// <returns>Array of PIDs that match; null array if no matches.</returns>
+    /// <returns>Array of PIDs that match, or null if failed.</returns>
     public uint[]? PidGetAllFromName(string sProcName)
     {
         var pids = new List<uint>();
@@ -1005,7 +1000,8 @@ public sealed partial class Vmm : IDisposable
                 pids.Add(procInfo[i].dwPID);
             }
         }
-        return pids.ToArray();
+        return pids.Count > 0 ?
+            pids.ToArray() : null;
     }
 
     /// <summary>
@@ -1729,7 +1725,7 @@ public sealed partial class Vmm : IDisposable
     /// Get the user-mode path of the process image.
     /// </summary>
     /// <param name="pid">Process ID (PID) for this operation.</param>
-    /// <returns>A string path on success; otherwise null.</returns>
+    /// <returns>A string path on success; otherwise a null string.</returns>
     public string? GetProcessPathUser(uint pid)
     {
         return GetProcessInformationString(pid, VMMDLL_PROCESS_INFORMATION_OPT_STRING_PATH_USER_IMAGE);
@@ -1739,7 +1735,7 @@ public sealed partial class Vmm : IDisposable
     /// Get the kernel-mode path of the process image.
     /// </summary>
     /// <param name="pid">Process ID (PID) for this operation.</param>
-    /// <returns>A string path on success; otherwise null.</returns>
+    /// <returns>A string path on success; otherwise a null string.</returns>
     public string? GetProcessPathKernel(uint pid)
     {
         return GetProcessInformationString(pid, VMMDLL_PROCESS_INFORMATION_OPT_STRING_PATH_KERNEL);
@@ -1749,7 +1745,7 @@ public sealed partial class Vmm : IDisposable
     /// Get the process command line.
     /// </summary>
     /// <param name="pid">Process ID (PID) for this operation.</param>
-    /// <returns>The command line string on success; otherwise null.</returns>
+    /// <returns>The command line string on success; otherwise a null string.</returns>
     public string? GetProcessCmdline(uint pid)
     {
         return GetProcessInformationString(pid, VMMDLL_PROCESS_INFORMATION_OPT_STRING_CMDLINE);
@@ -1760,18 +1756,24 @@ public sealed partial class Vmm : IDisposable
     /// </summary>
     /// <param name="pid">Process ID (PID) for this operation.</param>
     /// <param name="fOptionString">A VMMDLL_PROCESS_INFORMATION_OPT_* flag indicating which string to fetch.</param>
-    /// <returns>The string value on success; otherwise null.</returns>
+    /// <returns>The string value on success; otherwise a null string.</returns>
     public unsafe string? GetProcessInformationString(uint pid, uint fOptionString)
     {
         var pb = Vmmi.VMMDLL_ProcessGetInformationString(_handle, pid, fOptionString);
-        if (pb == null)
+        try
         {
-            return null;
-        }
+            if (pb is null)
+            {
+                return null;
+            }
 
-        var s = Marshal.PtrToStringAnsi((IntPtr)pb);
-        Vmmi.VMMDLL_MemFree(pb);
-        return s;
+            var s = Marshal.PtrToStringAnsi((IntPtr)pb);
+            return s;
+        }
+        finally
+        {
+            Vmmi.VMMDLL_MemFree(pb);
+        }
     }
 
     /// <summary>
@@ -2285,8 +2287,8 @@ public sealed partial class Vmm : IDisposable
         public ulong vaStackLimitUser;
         public ulong vaStackBaseKernel;
         public ulong vaStackLimitKernel;
-        public ulong vaImpersonationToken;
         public ulong vaTrapFrame;
+        public ulong vaImpersonationToken;
         public ulong vaRIP;
         public ulong vaRSP;
         public ulong qwAffinity;
@@ -2793,6 +2795,7 @@ public sealed partial class Vmm : IDisposable
         public uint dwPfn;
         public PfnType tp;
         public PfnTypeExtended tpExtended;
+        public ulong va;
         public ulong vaPte;
         public ulong OriginalPte;
         public uint dwPID;
@@ -3240,7 +3243,7 @@ public sealed partial class Vmm : IDisposable
         uint cbPfns;
         var cbMAP = Marshal.SizeOf<Vmmi.VMMDLL_MAP_PFN>();
         var cbENTRY = Marshal.SizeOf<Vmmi.VMMDLL_MAP_PFNENTRY>();
-        if (pfns.Length == 0)
+        if (pfns.IsEmpty)
         {
             return null;
         }
@@ -3283,7 +3286,7 @@ public sealed partial class Vmm : IDisposable
                     };
                     if (e.tp == PfnType.Active && !e.fPrototype)
                     {
-                        e.vaPte = n.va;
+                        e.va = n.va;
                         e.dwPID = n.dwPfnPte[0];
                     }
 
@@ -3304,11 +3307,11 @@ public sealed partial class Vmm : IDisposable
     /// </summary>
     /// <param name="pid">Process ID (PID) whose module the symbols belong to.</param>
     /// <param name="vaModuleBase">Module base address.</param>
-    /// <param name="szModuleName">Receives the module name if successful.</param>
+    /// <param name="szModuleName">Receives the module name if successful, otherwise null.</param>
     /// <returns><see langword="true"/> if the PDB was loaded successfully; otherwise <see langword="false"/>.</returns>
-    public unsafe bool PdbLoad(uint pid, ulong vaModuleBase, out string szModuleName)
+    public unsafe bool PdbLoad(uint pid, ulong vaModuleBase, out string? szModuleName)
     {
-        szModuleName = "";
+        szModuleName = null;
         var data = new byte[260];
         fixed (byte* pb = data)
         {
@@ -3330,12 +3333,12 @@ public sealed partial class Vmm : IDisposable
     /// </summary>
     /// <param name="szModule">Module name.</param>
     /// <param name="cbSymbolAddressOrOffset">Symbol address or module-relative offset.</param>
-    /// <param name="szSymbolName">Receives the symbol name.</param>
+    /// <param name="szSymbolName">Receives the symbol name if succesful, otherwise null.</param>
     /// <param name="pdwSymbolDisplacement">Receives the displacement from the symbol.</param>
     /// <returns><see langword="true"/> on success; otherwise <see langword="false"/>.</returns>
-    public unsafe bool PdbSymbolName(string szModule, ulong cbSymbolAddressOrOffset, out string szSymbolName, out uint pdwSymbolDisplacement)
+    public unsafe bool PdbSymbolName(string szModule, ulong cbSymbolAddressOrOffset, out string? szSymbolName, out uint pdwSymbolDisplacement)
     {
-        szSymbolName = "";
+        szSymbolName = null;
         pdwSymbolDisplacement = 0;
         var data = new byte[260];
         fixed (byte* pb = data)
@@ -3452,7 +3455,7 @@ public sealed partial class Vmm : IDisposable
     /// </summary>
     /// <param name="pfnCB">The callback function to register, or <see langword="null"/> to unregister an existing callback.</param>
     /// <returns><see langword="true"/> if the callback was successfully registered/unregistered, otherwise <see langword="false"/>.</returns>
-    public bool LogCallback(VMMDLL_LOG_CALLBACK_PFN pfnCB)
+    public bool LogCallback(VMMDLL_LOG_CALLBACK_PFN? pfnCB)
     {
         return Vmmi.VMMDLL_LogCallback(_handle, pfnCB);
     }

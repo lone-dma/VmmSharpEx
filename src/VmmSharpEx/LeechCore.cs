@@ -35,7 +35,7 @@ namespace VmmSharpEx;
 /// </remarks>
 public sealed class LeechCore : IDisposable
 {
-    private readonly Vmm _parent;
+    private readonly Vmm? _parent;
     private IntPtr _handle;
 
     private LeechCore() { throw new NotImplementedException(); }
@@ -43,7 +43,6 @@ public sealed class LeechCore : IDisposable
     private LeechCore(IntPtr hLC)
     {
         _handle = hLC;
-        _parent = null!;  // Required for nullable, but will be set in internal constructor
     }
 
     /// <summary>
@@ -152,7 +151,7 @@ public sealed class LeechCore : IDisposable
                     configErrorInfo.fUserInputRequest = e.fUserInputRequest;
                     if (e.cwszUserText > 0)
                     {
-                        configErrorInfo.strUserText = Marshal.PtrToStringUni((IntPtr)(pLcErrorInfo.ToInt64() + cbERROR_INFO)) ?? "";
+                        configErrorInfo.strUserText = Marshal.PtrToStringUni((IntPtr)(pLcErrorInfo.ToInt64() + cbERROR_INFO));
                     }
                 }
 
@@ -513,7 +512,7 @@ public sealed class LeechCore : IDisposable
     /// Wraps native memory returned from a scatter read invocation.
     /// </summary>
     /// <remarks>
-    /// The underlying native scatter page buffers are released via <see cref="Lci.LcMemFree(void*)"/> when this handle
+    /// The underlying native scatter page buffers are released via <see cref="Lci.LcMemFree"/> when this handle
     /// is disposed.
     /// </remarks>
     public sealed class LcScatterHandle : IDisposable
@@ -521,10 +520,7 @@ public sealed class LeechCore : IDisposable
         private readonly PooledDictionary<ulong, ScatterData> _results;
         private IntPtr _mems;
 
-        private LcScatterHandle()
-        {
-            _results = new PooledDictionary<ulong, ScatterData>();
-        }
+        private LcScatterHandle() { throw new NotImplementedException(); }
 
         internal LcScatterHandle(PooledDictionary<ulong, ScatterData> results, IntPtr mems)
         {
@@ -652,7 +648,7 @@ public sealed class LeechCore : IDisposable
         /// A read-only view over the page contents pointed at by <see cref="pb"/>.
         /// </summary>
         /// <remarks>
-        /// DANGER: Do not access this memory after the memory is freed via <see cref="Lci.LcMemFree(void*)"/>.
+        /// DANGER: Do not access this memory after the memory is freed via <see cref="Lci.LcMemFree"/>.
         /// </remarks>
         public readonly unsafe ReadOnlySpan<byte> Data =>
             new ReadOnlySpan<byte>(pb.ToPointer(), checked((int)cb));

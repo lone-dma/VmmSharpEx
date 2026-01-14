@@ -18,7 +18,7 @@
             if (!_vmm.PidGetFromName("explorer.exe", out _pid))
                 throw new InvalidOperationException("Failed to setup VMM");
             var vads = _vmm.Map_GetVad(_pid);
-            if (vads is null)
+            if (vads.Length == 0)
                 throw new InvalidOperationException("Failed to setup VMM");
             var vas = new List<ulong>();
             foreach (var vad in vads)

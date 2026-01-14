@@ -63,9 +63,7 @@ namespace VmmSharpEx.Extensions.Input
             _vmm = vmm;
             if (!_vmm.PidGetFromName("winlogon.exe", out _winLogonPid))
                 throw new VmmException("Failed to get winlogon.exe PID");
-            var pids = _vmm.PidGetAllFromName("csrss.exe");
-            if (pids is null || pids.Length == 0)
-                throw new VmmException("Failed to get csrss.exe PIDs");
+            var pids = _vmm.PidGetAllFromName("csrss.exe") ?? throw new InvalidOperationException("Failed to get csrss process");
             ulong gafAsyncKeyStateExport = 0;
 
             var exceptions = new List<Exception>();

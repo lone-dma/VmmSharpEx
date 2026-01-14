@@ -144,7 +144,7 @@ namespace VmmSharpEx.Extensions
             // Wait for progress to reach 100%
             while (true)
             {
-                var percentBytes = vmm.VfsRead(@"\misc\procinfo\progress_percent.txt", 4);
+                _ = vmm.VfsRead(@"\misc\procinfo\progress_percent.txt", out var percentBytes, 4);
                 if (percentBytes is not null &&
                     int.TryParse(Encoding.ASCII.GetString(percentBytes).Trim(), out int percent) &&
                     percent == 100)
@@ -154,8 +154,8 @@ namespace VmmSharpEx.Extensions
             }
 
             // VFS list and read DTBs
-            //var vfsEntries = vmm.VfsList(@"\misc\procinfo\");
-            var dtbRaw = vmm.VfsRead(@"\misc\procinfo\dtb.txt", 0x1000);
+            _ = vmm.VfsList(@"\misc\procinfo\");
+            _ = vmm.VfsRead(@"\misc\procinfo\dtb.txt", out var dtbRaw, 0x1000);
             if (dtbRaw is null)
                 return false;
 

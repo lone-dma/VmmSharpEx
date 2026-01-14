@@ -1462,7 +1462,7 @@ internal static partial class Vmmi
     [return: MarshalAs(UnmanagedType.Bool)]
     public static partial bool VMMDLL_LogCallback(
         IntPtr hVMM,
-        Vmm.VMMDLL_LOG_CALLBACK_PFN pfnCB);
+        Vmm.VMMDLL_LOG_CALLBACK_PFN? pfnCB);
 
     [LibraryImport("vmm.dll", EntryPoint = "VMMDLL_MemCallback")]
     [return: MarshalAs(UnmanagedType.Bool)]
