@@ -9,6 +9,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VmmSharpEx_Tests", "VmmShar
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VmmSharpEx_Benchmarks", "VmmSharpEx_Benchmarks\VmmSharpEx_Benchmarks.csproj", "{FE0BF66B-0647-42AF-BEE0-C97E903A3C8E}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Issue14", "Issue14\Issue14.csproj", "{97BEE890-E543-4DC8-AD67-1342A1774970}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -25,6 +27,10 @@ Global
 		{DD309ED9-6852-4187-9A26-17FC7783E637}.Release|x64.Build.0 = Release|Any CPU
 		{FE0BF66B-0647-42AF-BEE0-C97E903A3C8E}.Debug|x64.ActiveCfg = Debug|Any CPU
 		{FE0BF66B-0647-42AF-BEE0-C97E903A3C8E}.Release|x64.ActiveCfg = Release|Any CPU
+		{97BEE890-E543-4DC8-AD67-1342A1774970}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{97BEE890-E543-4DC8-AD67-1342A1774970}.Debug|x64.Build.0 = Debug|Any CPU
+		{97BEE890-E543-4DC8-AD67-1342A1774970}.Release|x64.ActiveCfg = Release|Any CPU
+		{97BEE890-E543-4DC8-AD67-1342A1774970}.Release|x64.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
