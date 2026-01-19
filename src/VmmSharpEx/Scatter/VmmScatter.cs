@@ -268,6 +268,7 @@ public sealed class VmmScatter : IDisposable
     {
         lock (_sync)
         {
+            ObjectDisposedException.ThrowIf(Disposed, this);
             _vmm.ThrowIfMemWritesDisabled();
             uint cb = checked((uint)sizeof(T) * (uint)data.Length);
             fixed (T* pb = data)
@@ -293,6 +294,7 @@ public sealed class VmmScatter : IDisposable
     {
         lock (_sync)
         {
+            ObjectDisposedException.ThrowIf(Disposed, this);
             _vmm.ThrowIfMemWritesDisabled();
             uint cb = (uint)sizeof(T);
             IsPrepared = Vmmi.VMMDLL_Scatter_PrepareWrite(_handle, address, (byte*)&value, cb);
@@ -357,7 +359,7 @@ public sealed class VmmScatter : IDisposable
                 if (cbRead == 0)
                     return null;
 
-                var arr = new byte[cb];
+                var arr = new byte[checked((int)cb)];
                 new ReadOnlySpan<byte>(prep.Buffer, checked((int)Math.Min(cb, cbRead))).CopyTo(arr);
                 return arr;
             }
@@ -374,7 +376,7 @@ public sealed class VmmScatter : IDisposable
     /// <param name="cb">Count of bytes to be read.</param>
     /// <param name="pb">Pointer to buffer to receive read. You must make sure the buffer is pinned/fixed.</param>
     /// <param name="cbRead">Count of bytes actually read.</param>
-    /// <returns>TRUE if successful, otherwise FALSE. Be sure to also check <paramref name="cbRead"/>.</returns>
+    /// <returns><see langword="true"/> if the operation is successful, otherwise <see langword="false"/>. Be sure to also check <paramref name="cbRead"/>.</returns>
     public unsafe bool Read(ulong address, uint cb, void* pb, out uint cbRead)
     {
         lock (_sync)
@@ -404,7 +406,7 @@ public sealed class VmmScatter : IDisposable
     /// <param name="cb">Count of bytes to be read.</param>
     /// <param name="pb">Pointer to buffer to receive read. You must make sure the buffer is pinned/fixed.</param>
     /// <param name="cbRead">Count of bytes actually read.</param>
-    /// <returns>TRUE if successful, otherwise FALSE. Be sure to also check <paramref name="cbRead"/>.</returns>
+    /// <returns><see langword="true"/> if the operation is successful, otherwise <see langword="false"/>. Be sure to also check <paramref name="cbRead"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public unsafe bool Read(ulong address, uint cb, IntPtr pb, out uint cbRead) =>
         Read(address, cb, pb.ToPointer(), out cbRead);
