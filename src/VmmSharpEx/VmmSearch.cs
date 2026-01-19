@@ -25,6 +25,9 @@ namespace VmmSharpEx;
 /// <summary>
 /// VmmSearch represents a binary search in memory.
 /// </summary>
+/// <remarks>
+/// Failure to call <see cref="Dispose"/> will result in native memory leaks.
+/// </remarks>
 public sealed class VmmSearch : IDisposable
 {
     private readonly SearchContext _managed = new();
@@ -246,24 +249,14 @@ public sealed class VmmSearch : IDisposable
     /// <summary>
     /// Aborts the search if it is still running and cleans up resources.
     /// </summary>
-    public void Dispose()
-    {
-        Dispose(disposing: true);
-        GC.SuppressFinalize(this);
-    }
-
-    private unsafe void Dispose(bool disposing)
+    public unsafe void Dispose()
     {
         if (Interlocked.Exchange(ref _disposed, true) == false)
         {
-            if (disposing)
-            {
-                Completed = null;
-            }
+            Completed = null;
             if (_worker is null || _worker.IsCompleted)
             {
-                NativeMemory.Free(_native);
-                _native = null;
+                FreeInternal();
             }
             else // Still running
             {
@@ -276,15 +269,21 @@ public sealed class VmmSearch : IDisposable
                     }
                     finally
                     {
-                        NativeMemory.Free(_native);
-                        _native = null;
+                        FreeInternal();
                     }
                 });
             }
         }
     }
 
-    ~VmmSearch() => Dispose(disposing: false);
+    private unsafe void FreeInternal()
+    {
+        if (_native != null)
+        {
+            NativeMemory.Free(_native);
+            _native = null;
+        }
+    }
 
     /// <summary>
     /// Struct with info about the current search results.

@@ -167,10 +167,7 @@ public sealed class LeechCore : IDisposable
         }
     }
 
-    ~LeechCore()
-    {
-        Dispose(false);
-    }
+    ~LeechCore() => Dispose(disposing: false);
 
     private void Dispose(bool disposing)
     {
@@ -560,7 +557,7 @@ public sealed class LeechCore : IDisposable
             }
         }
 
-        ~LcScatterHandle() => Dispose(false);
+        ~LcScatterHandle() => Dispose(disposing: false);
 
         #endregion
     }
