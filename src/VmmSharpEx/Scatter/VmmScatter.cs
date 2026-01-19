@@ -63,7 +63,11 @@ public sealed class VmmScatter : IDisposable
     /// <summary>
     /// True if the VmmScatter handle has been disposed, otherwise false.
     /// </summary>
-    public bool Disposed => _handle == IntPtr.Zero;
+    public bool Disposed
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => _handle == IntPtr.Zero;
+    }
 
     /// <summary>
     /// Event is fired upon completion of <see cref="Execute"/>. Exceptions are handled/ignored.
