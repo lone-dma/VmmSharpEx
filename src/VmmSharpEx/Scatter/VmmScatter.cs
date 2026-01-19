@@ -35,58 +35,11 @@ public sealed class VmmScatter : IDisposable
 {
     #region Base Functionality
 
+    private readonly Dictionary<ScatterReadKey, ScatterReadBuffer> _preparedReads = new();
     private readonly Vmm _vmm;
     private uint _pid;
     private VmmFlags _flags;
     private IntPtr _handle;
-
-    /// <summary>
-    /// True if the VmmScatter handle has been disposed, otherwise false.
-    /// </summary>
-    public bool Disposed => _handle == IntPtr.Zero;
-
-    // Key for prepared read lookup - uses Address+Size for equality
-    private readonly struct ScatterReadKey : IEquatable<ScatterReadKey>
-    {
-        public readonly ulong Address;
-        public readonly uint Size;
-
-        public ScatterReadKey(ulong address, uint size)
-        {
-            Address = address;
-            Size = size;
-        }
-
-        public bool Equals(ScatterReadKey other) => Address == other.Address && Size == other.Size;
-        public override bool Equals(object? obj) => obj is ScatterReadKey other && Equals(other);
-        public override int GetHashCode() => HashCode.Combine(Address, Size);
-        public static bool operator ==(ScatterReadKey left, ScatterReadKey right) => left.Equals(right);
-        public static bool operator !=(ScatterReadKey left, ScatterReadKey right) => !left.Equals(right);
-    }
-
-    // Immutable buffer holder for prepared reads
-    private readonly unsafe struct ScatterReadBuffer
-    {
-        public readonly byte* Buffer;
-        public readonly uint* CbReadPtr;
-
-        public ScatterReadBuffer(uint cb)
-        {
-            Buffer = (byte*)NativeMemory.AllocZeroed(cb);
-            CbReadPtr = (uint*)NativeMemory.AllocZeroed(sizeof(uint));
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Free()
-        {
-            NativeMemory.Free(Buffer);
-            NativeMemory.Free(CbReadPtr);
-        }
-
-        public uint CbRead => *CbReadPtr;
-    }
-
-    private readonly Dictionary<ScatterReadKey, ScatterReadBuffer> _preparedReads = new();
     private bool _isPrepared;
 
     /// <summary>
@@ -105,6 +58,11 @@ public sealed class VmmScatter : IDisposable
             }
         }
     }
+
+    /// <summary>
+    /// True if the VmmScatter handle has been disposed, otherwise false.
+    /// </summary>
+    public bool Disposed => _handle == IntPtr.Zero;
 
     /// <summary>
     /// Event is fired upon completion of <see cref="Execute"/>. Exceptions are handled/ignored.
@@ -625,6 +583,51 @@ public sealed class VmmScatter : IDisposable
 
         if (!Vmmi.VMMDLL_Scatter_Clear(_handle, _pid, _flags))
             throw new VmmException("Failed to clear VmmScatter Handle.");
+    }
+
+    #endregion
+
+    #region Types
+
+    // Key for prepared read lookup - uses Address+Size for equality
+    private readonly struct ScatterReadKey : IEquatable<ScatterReadKey>
+    {
+        public readonly ulong Address;
+        public readonly uint Size;
+
+        public ScatterReadKey(ulong address, uint size)
+        {
+            Address = address;
+            Size = size;
+        }
+
+        public bool Equals(ScatterReadKey other) => Address == other.Address && Size == other.Size;
+        public override bool Equals(object? obj) => obj is ScatterReadKey other && Equals(other);
+        public override int GetHashCode() => HashCode.Combine(Address, Size);
+        public static bool operator ==(ScatterReadKey left, ScatterReadKey right) => left.Equals(right);
+        public static bool operator !=(ScatterReadKey left, ScatterReadKey right) => !left.Equals(right);
+    }
+
+    // Immutable buffer holder for prepared reads
+    private readonly unsafe struct ScatterReadBuffer
+    {
+        public readonly byte* Buffer;
+        public readonly uint* CbReadPtr;
+
+        public ScatterReadBuffer(uint cb)
+        {
+            Buffer = (byte*)NativeMemory.AllocZeroed(cb);
+            CbReadPtr = (uint*)NativeMemory.AllocZeroed(sizeof(uint));
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void Free()
+        {
+            NativeMemory.Free(Buffer);
+            NativeMemory.Free(CbReadPtr);
+        }
+
+        public uint CbRead => *CbReadPtr;
     }
 
     #endregion
