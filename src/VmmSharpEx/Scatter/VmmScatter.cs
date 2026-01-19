@@ -70,17 +70,23 @@ public sealed class VmmScatter : IDisposable
         public readonly byte* Buffer;
         public readonly uint* CbReadPtr;
 
-        public ScatterReadBuffer(byte* buffer, uint* cbReadPtr)
+        public ScatterReadBuffer(uint cb)
         {
-            Buffer = buffer;
-            CbReadPtr = cbReadPtr;
+            Buffer = (byte*)NativeMemory.AllocZeroed(cb);
+            CbReadPtr = (uint*)NativeMemory.AllocZeroed(sizeof(uint));
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void Free()
+        {
+            NativeMemory.Free(Buffer);
+            NativeMemory.Free(CbReadPtr);
         }
 
         public uint CbRead => *CbReadPtr;
     }
 
     private readonly Dictionary<ScatterReadKey, ScatterReadBuffer> _preparedReads = new();
-    private readonly List<IntPtr> _nativeAllocations = new(); // Track all native allocations for cleanup
     private bool _isPrepared;
 
     /// <summary>
@@ -163,14 +169,10 @@ public sealed class VmmScatter : IDisposable
 
     private unsafe void FreeNativeAllocations()
     {
-        foreach (var ptr in _nativeAllocations)
+        foreach (var entry in _preparedReads.Values)
         {
-            if (ptr != IntPtr.Zero)
-            {
-                NativeMemory.Free(ptr.ToPointer());
-            }
+            entry.Free();
         }
-        _nativeAllocations.Clear();
         _preparedReads.Clear();
     }
 
@@ -218,18 +220,15 @@ public sealed class VmmScatter : IDisposable
             return true;
         }
         // Allocate native memory for this read
-        byte* buffer = (byte*)NativeMemory.AllocZeroed(cb);
-        uint* cbReadPtr = (uint*)NativeMemory.AllocZeroed(sizeof(uint));
+        var entry = new ScatterReadBuffer(cb);
 
-        _nativeAllocations.Add((IntPtr)buffer);
-        _nativeAllocations.Add((IntPtr)cbReadPtr);
-
-        if (Vmmi.VMMDLL_Scatter_PrepareEx(_handle, address, cb, buffer, cbReadPtr))
+        if (Vmmi.VMMDLL_Scatter_PrepareEx(_handle, address, cb, entry.Buffer, entry.CbReadPtr) &&
+            _preparedReads.TryAdd(key, entry))
         {
-            _preparedReads[key] = new ScatterReadBuffer(buffer, cbReadPtr);
             IsPrepared = true;
             return true;
         }
+        entry.Free();
         return false;
     }
 
