@@ -207,6 +207,109 @@ public unsafe class VmmSharpEx_VmmScatterTests : CITest
     }
 
     [Fact]
+    public Task Scatter_ThreadSafety_ConcurrentExecuteAndEventSubscription()
+    {
+        try
+        {
+            const int workers = 4;
+            const int itersPerWorker = 200;
+            const int cb = 64;
+
+            // Initialize deterministic data per worker.
+            ulong[] addrs = new ulong[workers];
+            byte[][] patterns = new byte[workers][];
+            for (int i = 0; i < workers; i++)
+            {
+                addrs[i] = HeapAddr(0x1000 + (i * 0x100));
+                patterns[i] = Enumerable.Range(0, cb).Select(b => (byte)(b + (i * 3))).ToArray();
+                Assert.True(_vmm.MemWriteArray<byte>(Vmm.PID_PHYSICALMEMORY, addrs[i], patterns[i]));
+            }
+
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+            using var start = new ManualResetEventSlim(false);
+
+            Exception? failure = null;
+            void RecordFailure(Exception ex) => Interlocked.CompareExchange(ref failure, ex, null);
+
+            var workerTasks = Enumerable.Range(0, workers).Select(i => Task.Run(() =>
+            {
+                try
+                {
+                    using var scatter = CreateScatter();
+                    var expected = patterns[i];
+                    ulong addr = addrs[i];
+                    start.Wait(cts.Token);
+
+                    for (int iter = 0; iter < itersPerWorker && !cts.IsCancellationRequested; iter++)
+                    {
+                        Assert.True(scatter.PrepareRead(addr, cb));
+
+                        int fired = 0;
+                        EventHandler<VmmScatter> handler = (_, __) => Interlocked.Increment(ref fired);
+                        scatter.Completed += handler;
+
+                        scatter.Execute();
+
+                        scatter.Completed -= handler;
+
+                        Span<byte> dst = new byte[cb];
+                        Assert.True(scatter.ReadSpan(addr, dst));
+                        Assert.True(dst.SequenceEqual(expected));
+
+                        Assert.True(Volatile.Read(ref fired) >= 1);
+
+                        scatter.Clear();
+                    }
+                }
+                catch (Exception ex)
+                {
+                    RecordFailure(ex);
+                    cts.Cancel();
+                }
+            }, cts.Token)).ToArray();
+
+            var subscriptionTask = Task.Run(() =>
+            {
+                try
+                {
+                    using var scatter = CreateScatter();
+                    start.Wait(cts.Token);
+
+                    while (!cts.IsCancellationRequested)
+                    {
+                        EventHandler<VmmScatter> h = (_, __) => { };
+                        scatter.Completed += h;
+                        scatter.Completed -= h;
+                    }
+                }
+                catch (OperationCanceledException)
+                {
+                    // ignore
+                }
+                catch (Exception ex)
+                {
+                    RecordFailure(ex);
+                    cts.Cancel();
+                }
+            }, cts.Token);
+
+            start.Set();
+#pragma warning disable xUnit1031 // Do not use blocking task operations in test method
+            Task.WhenAll(workerTasks.Concat([subscriptionTask])).GetAwaiter().GetResult();
+#pragma warning restore xUnit1031 // Do not use blocking task operations in test method
+
+            if (failure is not null)
+                throw new Xunit.Sdk.XunitException($"Thread-safety test failed: {failure}");
+
+            return Task.CompletedTask;
+        }
+        catch
+        {
+            throw;
+        }
+    }
+
+    [Fact]
     public void Scatter_ToString_ReturnsState()
     {
         using var scatter = CreateScatter();
