@@ -354,7 +354,7 @@ public sealed class VmmScatter : IDisposable
                     return null;
 
                 var arr = new byte[cb];
-                new ReadOnlySpan<byte>(prep.Buffer, (int)Math.Min(cb, cbRead)).CopyTo(arr);
+                new ReadOnlySpan<byte>(prep.Buffer, checked((int)Math.Min(cb, cbRead))).CopyTo(arr);
                 return arr;
             }
 
@@ -383,7 +383,7 @@ public sealed class VmmScatter : IDisposable
                 if (cbRead == 0)
                     return false;
 
-                var copyLen = (int)Math.Min(cb, cbRead);
+                int copyLen = checked((int)Math.Min(cb, cbRead));
                 new ReadOnlySpan<byte>(prep.Buffer, copyLen).CopyTo(new Span<byte>(pb, copyLen));
                 return true;
             }
@@ -483,7 +483,7 @@ public sealed class VmmScatter : IDisposable
                     return null;
 
                 var array = new T[count];
-                new ReadOnlySpan<byte>(prep.Buffer, (int)cb).CopyTo(MemoryMarshal.AsBytes(array.AsSpan()));
+                new ReadOnlySpan<byte>(prep.Buffer, checked((int)cb)).CopyTo(MemoryMarshal.AsBytes(array.AsSpan()));
                 return array;
             }
 
@@ -517,7 +517,7 @@ public sealed class VmmScatter : IDisposable
                     return null;
 
                 var data = new PooledMemory<T>(count);
-                new ReadOnlySpan<byte>(prep.Buffer, (int)cb).CopyTo(MemoryMarshal.AsBytes(data.Span));
+                new ReadOnlySpan<byte>(prep.Buffer, checked((int)cb)).CopyTo(MemoryMarshal.AsBytes(data.Span));
                 return data;
             }
 
@@ -550,7 +550,7 @@ public sealed class VmmScatter : IDisposable
                 if (prep.CbRead != cb)
                     return false;
 
-                new ReadOnlySpan<byte>(prep.Buffer, (int)cb).CopyTo(MemoryMarshal.AsBytes(span));
+                new ReadOnlySpan<byte>(prep.Buffer, checked((int)cb)).CopyTo(MemoryMarshal.AsBytes(span));
                 return true;
             }
 
