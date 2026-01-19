@@ -657,7 +657,7 @@ public sealed class VmmScatter : IDisposable
         public ScatterReadBuffer(uint cb)
         {
             ArgumentOutOfRangeException.ThrowIfZero(cb, nameof(cb));
-            Buffer = (byte*)NativeMemory.AllocZeroed(cb);
+            Buffer = (byte*)NativeMemory.Alloc(cb);
             CbReadPtr = (uint*)NativeMemory.AllocZeroed(sizeof(uint));
         }
 
