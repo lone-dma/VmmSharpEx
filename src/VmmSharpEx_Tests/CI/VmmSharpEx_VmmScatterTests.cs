@@ -76,7 +76,7 @@ public unsafe class VmmSharpEx_VmmScatterTests : CITest
         Assert.True(scatter.PrepareReadArray<int>(addr, source.Length));
         scatter.Execute();
         var dst = new int[source.Length];
-        Assert.True(scatter.ReadSpan<int>(addr, dst));
+        Assert.True(scatter.ReadSpan<int>(addr, dst.AsSpan()));
         Assert.Equal(source, dst);
     }
 
