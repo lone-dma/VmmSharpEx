@@ -345,6 +345,7 @@ public sealed class VmmScatter : IDisposable
     {
         lock (_sync)
         {
+            ObjectDisposedException.ThrowIf(Disposed, this);
             var key = new ScatterReadKey(address, cb);
             if (_preparedReads.TryGetValue(key, out var prep))
             {
@@ -374,6 +375,7 @@ public sealed class VmmScatter : IDisposable
     {
         lock (_sync)
         {
+            ObjectDisposedException.ThrowIf(Disposed, this);
             var key = new ScatterReadKey(address, cb);
             if (_preparedReads.TryGetValue(key, out var prep))
             {
@@ -419,6 +421,7 @@ public sealed class VmmScatter : IDisposable
     {
         lock (_sync)
         {
+            ObjectDisposedException.ThrowIf(Disposed, this);
             uint cb = (uint)sizeof(T);
             result = default;
 
@@ -470,6 +473,7 @@ public sealed class VmmScatter : IDisposable
     {
         lock (_sync)
         {
+            ObjectDisposedException.ThrowIf(Disposed, this);
             uint cb = checked((uint)sizeof(T) * (uint)count);
 
             var key = new ScatterReadKey(address, cb);
@@ -503,6 +507,7 @@ public sealed class VmmScatter : IDisposable
     {
         lock (_sync)
         {
+            ObjectDisposedException.ThrowIf(Disposed, this);
             uint cb = checked((uint)sizeof(T) * (uint)count);
 
             var key = new ScatterReadKey(address, cb);
@@ -536,6 +541,7 @@ public sealed class VmmScatter : IDisposable
     {
         lock (_sync)
         {
+            ObjectDisposedException.ThrowIf(Disposed, this);
             uint cb = checked((uint)sizeof(T) * (uint)span.Length);
 
             var key = new ScatterReadKey(address, cb);
