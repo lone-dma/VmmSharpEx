@@ -11,7 +11,8 @@ This library is **Windows Only**, and only bundles/targets the Windows x64 nativ
 
 ## Changelog
 - Version 3.140
-  - Bump MemProcFS to 5.16.10 (fixes rare access violation in Scatter API)
+  - Bump MemProcFS to 5.16.11 (fixes rare buffer overflow/access violation in Scatter API)
+  - Improve finalizer safety
 - Version 3.130
   - Optimized lots of methods and implementations.
   - Some breaking changes with a few renames and changed Map_Get return values to return NULL on failure instead of an empty array.
