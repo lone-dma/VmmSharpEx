@@ -1,4 +1,4 @@
-﻿/*  
+/*  
  *  VmmSharpEx by Lone (Lone DMA)
  *  Copyright (C) 2025 AGPL-3.0
 */
@@ -15,7 +15,7 @@ namespace VmmSharpEx.Scatter
     public sealed class VmmScatterMap : IDisposable
     {
         private readonly Lock _sync = new();
-        private readonly List<VmmScatter> _rounds = new(capacity: 16);
+        private readonly List<VmmScatter> _rounds = new();
         private readonly Vmm _vmm;
         private readonly uint _pid;
         private bool _disposed;
