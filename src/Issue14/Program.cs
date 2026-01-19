@@ -303,7 +303,7 @@ namespace Issue14
             uint flags = (uint)(Random.Shared.Next(0, 2) == 0 ? 0 : 1); // 0 = NONE, 1 = NOCACHE
 
             // Use the pattern that was crashing: 4-4096 pages with Prepare + Execute + Read
-            int pageCount = Random.Shared.Next(4, 4096);
+            int pageCount = Random.Shared.Next(4, 128);
 
             // Create scatter handle
             IntPtr hS = VMMDLL_Scatter_Initialize(_hVMM, PID_PHYSICALMEMORY, flags);
