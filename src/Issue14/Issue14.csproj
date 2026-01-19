@@ -59,6 +59,8 @@
     </Content>
   </ItemGroup>
 
-  <!-- VmmSharpEx dependency removed for isolated P/Invoke testing -->
+  <ItemGroup>
+    <ProjectReference Include="..\VmmSharpEx\VmmSharpEx.csproj" />
+  </ItemGroup>
 
 </Project>
