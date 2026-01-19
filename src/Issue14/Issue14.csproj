@@ -5,7 +5,8 @@
     <TargetFramework>net10.0-windows</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <PublishAot>true</PublishAot>
+    <!-- DISABLED AOT for testing - Native AOT may have different P/Invoke behavior -->
+    <!-- <PublishAot>true</PublishAot> -->
     <InvariantGlobalization>true</InvariantGlobalization>
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
   </PropertyGroup>
@@ -19,7 +20,51 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\VmmSharpEx\VmmSharpEx.csproj" />
+    <None Remove="dbghelp.dll" />
+    <None Remove="FTD3XX.dll" />
+    <None Remove="leechcore.dll" />
+    <None Remove="leechcore.pdb" />
+    <None Remove="leechcore_driver.dll" />
+    <None Remove="symsrv.dll" />
+    <None Remove="tinylz4.dll" />
+    <None Remove="vcruntime140.dll" />
+    <None Remove="vmm.dll" />
+    <None Remove="vmm.pdb" />
   </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="dbghelp.dll">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="FTD3XX.dll">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="leechcore.dll">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="leechcore.pdb">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="leechcore_driver.dll">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="symsrv.dll">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="tinylz4.dll">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="vcruntime140.dll">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="vmm.dll">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="vmm.pdb">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
+  <!-- VmmSharpEx dependency removed for isolated P/Invoke testing -->
 
 </Project>

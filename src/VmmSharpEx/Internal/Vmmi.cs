@@ -987,7 +987,7 @@ internal static partial class Vmmi
         uint dwPID,
         IntPtr ppMEMs,
         uint cpMEMs,
-        VmmFlags flags);
+        uint flags);
 
     [LibraryImport("vmm.dll", EntryPoint = "VMMDLL_MemReadEx")]
     [return: MarshalAs(UnmanagedType.Bool)]
@@ -998,7 +998,7 @@ internal static partial class Vmmi
         byte* pb,
         uint cb,
         out uint pcbReadOpt,
-        VmmFlags flags);
+        uint flags);
 
     [LibraryImport("vmm.dll", EntryPoint = "VMMDLL_MemPrefetchPages")]
     [return: MarshalAs(UnmanagedType.Bool)]
@@ -1032,36 +1032,33 @@ internal static partial class Vmmi
     public static unsafe partial IntPtr VMMDLL_Scatter_Initialize(
         IntPtr hVMM,
         uint dwPID,
-        VmmFlags flags);
+        uint flags);
 
+    // NOTE: Using int instead of bool to avoid potential LibraryImport marshaling issues.
+    // Native BOOL is 4 bytes (int), and avoiding the bool marshaling is safer.
     [LibraryImport("vmm.dll", EntryPoint = "VMMDLL_Scatter_Prepare")]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    public static unsafe partial bool VMMDLL_Scatter_Prepare(
+    public static unsafe partial int VMMDLL_Scatter_Prepare(
         IntPtr hS,
         ulong va,
         uint cb);
 
     [LibraryImport("vmm.dll", EntryPoint = "VMMDLL_Scatter_PrepareWrite")]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    public static unsafe partial bool VMMDLL_Scatter_PrepareWrite(
+    public static unsafe partial int VMMDLL_Scatter_PrepareWrite(
         IntPtr hS,
         ulong va,
         byte* pb,
         uint cb);
 
     [LibraryImport("vmm.dll", EntryPoint = "VMMDLL_Scatter_ExecuteRead")]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    public static unsafe partial bool VMMDLL_Scatter_ExecuteRead(
+    public static unsafe partial int VMMDLL_Scatter_ExecuteRead(
         IntPtr hS);
 
     [LibraryImport("vmm.dll", EntryPoint = "VMMDLL_Scatter_Execute")]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    public static unsafe partial bool VMMDLL_Scatter_Execute(
+    public static unsafe partial int VMMDLL_Scatter_Execute(
         IntPtr hS);
 
     [LibraryImport("vmm.dll", EntryPoint = "VMMDLL_Scatter_Read")]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    public static unsafe partial bool VMMDLL_Scatter_Read(
+    public static unsafe partial int VMMDLL_Scatter_Read(
         IntPtr hS,
         ulong va,
         uint cb,
@@ -1069,11 +1066,10 @@ internal static partial class Vmmi
         out uint pcbRead);
 
     [LibraryImport("vmm.dll", EntryPoint = "VMMDLL_Scatter_Clear")]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    public static unsafe partial bool VMMDLL_Scatter_Clear(
+    public static unsafe partial int VMMDLL_Scatter_Clear(
         IntPtr hS,
         uint dwPID,
-        VmmFlags flags);
+        uint flags);
 
     [LibraryImport("vmm.dll", EntryPoint = "VMMDLL_Scatter_CloseHandle")]
     public static unsafe partial void VMMDLL_Scatter_CloseHandle(
@@ -1284,7 +1280,7 @@ internal static partial class Vmmi
         IntPtr hVMM,
         uint dwPID,
         uint dwTID,
-        VmmFlags flags,
+        uint flags,
         out IntPtr ppThreadCallstack);
 
     // VMMDLL_Map_GetHandle
@@ -1387,7 +1383,7 @@ internal static partial class Vmmi
         byte* pb,
         uint cb,
         out uint pcbReadOpt,
-        VmmFlags flags);
+        uint flags);
 
     [LibraryImport("vmm.dll", EntryPoint = "VMMDLL_WinReg_HiveWrite")]
     [return: MarshalAs(UnmanagedType.Bool)]

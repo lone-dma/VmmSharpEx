@@ -85,7 +85,7 @@ public sealed class VmmScatter : IDisposable
 
     private static IntPtr Create(Vmm vmm, uint pid, VmmFlags flags)
     {
-        var hS = Vmmi.VMMDLL_Scatter_Initialize(vmm, pid, flags);
+        var hS = Vmmi.VMMDLL_Scatter_Initialize(vmm, pid, (uint)flags);
         if (hS == IntPtr.Zero)
         {
             throw new VmmException("Failed to create VmmScatter handle!");
@@ -152,7 +152,7 @@ public sealed class VmmScatter : IDisposable
     public bool PrepareRead(ulong address, uint cb)
     {
         bool ret;
-        IsPrepared = ret = Vmmi.VMMDLL_Scatter_Prepare(_handle, address, cb);
+        IsPrepared = ret = Vmmi.VMMDLL_Scatter_Prepare(_handle, address, cb) != 0;
         return ret;
     }
 
@@ -171,7 +171,7 @@ public sealed class VmmScatter : IDisposable
     {
         uint cb = checked((uint)sizeof(T) * (uint)count);
         bool ret;
-        IsPrepared = ret = Vmmi.VMMDLL_Scatter_Prepare(_handle, address, cb);
+        IsPrepared = ret = Vmmi.VMMDLL_Scatter_Prepare(_handle, address, cb) != 0;
         return ret;
     }
 
@@ -189,7 +189,7 @@ public sealed class VmmScatter : IDisposable
     {
         uint cb = (uint)sizeof(T);
         bool ret;
-        IsPrepared = ret = Vmmi.VMMDLL_Scatter_Prepare(_handle, address, cb);
+        IsPrepared = ret = Vmmi.VMMDLL_Scatter_Prepare(_handle, address, cb) != 0;
         return ret;
     }
 
@@ -205,7 +205,7 @@ public sealed class VmmScatter : IDisposable
     {
         uint cb = (uint)sizeof(VmmPointer);
         bool ret;
-        IsPrepared = ret = Vmmi.VMMDLL_Scatter_Prepare(_handle, address, cb);
+        IsPrepared = ret = Vmmi.VMMDLL_Scatter_Prepare(_handle, address, cb) != 0;
         return ret;
     }
 
@@ -227,7 +227,7 @@ public sealed class VmmScatter : IDisposable
         bool ret;
         fixed (T* pb = data)
         {
-            IsPrepared = ret = Vmmi.VMMDLL_Scatter_PrepareWrite(_handle, address, (byte*)pb, cb);
+            IsPrepared = ret = Vmmi.VMMDLL_Scatter_PrepareWrite(_handle, address, (byte*)pb, cb) != 0;
             return ret;
         }
     }
@@ -248,7 +248,7 @@ public sealed class VmmScatter : IDisposable
         _vmm.ThrowIfMemWritesDisabled();
         uint cb = (uint)sizeof(T);
         bool ret;
-        IsPrepared = ret = Vmmi.VMMDLL_Scatter_PrepareWrite(_handle, address, (byte*)&value, cb);
+        IsPrepared = ret = Vmmi.VMMDLL_Scatter_PrepareWrite(_handle, address, (byte*)&value, cb) != 0;
         return ret;
     }
 
@@ -259,12 +259,26 @@ public sealed class VmmScatter : IDisposable
     /// If there are no prepared operations, this method is a no-op.
     /// </remarks>
     /// <exception cref="VmmException"></exception>
+    /// <exception cref="ObjectDisposedException">Thrown if the scatter handle has been disposed.</exception>
     public void Execute()
     {
+        var handle = _handle;
+        if (handle == IntPtr.Zero)
+            throw new ObjectDisposedException(nameof(VmmScatter), "Scatter handle has been disposed.");
+        
         if (IsPrepared) // VMMDLL_Scatter_Execute will return FALSE if no operations are prepared, this may be expected behavior so we don't want to throw here.
         {
-            if (!Vmmi.VMMDLL_Scatter_Execute(_handle))
-                throw new VmmException("Scatter Operation Failed");
+            try
+            {
+                if (Vmmi.VMMDLL_Scatter_Execute(handle) == 0)
+                    throw new VmmException("Scatter Operation Failed");
+            }
+            finally
+            {
+                // Prevent the GC from collecting this object while the native call is in progress.
+                // The native scatter handle may reference memory associated with this object.
+                GC.KeepAlive(this);
+            }
             OnCompleted();
         }
     }
@@ -285,7 +299,7 @@ public sealed class VmmScatter : IDisposable
         var arr = new byte[cb];
         fixed (byte* pb = arr)
         {
-            if (!Vmmi.VMMDLL_Scatter_Read(_handle, address, cb, pb, out cbRead))
+            if (Vmmi.VMMDLL_Scatter_Read(_handle, address, cb, pb, out cbRead) == 0)
             {
                 return null;
             }
@@ -304,7 +318,7 @@ public sealed class VmmScatter : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public unsafe bool Read(ulong address, uint cb, void* pb, out uint cbRead)
     {
-        return Vmmi.VMMDLL_Scatter_Read(_handle, address, cb, (byte*)pb, out cbRead);
+        return Vmmi.VMMDLL_Scatter_Read(_handle, address, cb, (byte*)pb, out cbRead) != 0;
     }
 
     /// <summary>
@@ -336,7 +350,7 @@ public sealed class VmmScatter : IDisposable
         result = default;
         fixed (T* pb = &result)
         {
-            if (!Vmmi.VMMDLL_Scatter_Read(_handle, address, cb, (byte*)pb, out var cbRead) || cbRead != cb)
+            if (Vmmi.VMMDLL_Scatter_Read(_handle, address, cb, (byte*)pb, out var cbRead) == 0 || cbRead != cb)
             {
                 return false;
             }
@@ -381,7 +395,7 @@ public sealed class VmmScatter : IDisposable
         var array = new T[count];
         fixed (T* pb = array)
         {
-            if (!Vmmi.VMMDLL_Scatter_Read(_handle, address, cb, (byte*)pb, out var cbRead) || cbRead != cb)
+            if (Vmmi.VMMDLL_Scatter_Read(_handle, address, cb, (byte*)pb, out var cbRead) == 0 || cbRead != cb)
             {
                 return null;
             }
@@ -406,7 +420,7 @@ public sealed class VmmScatter : IDisposable
         var data = new PooledMemory<T>(count);
         fixed (T* pb = data.Span)
         {
-            if (!Vmmi.VMMDLL_Scatter_Read(_handle, address, cb, (byte*)pb, out var cbRead) || cbRead != cb)
+            if (Vmmi.VMMDLL_Scatter_Read(_handle, address, cb, (byte*)pb, out var cbRead) == 0 || cbRead != cb)
             {
                 data.Dispose();
                 return null;
@@ -431,7 +445,7 @@ public sealed class VmmScatter : IDisposable
         uint cb = checked((uint)sizeof(T) * (uint)span.Length);
         fixed (T* pb = span)
         {
-            return Vmmi.VMMDLL_Scatter_Read(_handle, address, cb, (byte*)pb, out var cbRead) && cbRead == cb;
+            return Vmmi.VMMDLL_Scatter_Read(_handle, address, cb, (byte*)pb, out var cbRead) != 0 && cbRead == cb;
         }
     }
 
@@ -496,7 +510,7 @@ public sealed class VmmScatter : IDisposable
             _pid = p;
         _isPrepared = default;
         Completed = default;
-        if (!Vmmi.VMMDLL_Scatter_Clear(_handle, _pid, _flags))
+        if (Vmmi.VMMDLL_Scatter_Clear(_handle, _pid, (uint)_flags) == 0)
             throw new VmmException("Failed to clear VmmScatter Handle.");
     }
 
