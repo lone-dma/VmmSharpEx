@@ -169,10 +169,7 @@ public sealed partial class Vmm : IDisposable
     /// <summary>
     /// Finalizer to ensure the native handle is closed if <see cref="Dispose()"/> was not called.
     /// </summary>
-    ~Vmm()
-    {
-        Dispose(false);
-    }
+    ~Vmm() => Dispose(disposing: false);
 
     /// <inheritdoc />
     public void Dispose()
@@ -192,9 +189,12 @@ public sealed partial class Vmm : IDisposable
     {
         if (Interlocked.Exchange(ref _handle, IntPtr.Zero) is IntPtr h && h != IntPtr.Zero)
         {
-            LeechCore?.Dispose();
+            if (disposing)
+            {
+                LeechCore.Dispose();
+                RefreshManager.UnregisterAll(this);
+            }
             Vmmi.VMMDLL_Close(h);
-            RefreshManager.UnregisterAll(this);
         }
     }
 
