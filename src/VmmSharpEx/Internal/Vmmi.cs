@@ -886,7 +886,7 @@ internal static partial class Vmmi
     public delegate bool SearchResultCallback(VMMDLL_MEM_SEARCH_CONTEXT ctx, ulong va, uint iSearch);
 
     [StructLayout(LayoutKind.Sequential, Pack = 8)]
-    public struct VMMDLL_MEM_SEARCH_CONTEXT
+    public unsafe struct VMMDLL_MEM_SEARCH_CONTEXT
     {
         public uint dwVersion;
         private readonly uint _Filler01;
@@ -894,7 +894,7 @@ internal static partial class Vmmi
         public int fAbortRequested;
         public uint cMaxResult;
         public uint cSearch;
-        public IntPtr search;
+        public void* search;
         public ulong vaMin;
         public ulong vaMax;
         public readonly ulong vaCurrent;

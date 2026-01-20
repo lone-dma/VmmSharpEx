@@ -91,55 +91,56 @@ public static class VmmSearch
         {
             return result; // No search items, return empty result.
         }
-        var hSearches = GCHandle.Alloc(searches, GCHandleType.Pinned);
         var context = (Vmmi.VMMDLL_MEM_SEARCH_CONTEXT*)NativeMemory.Alloc((nuint)sizeof(Vmmi.VMMDLL_MEM_SEARCH_CONTEXT));
         try
         {
-            Vmmi.SearchResultCallback del = SearchResultCallback; // Prevent delegate from being GC'ed during the call.
-            *context = new Vmmi.VMMDLL_MEM_SEARCH_CONTEXT
+            fixed (void* pSearches = searches)
             {
-                dwVersion = VMMDLL_MEM_SEARCH_VERSION,
-                vaMin = addr_min,
-                vaMax = addr_max,
-                cMaxResult = cMaxResult,
-                ReadFlags = (uint)readFlags,
-                pfnResultOptCB = Marshal.GetFunctionPointerForDelegate(del)
-            };
-            context->cSearch = (uint)searches.Length;
-            context->search = hSearches.AddrOfPinnedObject();
-            var ctReg = ct.Register(() =>
-            {
-                context->fAbortRequested = 1;
-            });
-            try
-            {
-                result.IsSuccess = Vmmi.VMMDLL_MemSearch(vmm, pid, context, IntPtr.Zero, IntPtr.Zero);
-            }
-            finally
-            {
-                // IMPORTANT: Ensure we unregister the cancellation token callback before the context is freed.
-                // This will block (WaitForCallbackIfNecessary) until the callback is completed (if it is already in progress).
-                ctReg.Dispose();
-            }
-
-            ct.ThrowIfCancellationRequested();
-            return result;
-
-            bool SearchResultCallback(Vmmi.VMMDLL_MEM_SEARCH_CONTEXT ctx, ulong va, uint iSearch)
-            {
-                var e = new SearchResult.Entry
+                Vmmi.SearchResultCallback del = SearchResultCallback; // Prevent delegate from being GC'ed during the call.
+                *context = new Vmmi.VMMDLL_MEM_SEARCH_CONTEXT
                 {
-                    Address = va,
-                    SearchTermId = iSearch
+                    dwVersion = VMMDLL_MEM_SEARCH_VERSION,
+                    vaMin = addr_min,
+                    vaMax = addr_max,
+                    cMaxResult = cMaxResult,
+                    ReadFlags = (uint)readFlags,
+                    pfnResultOptCB = Marshal.GetFunctionPointerForDelegate(del),
+                    cSearch = (uint)searches.Length,
+                    search = pSearches
                 };
-                result._results.Add(e);
-                return result._results.Count < ctx.cMaxResult;
+                var ctReg = ct.Register(() =>
+                {
+                    context->fAbortRequested = 1;
+                });
+                try
+                {
+                    result.IsSuccess = Vmmi.VMMDLL_MemSearch(vmm, pid, context, IntPtr.Zero, IntPtr.Zero);
+                }
+                finally
+                {
+                    // IMPORTANT: Ensure we unregister the cancellation token callback before the context is freed.
+                    // This will block (WaitForCallbackIfNecessary) until the callback is completed (if it is already in progress).
+                    ctReg.Dispose();
+                }
+
+                ct.ThrowIfCancellationRequested();
+                return result;
+
+                bool SearchResultCallback(Vmmi.VMMDLL_MEM_SEARCH_CONTEXT ctx, ulong va, uint iSearch)
+                {
+                    var e = new SearchResult.Entry
+                    {
+                        Address = va,
+                        SearchTermId = iSearch
+                    };
+                    result._results.Add(e);
+                    return result._results.Count < ctx.cMaxResult;
+                }
             }
         }
         finally
         {
             NativeMemory.Free(context);
-            hSearches.Free();
         }
     }
 
