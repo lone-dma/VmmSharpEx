@@ -17,6 +17,7 @@
 
 using Collections.Pooled;
 using System.Buffers;
+using System.Net;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -24,6 +25,7 @@ using VmmSharpEx.Internal;
 using VmmSharpEx.Options;
 using VmmSharpEx.Refresh;
 using VmmSharpEx.Scatter;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace VmmSharpEx;
 
@@ -580,6 +582,43 @@ public sealed partial class Vmm : IDisposable
             if (rentedChars is not null)
                 ArrayPool<char>.Shared.Return(rentedChars);
         }
+    }
+
+    /// <summary>
+    /// Read a single 4096-byte page of memory.
+    /// </summary>
+    /// <param name="pid">PID of target process, (DWORD)-1 to read physical memory.</param>
+    /// <param name="qwA">Page address to read from.</param>
+    /// <returns>Byte array on success; otherwise null.</returns>
+    public unsafe byte[]? MemReadPage(uint pid, ulong qwA)
+    {
+        var arr = new byte[0x1000];
+        fixed (byte* pb = arr)
+        {
+            if (!Vmmi.VMMDLL_MemReadPage(_handle, pid, qwA, pb))
+                return null;
+        }
+        return arr;
+    }
+
+    /// <summary>
+    /// Read a single 4096-byte page of memory (Pooled).
+    /// </summary>
+    /// <param name="pid">PID of target process, (DWORD)-1 to read physical memory.</param>
+    /// <param name="qwA">Page address to read from.</param>
+    /// <returns>Pooled array on success; otherwise null.</returns>
+    public unsafe IMemoryOwner<byte>? MemReadPagePooled(uint pid, ulong qwA)
+    {
+        var pooled = new PooledMemory<byte>(0x1000);
+        fixed (byte* pb = pooled.Memory.Span)
+        {
+            if (!Vmmi.VMMDLL_MemReadPage(_handle, pid, qwA, pb))
+            {
+                pooled.Dispose();
+                return null;
+            }
+        }
+        return pooled;
     }
 
     /// <summary>
@@ -3490,20 +3529,6 @@ public sealed partial class Vmm : IDisposable
     }
 
     /// <summary>
-    /// Create a <see cref="VmmSearch"/> object for searching memory.
-    /// </summary>
-    /// <param name="pid">Process ID (PID) for this operation.</param>
-    /// <param name="addr_min">Minimum address to search (inclusive).</param>
-    /// <param name="addr_max">Maximum address to search (inclusive).</param>
-    /// <param name="cMaxResult">Maximum number of results to collect (0 = unlimited).</param>
-    /// <param name="readFlags">Optional read flags passed to the search engine.</param>
-    /// <returns>A configured <see cref="VmmSearch"/> instance.</returns>
-    public VmmSearch CreateSearch(uint pid, ulong addr_min = 0, ulong addr_max = ulong.MaxValue, uint cMaxResult = 0, uint readFlags = 0)
-    {
-        return new VmmSearch(this, pid, addr_min, addr_max, cMaxResult, readFlags);
-    }
-
-    /// <summary>
     /// Throw an exception if memory writing is disabled.
     /// </summary>
     /// <exception cref="VmmException">Thrown when memory writing is disabled.</exception>
@@ -3514,6 +3539,58 @@ public sealed partial class Vmm : IDisposable
         {
             throw new VmmException("Memory Writing is Disabled! This operation may not proceed.");
         }
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct VMMDLL_WIN_THUNKINFO_IAT
+    {
+        private int _fValid; // WIN32 BOOL
+        public bool fValid
+        {
+            readonly get => _fValid != 0;
+            set => _fValid = value ? 1 : 0;
+        }
+        private int _f32; // WIN32 BOOL
+        /// <summary>
+        /// if TRUE fn is a 32-bit/4-byte entry, otherwise 64-bit/8-byte entry.
+        /// </summary>
+        public bool f32
+        {
+            readonly get => _f32 != 0;
+            set => _f32 = value ? 1 : 0;
+        }
+        /// <summary>
+        /// address of import address table 'thunk'.
+        /// </summary>        
+        public ulong vaThunk;
+        /// <summary>
+        /// value if import address table 'thunk' == address of imported function.
+        /// </summary>        
+        public ulong vaFunction;
+        /// <summary>
+        /// address of name string for imported module.
+        /// </summary>        
+        public ulong vaNameModule;
+        /// <summary>
+        /// address of name string for imported function.
+        /// </summary>
+        public ulong vaNameFunction;
+    }
+
+    /// <summary>
+    /// Retrieve information about the import address table IAT thunk for an imported
+    /// function.This includes the virtual address of the IAT thunk which is useful
+    /// for hooking.
+    /// </summary>
+    /// <param name="dwPID"></param>
+    /// <param name="wszModuleName"></param>
+    /// <param name="szImportModuleName"></param>
+    /// <param name="szImportFunctionName"></param>
+    /// <param name="pThunkInfoIAT"></param>
+    /// <returns><see langword="true"/> if the call was successful, otherwise <see langword="false"/>.</returns>
+    public bool WinGetThunkInfoIAT(uint dwPID, string wszModuleName, string szImportModuleName, string szImportFunctionName, out VMMDLL_WIN_THUNKINFO_IAT pThunkInfoIAT)
+    {
+        return Vmmi.VMMDLL_WinGetThunkInfoIATW(_handle, dwPID, wszModuleName, szImportModuleName, szImportFunctionName, out pThunkInfoIAT);
     }
 
     #endregion // Utility functionality

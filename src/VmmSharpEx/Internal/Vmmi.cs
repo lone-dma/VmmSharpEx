@@ -47,7 +47,6 @@ internal static partial class Vmmi
     public const uint VMMDLL_MAP_VM_VERSION = 2;
     public const uint VMMDLL_MAP_PFN_VERSION = 1;
     public const uint VMMDLL_MAP_SERVICE_VERSION = 3;
-    public const uint VMMDLL_MEM_SEARCH_VERSION = 0xfe3e0003;
     public const uint VMMDLL_REGISTRY_HIVE_INFORMATION_VERSION = 4;
 
     public const uint VMMDLL_VFS_FILELIST_EXINFO_VERSION = 1;
@@ -1000,6 +999,14 @@ internal static partial class Vmmi
         out uint pcbReadOpt,
         VmmFlags flags);
 
+    [LibraryImport("vmm.dll", EntryPoint = "VMMDLL_MemReadPage")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static unsafe partial bool VMMDLL_MemReadPage(
+        IntPtr hVMM,
+        uint dwPID,
+        ulong qwA,
+        byte* pbPage);
+
     [LibraryImport("vmm.dll", EntryPoint = "VMMDLL_MemPrefetchPages")]
     [return: MarshalAs(UnmanagedType.Bool)]
     public static unsafe partial bool VMMDLL_MemPrefetchPages(
@@ -1458,6 +1465,8 @@ internal static partial class Vmmi
         [MarshalAs(UnmanagedType.LPStr)] string uszFormat,
         [MarshalAs(UnmanagedType.LPUTF8Str)] string uszTextToLog);
 
+    // Misc
+
     [LibraryImport("vmm.dll", EntryPoint = "VMMDLL_LogCallback")]
     [return: MarshalAs(UnmanagedType.Bool)]
     public static partial bool VMMDLL_LogCallback(
@@ -1471,6 +1480,17 @@ internal static partial class Vmmi
         VmmMemCallbackType tp,
         IntPtr ctxUser,
         Vmm.VMMDLL_MEM_CALLBACK_PFN pfnCB);
+
+    [LibraryImport("vmm.dll", EntryPoint = "VMMDLL_WinGetThunkInfoIATW", StringMarshalling = StringMarshalling.Utf16)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static partial bool VMMDLL_WinGetThunkInfoIATW(
+        IntPtr hVMM,
+        uint dwPID,
+        [MarshalAs(UnmanagedType.LPWStr)] string wszModuleName,
+        [MarshalAs(UnmanagedType.LPStr)] string szImportModuleName,
+        [MarshalAs(UnmanagedType.LPStr)] string szImportFunctionName,
+        out Vmm.VMMDLL_WIN_THUNKINFO_IAT pThunkInfoIAT
+    );
 
     #endregion
 }

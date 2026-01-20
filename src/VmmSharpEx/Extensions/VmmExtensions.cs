@@ -243,20 +243,25 @@ namespace VmmSharpEx.Extensions
                     skipBytes[i] = 0;
                 }
             }
-            using var vmmSearch = vmm.CreateSearch(
+            var entries = new VmmSearch.SearchItem[]
+            {
+                new VmmSearch.SearchItem
+                {
+                    Search = searchBytes,
+                    SkipMask = skipBytes
+                }
+            };
+            var vmmSearch = vmm.MemSearch(
                 pid: pid,
+                searchItems: entries,
                 addr_min: addrMin,
                 addr_max: addrMax,
                 cMaxResult: 1);
-            vmmSearch.AddEntry(
-                search: searchBytes,
-                skipmask: skipBytes);
-            var result = vmmSearch.GetResult();
-            if (result.Results.Count == 0)
+            if (vmmSearch.Results.Count == 0)
             {
                 return 0;
             }
-            return result.Results.First().Address;
+            return vmmSearch.Results.First().Address;
         }
     }
 }

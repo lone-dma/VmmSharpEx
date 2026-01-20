@@ -27,38 +27,54 @@ public class VmmSharpEx_VmmSearchTests : CITest
     public void VmmSearch_Success()
     {
         var randomBytes = RandomNumberGenerator.GetBytes(16);
-        _vmm.MemWriteArray(_pid, _fixture.Heap + (uint)_fixture.HeapLen / 2, randomBytes);
-        var search = _vmm.CreateSearch(_pid);
-        Assert.NotNull(search);
+        var addr = _fixture.Heap + (uint)_fixture.HeapLen / 2;
+        _vmm.MemWriteArray(_pid, addr, randomBytes);
+        var addrMin = addr >= 0x1000 ? addr - 0x1000UL : 0;
+        var addrMax = addr + 0x1000UL;
+
         byte[] skipMask = [
             0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0xff, 0xff,
             0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0];
-        search.AddEntry(randomBytes, skipMask);
-        var result = search.GetResult();
-        Assert.NotNull(result);
-        Assert.True(result.IsCompleted);
-        Assert.True(result.IsCompletedSuccess);
-        Assert.True(result.Results.Count > 0);
-        search.Dispose();
+
+        var items = new[]
+        {
+            new VmmSearch.SearchItem(randomBytes, skipMask)
+        };
+
+        var result = _vmm.MemSearch(
+            pid: _pid,
+            searchItems: items,
+            addr_min: addrMin,
+            addr_max: addrMax);
+
+        Assert.NotEmpty(result.Results);
     }
 
     [Fact]
     public async Task VmmSearch_Async()
     {
         var randomBytes = RandomNumberGenerator.GetBytes(16);
-        _vmm.MemWriteArray(_pid, _fixture.Heap + (uint)_fixture.HeapLen / 2, randomBytes);
-        var search = _vmm.CreateSearch(_pid);
-        Assert.NotNull(search);
+        var addr = _fixture.Heap + (uint)_fixture.HeapLen / 2;
+        _vmm.MemWriteArray(_pid, addr, randomBytes);
+        var addrMin = addr >= 0x1000 ? addr - 0x1000UL : 0;
+        var addrMax = addr + 0x1000UL;
+
         byte[] skipMask = [
             0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0xff, 0xff,
             0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0];
-        search.AddEntry(randomBytes, skipMask);
-        var result = await search.GetResultAsync();
-        Assert.NotNull(result);
-        Assert.True(result.IsCompleted);
-        Assert.True(result.IsCompletedSuccess);
-        Assert.True(result.Results.Count > 0);
-        search.Dispose();
+
+        var items = new[]
+        {
+            new VmmSearch.SearchItem(randomBytes, skipMask)
+        };
+
+        var result = await _vmm.MemSearchAsync(
+            pid: _pid,
+            searchItems: items,
+            addr_min: addrMin,
+            addr_max: addrMax);
+
+        Assert.NotEmpty(result.Results);
     }
 
     [Fact]
@@ -69,37 +85,38 @@ public class VmmSharpEx_VmmSearchTests : CITest
         randomBytes.CopyTo(searchBytes);
         randomBytes[0] = 0xFF;
         searchBytes[0] = 0x00;
-        _vmm.MemWriteArray(_pid, _fixture.Heap + (uint)_fixture.HeapLen / 2, randomBytes);
-        var search = _vmm.CreateSearch(_pid);
-        Assert.NotNull(search);
+        var addr = _fixture.Heap + (uint)_fixture.HeapLen / 2;
+        _vmm.MemWriteArray(_pid, addr, randomBytes);
         byte[] skipMask = [
             0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0xff, 0xff,
             0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0];
-        search.AddEntry(searchBytes, skipMask);
-        var result = search.GetResult();
-        Assert.NotNull(result);
-        Assert.True(result.IsCompleted);
-        Assert.True(result.IsCompletedSuccess);
+
+        var items = new[]
+        {
+            new VmmSearch.SearchItem(searchBytes, skipMask)
+        };
+
+        var result = _vmm.MemSearch(
+            pid: _pid,
+            searchItems: items,
+            addr_min: addr,
+            addr_max: addr + (ulong)randomBytes.Length);
+
         Assert.Empty(result.Results);
-        search.Dispose();
     }
 
     [Fact]
     public void VmmSearch_Disposed()
     {
-        var search = _vmm.CreateSearch(_pid);
-        search.Dispose();
-        Assert.Throws<ObjectDisposedException>(() => search.Poll());
+        // Legacy CreateSearch-based API removed; verify argument validation still works.
+        Assert.Throws<ArgumentNullException>(() => _vmm.MemSearch(_pid, null!));
     }
 
     [Fact]
     public void VmmSearch_EmptySearch()
     {
-        using var search = _vmm.CreateSearch(_pid);
-        var result = search.GetResult();
-        Assert.NotNull(result);
-        Assert.True(result.IsCompleted);
-        Assert.False(result.IsCompletedSuccess);
+        var result = _vmm.MemSearch(_pid, Array.Empty<VmmSearch.SearchItem>());
+        Assert.False(result.IsSuccess);
         Assert.Empty(result.Results);
     }
 }
