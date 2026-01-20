@@ -904,8 +904,8 @@ internal static partial class Vmmi
         private readonly IntPtr pvUserPtrOpt;
         public IntPtr pfnResultOptCB;
         public ulong ReadFlags;
-        private readonly bool fForcePTE;
-        private readonly bool fForceVAD;
+        private readonly int fForcePTE;
+        private readonly int fForceVAD;
         private readonly IntPtr pfnFilterOptCB;
     }
 
