@@ -885,12 +885,11 @@ internal static partial class Vmmi
     [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
     public delegate bool SearchResultCallback(VMMDLL_MEM_SEARCH_CONTEXT ctx, ulong va, uint iSearch);
 
-    [StructLayout(LayoutKind.Sequential, Pack = 8)]
+    [StructLayout(LayoutKind.Sequential)]
     public unsafe struct VMMDLL_MEM_SEARCH_CONTEXT
     {
         public uint dwVersion;
-        private readonly uint _Filler01;
-        private readonly uint _Filler02;
+        private fixed uint _filler[2];
         public int fAbortRequested;
         public uint cMaxResult;
         public uint cSearch;

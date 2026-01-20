@@ -119,4 +119,17 @@ public class VmmSharpEx_VmmSearchTests : CITest
         Assert.False(result.IsSuccess);
         Assert.Empty(result.Results);
     }
+
+    [Fact]
+    public async Task VmmSearch_Cancellation()
+    {
+        using var cts = new CancellationTokenSource();
+        cts.Cancel();
+
+        Assert.Throws<OperationCanceledException>(() =>
+            _vmm.MemSearch(_pid, Array.Empty<VmmSearch.SearchItem>(), ct: cts.Token));
+
+        await Assert.ThrowsAsync<OperationCanceledException>(() =>
+            _vmm.MemSearchAsync(_pid, Array.Empty<VmmSearch.SearchItem>(), ct: cts.Token));
+    }
 }
