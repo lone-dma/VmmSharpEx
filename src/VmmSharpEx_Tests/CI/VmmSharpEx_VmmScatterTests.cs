@@ -42,12 +42,10 @@ public unsafe class VmmSharpEx_VmmScatterTests : CITest
         // Write known pattern first.
         var pattern = Enumerable.Range(0, 32).Select(i => (byte)(i + 0x20)).ToArray();
         Assert.True(_vmm.MemWriteArray<byte>(Vmm.PID_PHYSICALMEMORY, addr, pattern));
-        Assert.True(scatter.PrepareRead(addr, (uint)pattern.Length));
-        Assert.True(scatter.IsPrepared);
+        Assert.True(scatter.PrepareRead(addr, pattern.Length));
         scatter.Execute();
-        var bytes = scatter.Read(addr, (uint)pattern.Length, out uint cbRead);
+        var bytes = scatter.Read(addr, pattern.Length);
         Assert.NotNull(bytes);
-        Assert.Equal((uint)pattern.Length, cbRead);
         Assert.Equal(pattern, bytes);
     }
 
@@ -94,32 +92,6 @@ public unsafe class VmmSharpEx_VmmScatterTests : CITest
     }
 
     [Fact]
-    public void Scatter_PrepareWriteValue_ThenReadBack()
-    {
-        using var scatter = CreateScatter();
-        ulong addr = HeapAddr(0x500);
-        const ulong value = 0xDEADBEEFCAFEBABEUL;
-        Assert.True(scatter.PrepareWriteValue(addr, value));
-        scatter.Execute();
-        Assert.True(_vmm.MemReadValue<ulong>(Vmm.PID_PHYSICALMEMORY, addr, out var actual));
-        Assert.Equal(value, actual);
-    }
-
-    [Fact]
-    public void Scatter_PrepareWriteSpan_ThenReadBack()
-    {
-        using var scatter = CreateScatter();
-        ulong addr = HeapAddr(0x600);
-        var source = Enumerable.Range(0, 40).Select(i => (byte)(i ^ 0xAA)).ToArray();
-        Assert.True(scatter.PrepareWriteSpan<byte>(addr, source));
-        scatter.Execute();
-        var read = _vmm.MemRead(Vmm.PID_PHYSICALMEMORY, addr, (uint)source.Length, out uint cbRead);
-        Assert.NotNull(read);
-        Assert.Equal((uint)source.Length, cbRead);
-        Assert.Equal(source, read);
-    }
-
-    [Fact]
     public void Scatter_PrepareReadPtr_ReadPtr()
     {
         using var scatter = CreateScatter();
@@ -144,41 +116,10 @@ public unsafe class VmmSharpEx_VmmScatterTests : CITest
         const string testStr = "ScatterStringTest";
         var bytes = Encoding.Unicode.GetBytes(testStr + '\0');
         Assert.True(_vmm.MemWriteArray<byte>(Vmm.PID_PHYSICALMEMORY, addr, bytes));
-        Assert.True(scatter.PrepareRead(addr, (uint)bytes.Length));
+        Assert.True(scatter.PrepareRead(addr, bytes.Length));
         scatter.Execute();
         var read = scatter.ReadString(addr, bytes.Length, Encoding.Unicode);
         Assert.Equal(testStr, read);
-    }
-
-    [Fact]
-    public void Scatter_MultipleMixedOperations_SingleExecute()
-    {
-        using var scatter = CreateScatter();
-        ulong addrValue = HeapAddr(0x800);
-        ulong addrArray = HeapAddr(0x900);
-        ulong addrBytes = HeapAddr(0xA00);
-        const int value = 0x55667788;
-        var arraySrc = Enumerable.Range(1, 16).Select(i => (uint)(i * 5)).ToArray();
-        var bytesSrc = Enumerable.Range(0, 24).Select(i => (byte)(0xF0 + i)).ToArray();
-        Assert.True(scatter.PrepareWriteValue(addrValue, value));
-        Assert.True(scatter.PrepareWriteSpan<uint>(addrArray, arraySrc));
-        Assert.True(scatter.PrepareWriteSpan<byte>(addrBytes, bytesSrc));
-        scatter.Execute();
-        // Prepare reads for same locations.
-        Assert.True(scatter.PrepareReadValue<int>(addrValue));
-        Assert.True(scatter.PrepareReadArray<uint>(addrArray, arraySrc.Length));
-        Assert.True(scatter.PrepareRead(addrBytes, (uint)bytesSrc.Length));
-        scatter.Execute();
-        Assert.True(scatter.ReadValue<int>(addrValue, out var valueRead));
-        Assert.Equal(value, valueRead);
-        using var arrRead = scatter.ReadPooled<uint>(addrArray, arraySrc.Length);
-        Assert.NotNull(arrRead);
-        Assert.Equal(arraySrc.Length, arrRead.Memory.Span.Length);
-        for (int i = 0; i < arraySrc.Length; i++) Assert.Equal(arraySrc[i], arrRead.Memory.Span[i]);
-        var bytesRead = scatter.Read(addrBytes, (uint)bytesSrc.Length, out var cbRead);
-        Assert.NotNull(bytesRead);
-        Assert.Equal((uint)bytesSrc.Length, cbRead);
-        Assert.Equal(bytesSrc, bytesRead);
     }
 
     [Fact]
@@ -190,20 +131,6 @@ public unsafe class VmmSharpEx_VmmScatterTests : CITest
         Assert.True(scatter.PrepareRead(HeapAddr(0xB00), 16));
         scatter.Execute();
         Assert.Equal(1, fired);
-    }
-
-    [Fact]
-    public void Scatter_Clear_ResetsState()
-    {
-        using var scatter = CreateScatter();
-        int fired = 0;
-        scatter.Completed += (_, __) => fired++;
-        Assert.True(scatter.PrepareRead(HeapAddr(0xC00), 8));
-        scatter.Clear();
-        Assert.False(scatter.IsPrepared);
-        // Execute should not fire event since nothing prepared.
-        scatter.Execute();
-        Assert.Equal(0, fired);
     }
 
     [Fact]

@@ -17,7 +17,6 @@
 
 using Collections.Pooled;
 using System.Buffers;
-using System.Net;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -25,7 +24,6 @@ using VmmSharpEx.Internal;
 using VmmSharpEx.Options;
 using VmmSharpEx.Refresh;
 using VmmSharpEx.Scatter;
-using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace VmmSharpEx;
 
@@ -486,6 +484,8 @@ public sealed partial class Vmm : IDisposable
     public unsafe T[]? MemReadArray<T>(uint pid, ulong va, int count, VmmFlags flags = VmmFlags.NONE)
         where T : unmanaged
     {
+        if (count <= 0)
+            return null;
         var array = new T[count];
         uint cb = checked((uint)sizeof(T) * (uint)count);
         fixed (T* pb = array)
@@ -510,6 +510,8 @@ public sealed partial class Vmm : IDisposable
     public unsafe IMemoryOwner<T>? MemReadPooled<T>(uint pid, ulong va, int count, VmmFlags flags = VmmFlags.NONE)
         where T : unmanaged
     {
+        if (count <= 0)
+            return null;
         var arr = new PooledMemory<T>(count);
         uint cb = checked((uint)sizeof(T) * (uint)count);
         fixed (T* pb = arr.Span)
@@ -3464,39 +3466,6 @@ public sealed partial class Vmm : IDisposable
     public void Log(string message, LogLevel logLevel = LogLevel.Info, uint MID = 0x80000011)
     {
         Vmmi.VMMDLL_Log(_handle, MID, logLevel, "%s", message);
-    }
-
-    /// <summary>
-    /// Delegate for VMM log callback functions.
-    /// Please make sure you root this delegate so it doesn't get garbage collected!
-    /// </summary>
-    /// <param name="hVMM">The <see cref="Vmm"/> native handle.</param>
-    /// <param name="MID">Module ID.</param>
-    /// <param name="uszModule">Module name.</param>
-    /// <param name="dwLogLevel">Logging severity level.</param>
-    /// <param name="uszLogMessage">Log message.</param>
-    public delegate void VMMDLL_LOG_CALLBACK_PFN(
-        IntPtr hVMM,
-        uint MID,
-        [MarshalAs(UnmanagedType.LPUTF8Str)]
-        string uszModule,
-        LogLevel dwLogLevel,
-        [MarshalAs(UnmanagedType.LPUTF8Str)]
-        string uszLogMessage);
-
-    /// <summary>
-    /// Register or unregister an optional log callback function.
-    /// When vmm logs an action which is visible according to current logging
-    /// configuration the registered callback function will be called with details.
-    /// To clear an already registered callback function specify <see langword="null"/> as pfnCB.
-    /// Callback logging will follow file logging configuration even if no log file
-    /// is specified when a callback function is registered.
-    /// </summary>
-    /// <param name="pfnCB">The callback function to register, or <see langword="null"/> to unregister an existing callback.</param>
-    /// <returns><see langword="true"/> if the callback was successfully registered/unregistered, otherwise <see langword="false"/>.</returns>
-    public bool LogCallback(VMMDLL_LOG_CALLBACK_PFN? pfnCB)
-    {
-        return Vmmi.VMMDLL_LogCallback(_handle, pfnCB);
     }
 
     /// <summary>

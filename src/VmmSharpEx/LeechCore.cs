@@ -235,6 +235,8 @@ public sealed class LeechCore : IDisposable
     public unsafe T[]? ReadArray<T>(ulong pa, int count)
         where T : unmanaged
     {
+        if (count <= 0)
+            return null;
         var arr = new T[count];
         uint cb = checked((uint)sizeof(T) * (uint)count);
         fixed (T* pb = arr)
@@ -257,6 +259,8 @@ public sealed class LeechCore : IDisposable
     public unsafe IMemoryOwner<T>? ReadPooled<T>(ulong pa, int count)
         where T : unmanaged
     {
+        if (count <= 0)
+            return null;
         var arr = new PooledMemory<T>(count);
         uint cb = checked((uint)sizeof(T) * (uint)count);
         fixed (T* pb = arr.Span)

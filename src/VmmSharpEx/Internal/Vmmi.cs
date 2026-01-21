@@ -1032,59 +1032,6 @@ internal static partial class Vmmi
         out ulong pqwPA
     );
 
-    // MEMORY NEW SCATTER READ/WRITE FUNCTIONALITY BELOW:
-
-    [LibraryImport("vmm.dll", EntryPoint = "VMMDLL_Scatter_Initialize")]
-    public static unsafe partial IntPtr VMMDLL_Scatter_Initialize(
-        IntPtr hVMM,
-        uint dwPID,
-        VmmFlags flags);
-
-    [LibraryImport("vmm.dll", EntryPoint = "VMMDLL_Scatter_Prepare")]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    public static unsafe partial bool VMMDLL_Scatter_Prepare(
-        IntPtr hS,
-        ulong va,
-        uint cb);
-
-    [LibraryImport("vmm.dll", EntryPoint = "VMMDLL_Scatter_PrepareWrite")]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    public static unsafe partial bool VMMDLL_Scatter_PrepareWrite(
-        IntPtr hS,
-        ulong va,
-        byte* pb,
-        uint cb);
-
-    [LibraryImport("vmm.dll", EntryPoint = "VMMDLL_Scatter_ExecuteRead")]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    public static unsafe partial bool VMMDLL_Scatter_ExecuteRead(
-        IntPtr hS);
-
-    [LibraryImport("vmm.dll", EntryPoint = "VMMDLL_Scatter_Execute")]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    public static unsafe partial bool VMMDLL_Scatter_Execute(
-        IntPtr hS);
-
-    [LibraryImport("vmm.dll", EntryPoint = "VMMDLL_Scatter_Read")]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    public static unsafe partial bool VMMDLL_Scatter_Read(
-        IntPtr hS,
-        ulong va,
-        uint cb,
-        byte* pb,
-        out uint pcbRead);
-
-    [LibraryImport("vmm.dll", EntryPoint = "VMMDLL_Scatter_Clear")]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    public static unsafe partial bool VMMDLL_Scatter_Clear(
-        IntPtr hS,
-        uint dwPID,
-        VmmFlags flags);
-
-    [LibraryImport("vmm.dll", EntryPoint = "VMMDLL_Scatter_CloseHandle")]
-    public static unsafe partial void VMMDLL_Scatter_CloseHandle(
-        IntPtr hS);
-
     // PROCESS FUNCTIONALITY BELOW:
 
     [LibraryImport("vmm.dll", EntryPoint = "VMMDLL_PidList")]
@@ -1465,12 +1412,6 @@ internal static partial class Vmmi
         [MarshalAs(UnmanagedType.LPUTF8Str)] string uszTextToLog);
 
     // Misc
-
-    [LibraryImport("vmm.dll", EntryPoint = "VMMDLL_LogCallback")]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    public static partial bool VMMDLL_LogCallback(
-        IntPtr hVMM,
-        Vmm.VMMDLL_LOG_CALLBACK_PFN? pfnCB);
 
     [LibraryImport("vmm.dll", EntryPoint = "VMMDLL_MemCallback")]
     [return: MarshalAs(UnmanagedType.Bool)]
