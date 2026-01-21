@@ -402,7 +402,7 @@ public sealed class VmmScatter : IDisposable
             ArgumentNullException.ThrowIfNull(_scatter, nameof(_scatter));
             if (span.IsEmpty)
             {
-                return true;
+                return false;
             }
             var resultOut = MemoryMarshal.AsBytes(span); // Cast to byte span for processing
             int cbTotal = resultOut.Length; // After casting Length will be adjusted to number of byte elements for our total count of bytes
