@@ -358,19 +358,23 @@ public sealed class LeechCore : IDisposable
         }
         try
         {
-            var ppMEMs = (LcMemScatter**)pppMEMs.ToPointer();
-            for (var i = 0; i < pas.Length; i++)
+            LcMemScatter** ppMEMs = (LcMemScatter**)pppMEMs.ToPointer();
+            for (int i = 0; i < pas.Length; i++)
             {
-                var pMEM = ppMEMs[i];
-                pMEM->qwA = pas[i] & ~(ulong)0xfff;
+                LcMemScatter* pMEM = ppMEMs[i];
+                if (pMEM is null)
+                    continue;
+                pMEM->qwA = pas[i] & ~0xffful;
             }
 
             Lci.LcReadScatter(_handle, (uint)pas.Length, pppMEMs);
 
             var results = new PooledDictionary<ulong, ScatterData>(capacity: pas.Length);
-            for (var i = 0; i < pas.Length; i++)
+            for (int i = 0; i < pas.Length; i++)
             {
-                var pMEM = ppMEMs[i];
+                LcMemScatter* pMEM = ppMEMs[i];
+                if (pMEM is null)
+                    continue;
                 if (pMEM->f)
                 {
                     results[pMEM->qwA] = new ScatterData(pMEM->pb, pMEM->cb);
@@ -617,15 +621,17 @@ public sealed class LeechCore : IDisposable
     /// Native scatter descriptor mirroring <c>tdMEM_SCATTER</c> in <c>leechcore.h</c>.
     /// </summary>
     /// <remarks>
-    /// This type is laid out for blittable interop. Only the documented public fields are intended for use.
+    /// This type is laid out for blittable interop.
     /// </remarks>
-    [StructLayout(LayoutKind.Sequential, Pack = 8)]
+    [StructLayout(LayoutKind.Explicit, Size = 128)]
     public struct LcMemScatter
     {
         /// <summary>
         /// MEM_SCATTER_VERSION (internal).
         /// </summary>
+        [FieldOffset(0)]
         private readonly uint version;
+        [FieldOffset(4)]
         private readonly int _f; // WIN32 BOOL
         /// <summary>
         /// Indicates whether the entry contains valid data (<see langword="true"/>) or not.
@@ -634,22 +640,27 @@ public sealed class LeechCore : IDisposable
         /// <summary>
         /// Page-aligned address associated with this scatter entry.
         /// </summary>
+        [FieldOffset(8)]
         public ulong qwA;
         /// <summary>
         /// Pointer to the native buffer holding the page data.
         /// </summary>
+        [FieldOffset(16)]
         public readonly IntPtr pb;
         /// <summary>
         /// Size of the native page buffer in bytes.
         /// </summary>
+        [FieldOffset(24)]
         public readonly uint cb;
         /// <summary>
         /// Internal stack pointer (reserved).
         /// </summary>
+        [FieldOffset(28)]
         private readonly uint iStack;
         /// <summary>
         /// Internal stack storage (reserved).
         /// </summary>
+        [FieldOffset(32)]
         private unsafe fixed ulong vStack[12];
 
         /// <summary>
@@ -658,8 +669,9 @@ public sealed class LeechCore : IDisposable
         /// <remarks>
         /// DANGER: Do not access this memory after the memory is freed via <see cref="Lci.LcMemFree"/>.
         /// </remarks>
-        public readonly unsafe ReadOnlySpan<byte> Data =>
-            new ReadOnlySpan<byte>(pb.ToPointer(), checked((int)cb));
+        public readonly unsafe ReadOnlySpan<byte> Data => new(
+            pointer: pb.ToPointer(), 
+            length: checked((int)cb));
     }
 
     /// <summary>

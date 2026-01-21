@@ -354,18 +354,22 @@ public sealed partial class Vmm : IDisposable
         try
         {
             var ppMEMs = (LeechCore.LcMemScatter**)pppMEMs.ToPointer();
-            for (var i = 0; i < vas.Length; i++)
+            for (int i = 0; i < vas.Length; i++)
             {
                 var pMEM = ppMEMs[i];
+                if (pMEM is null)
+                    continue;
                 pMEM->qwA = vas[i] & ~0xffful;
             }
 
             _ = Vmmi.VMMDLL_MemReadScatter(_handle, pid, pppMEMs, (uint)vas.Length, flags);
 
             var results = new PooledDictionary<ulong, LeechCore.ScatterData>(capacity: vas.Length);
-            for (var i = 0; i < vas.Length; i++)
+            for (int i = 0; i < vas.Length; i++)
             {
                 var pMEM = ppMEMs[i];
+                if (pMEM is null)
+                    continue;
                 if (pMEM->f)
                 {
                     results[pMEM->qwA] = new LeechCore.ScatterData(pMEM->pb, pMEM->cb);

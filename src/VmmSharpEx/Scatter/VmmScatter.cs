@@ -77,7 +77,7 @@ public sealed class VmmScatter : IDisposable
     /// </remarks>
     /// <param name="address">Address of the memory to be read.</param>
     /// <param name="cb">Count of bytes to be read.</param>
-    /// <returns><see langword="true"/> if the operation is successful, otherwise <see langword="false"/>.</returns>
+    /// <returns><see langword="true"/> if successful, otherwise <see langword="false"/>.</returns>
     public bool PrepareRead(ulong address, int cb)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
@@ -110,7 +110,7 @@ public sealed class VmmScatter : IDisposable
     /// <typeparam name="T">The <see langword="unmanaged"/> struct type for this operation.</typeparam>
     /// <param name="address">Address of the array to be read.</param>
     /// <param name="count">Number of array elements to be read.</param>
-    /// <returns><see langword="true"/> if the operation is successful, otherwise <see langword="false"/>.</returns>
+    /// <returns><see langword="true"/> if successful, otherwise <see langword="false"/>.</returns>
     public unsafe bool PrepareReadArray<T>(ulong address, int count)
         where T : unmanaged
     {
@@ -128,7 +128,7 @@ public sealed class VmmScatter : IDisposable
     /// </remarks>
     /// <typeparam name="T">The <see langword="unmanaged"/> struct type for this operation.</typeparam>
     /// <param name="address">Address of the memory to be read.</param>
-    /// <returns><see langword="true"/> if the operation is successful, otherwise <see langword="false"/>.</returns>
+    /// <returns><see langword="true"/> if successful, otherwise <see langword="false"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public unsafe bool PrepareReadValue<T>(ulong address)
         where T : unmanaged, allows ref struct
@@ -143,7 +143,7 @@ public sealed class VmmScatter : IDisposable
     /// Corresponds with the <see cref="ReadPtr(ulong, out VmmPointer)"/> method, that should be called after <see cref="Execute"/>.
     /// </remarks>
     /// <param name="address">Address of the memory to be read.</param>
-    /// <returns><see langword="true"/> if the operation is successful, otherwise <see langword="false"/>.</returns>
+    /// <returns><see langword="true"/> if successful, otherwise <see langword="false"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public unsafe bool PrepareReadPtr(ulong address)
     {
@@ -187,10 +187,10 @@ public sealed class VmmScatter : IDisposable
     {
         if (cb <= 0)
             return null;
-        var arr = new byte[cb];
-        if (!ReadSpanInternal(address, arr))
+        var array = new byte[cb];
+        if (!ReadSpanInternal(address, array))
             return null;
-        return arr;
+        return array;
     }
 
     /// <summary>
@@ -199,7 +199,7 @@ public sealed class VmmScatter : IDisposable
     /// <param name="address">Address to read from.</param>
     /// <param name="cb">Count of bytes to be read.</param>
     /// <param name="pb">Pointer to buffer to receive read. You must make sure the buffer is pinned/fixed.</param>
-    /// <returns>TRUE if successful, otherwise FALSE.</returns>
+    /// <returns><see langword="true"/> if successful, otherwise <see langword="false"/>.</returns>
     public unsafe bool Read(ulong address, int cb, void* pb)
     {
         if (cb <= 0)
@@ -214,7 +214,7 @@ public sealed class VmmScatter : IDisposable
     /// <param name="address">Address to read from.</param>
     /// <param name="cb">Count of bytes to be read.</param>
     /// <param name="pb">Pointer to buffer to receive read. You must make sure the buffer is pinned/fixed.</param>
-    /// <returns>TRUE if successful, otherwise FALSE.</returns>
+    /// <returns><see langword="true"/> if successful, otherwise <see langword="false"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public unsafe bool Read(ulong address, int cb, IntPtr pb)
     {
@@ -230,7 +230,7 @@ public sealed class VmmScatter : IDisposable
     /// <typeparam name="T">The <see langword="unmanaged"/> struct type for this operation.</typeparam>
     /// <param name="address">Address to read from.</param>
     /// <param name="result">Field in which the span <typeparamref name="T"/> is populated. If the read fails this will be <see langword="default"/>.</param>
-    /// <returns><see langword="true"/> if the operation is successful, otherwise <see langword="false"/>.</returns>
+    /// <returns><see langword="true"/> if successful, otherwise <see langword="false"/>.</returns>
     public unsafe bool ReadValue<T>(ulong address, out T result)
         where T : unmanaged, allows ref struct
     {
@@ -250,14 +250,17 @@ public sealed class VmmScatter : IDisposable
     /// </remarks>
     /// <param name="address">Address to read from.</param>
     /// <param name="result">Field in which the span <see cref="VmmPointer"/> is populated. If the read fails this will be <see langword="default"/>.</param>
-    /// <returns><see langword="true"/> if the operation is successful, otherwise <see langword="false"/>.</returns>
+    /// <returns><see langword="true"/> if successful, otherwise <see langword="false"/>.</returns>
     public bool ReadPtr(ulong address, out VmmPointer result)
     {
-        if (ReadValue(address, out result) && result.IsValidVA)
+        if (!ReadValue(address, out result) ||
+            (_isKernel && !result.IsValidKernelVA) ||
+            (_isUser && !result.IsValidUserVA) ||
+            result == 0)
         {
-            return true;
+            return false;
         }
-        return false;
+        return true;
     }
 
     /// <summary>
@@ -296,13 +299,13 @@ public sealed class VmmScatter : IDisposable
     {
         if (count <= 0)
             return null;
-        var data = new PooledMemory<T>(count);
-        if (!ReadSpanInternal(address, data.Span))
+        var pooled = new PooledMemory<T>(count);
+        if (!ReadSpanInternal(address, pooled.Span))
         {
-            data.Dispose();
+            pooled.Dispose();
             return null;
         }
-        return data;
+        return pooled;
     }
 
     /// <summary>
@@ -314,7 +317,7 @@ public sealed class VmmScatter : IDisposable
     /// <typeparam name="T">The <see langword="unmanaged"/> struct type for this operation.</typeparam>
     /// <param name="address">Address to read from.</param>
     /// <param name="span">The span to read into.</param>
-    /// <returns><see langword="true"/> if the operation is successful, otherwise <see langword="false"/>.</returns>
+    /// <returns><see langword="true"/> if successful, otherwise <see langword="false"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool ReadSpan<T>(ulong address, Span<T> span)
         where T : unmanaged
@@ -391,7 +394,7 @@ public sealed class VmmScatter : IDisposable
     /// <typeparam name="T">Span type</typeparam>
     /// <param name="addr">Address of read.</param>
     /// <param name="span">Result buffer</param>
-    /// <returns>TRUE if successful, otherwise FALSE.</returns>
+    /// <returns><see langword="true"/> if successful, otherwise <see langword="false"/>.</returns>
     private bool ReadSpanInternal<T>(ulong addr, Span<T> span)
         where T : unmanaged
     {
@@ -403,8 +406,8 @@ public sealed class VmmScatter : IDisposable
             {
                 return false;
             }
-            var resultOut = MemoryMarshal.AsBytes(span); // Cast to byte span for processing
-            int cbTotal = resultOut.Length; // After casting Length will be adjusted to number of byte elements for our total count of bytes
+            var spanBytes = MemoryMarshal.AsBytes(span); // Cast to byte span for processing
+            int cbTotal = spanBytes.Length; // After casting Length will be adjusted to number of byte elements for our total count of bytes
             int pageOffset = (int)VmmUtilities.BYTE_OFFSET(addr); // Get object offset from the page start address
 
             int cb = Math.Min(cbTotal, 0x1000 - pageOffset); // bytes to read current page
@@ -420,7 +423,7 @@ public sealed class VmmScatter : IDisposable
                 {
                     scatter.Data
                         .Slice(pageOffset, cb)
-                        .CopyTo(resultOut.Slice(cbRead, cb)); // Copy bytes to buffer
+                        .CopyTo(spanBytes.Slice(cbRead, cb)); // Copy bytes to buffer
                     checked { cbRead += cb; }
                 }
                 else // read failed -> break
