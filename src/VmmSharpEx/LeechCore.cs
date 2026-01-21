@@ -350,7 +350,7 @@ public sealed class LeechCore : IDisposable
     /// <param name="pas">Page-aligned physical memory addresses.</param>
     /// <returns>An <see cref="LcScatterHandle"/> that owns the native buffers.</returns>
     /// <exception cref="VmmException">Thrown if the native scatter allocation fails.</exception>
-    public unsafe LcScatterHandle ReadScatter(params Span<ulong> pas)
+    public unsafe LcScatterHandle ReadScatter(params ReadOnlySpan<ulong> pas)
     {
         if (!Lci.LcAllocScatter1((uint)pas.Length, out var pppMEMs))
         {

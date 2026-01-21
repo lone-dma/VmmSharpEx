@@ -345,7 +345,7 @@ public sealed partial class Vmm : IDisposable
     /// <param name="vas">Page-aligned virtual addresses.</param>
     /// <returns>An <see cref="LeechCore.LcScatterHandle"/> owning the native buffers for the read pages.</returns>
     /// <exception cref="VmmException">Thrown if the native scatter allocation fails.</exception>
-    public unsafe LeechCore.LcScatterHandle MemReadScatter(uint pid, VmmFlags flags, params Span<ulong> vas)
+    public unsafe LeechCore.LcScatterHandle MemReadScatter(uint pid, VmmFlags flags, params ReadOnlySpan<ulong> vas)
     {
         if (!Lci.LcAllocScatter1((uint)vas.Length, out var pppMEMs))
         {
