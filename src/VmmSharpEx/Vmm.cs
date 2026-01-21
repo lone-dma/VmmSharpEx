@@ -351,27 +351,34 @@ public sealed partial class Vmm : IDisposable
         {
             throw new VmmException("LcAllocScatter1 FAIL");
         }
-
-        var ppMEMs = (LeechCore.LcMemScatter**)pppMEMs.ToPointer();
-        for (var i = 0; i < vas.Length; i++)
+        try
         {
-            var pMEM = ppMEMs[i];
-            pMEM->qwA = vas[i] & ~0xffful;
-        }
-
-        _ = Vmmi.VMMDLL_MemReadScatter(_handle, pid, pppMEMs, (uint)vas.Length, flags);
-
-        var results = new PooledDictionary<ulong, LeechCore.ScatterData>(capacity: vas.Length);
-        for (var i = 0; i < vas.Length; i++)
-        {
-            var pMEM = ppMEMs[i];
-            if (pMEM->f)
+            var ppMEMs = (LeechCore.LcMemScatter**)pppMEMs.ToPointer();
+            for (var i = 0; i < vas.Length; i++)
             {
-                results[pMEM->qwA] = new LeechCore.ScatterData(pMEM->pb, pMEM->cb);
+                var pMEM = ppMEMs[i];
+                pMEM->qwA = vas[i] & ~0xffful;
             }
-        }
 
-        return new LeechCore.LcScatterHandle(results, pppMEMs);
+            _ = Vmmi.VMMDLL_MemReadScatter(_handle, pid, pppMEMs, (uint)vas.Length, flags);
+
+            var results = new PooledDictionary<ulong, LeechCore.ScatterData>(capacity: vas.Length);
+            for (var i = 0; i < vas.Length; i++)
+            {
+                var pMEM = ppMEMs[i];
+                if (pMEM->f)
+                {
+                    results[pMEM->qwA] = new LeechCore.ScatterData(pMEM->pb, pMEM->cb);
+                }
+            }
+
+            return new LeechCore.LcScatterHandle(results, pppMEMs);
+        }
+        catch
+        {
+            Lci.LcMemFree(pppMEMs.ToPointer());
+            throw;
+        }
     }
 
     /// <summary>

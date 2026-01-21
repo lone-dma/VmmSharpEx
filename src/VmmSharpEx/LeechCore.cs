@@ -356,27 +356,34 @@ public sealed class LeechCore : IDisposable
         {
             throw new VmmException("LcAllocScatter1 FAIL");
         }
-
-        var ppMEMs = (LcMemScatter**)pppMEMs.ToPointer();
-        for (var i = 0; i < pas.Length; i++)
+        try
         {
-            var pMEM = ppMEMs[i];
-            pMEM->qwA = pas[i] & ~(ulong)0xfff;
-        }
-
-        Lci.LcReadScatter(_handle, (uint)pas.Length, pppMEMs);
-
-        var results = new PooledDictionary<ulong, ScatterData>(capacity: pas.Length);
-        for (var i = 0; i < pas.Length; i++)
-        {
-            var pMEM = ppMEMs[i];
-            if (pMEM->f)
+            var ppMEMs = (LcMemScatter**)pppMEMs.ToPointer();
+            for (var i = 0; i < pas.Length; i++)
             {
-                results[pMEM->qwA] = new ScatterData(pMEM->pb, pMEM->cb);
+                var pMEM = ppMEMs[i];
+                pMEM->qwA = pas[i] & ~(ulong)0xfff;
             }
-        }
 
-        return new LcScatterHandle(results, pppMEMs);
+            Lci.LcReadScatter(_handle, (uint)pas.Length, pppMEMs);
+
+            var results = new PooledDictionary<ulong, ScatterData>(capacity: pas.Length);
+            for (var i = 0; i < pas.Length; i++)
+            {
+                var pMEM = ppMEMs[i];
+                if (pMEM->f)
+                {
+                    results[pMEM->qwA] = new ScatterData(pMEM->pb, pMEM->cb);
+                }
+            }
+
+            return new LcScatterHandle(results, pppMEMs);
+        }
+        catch
+        {
+            Lci.LcMemFree(pppMEMs.ToPointer());
+            throw;
+        }
     }
 
     /// <summary>

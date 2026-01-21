@@ -168,8 +168,7 @@ public sealed class VmmScatter : IDisposable
             _scatter?.Dispose(); // Clear previous scatter if any
             _scatter = null;
             using var prepared = _prepared.ToPooledMemory();
-            _scatter = _vmm.MemReadScatter(_pid, _flags, prepared.Span) ??
-                throw new VmmException("Scatter read operation failed.");
+            _scatter = _vmm.MemReadScatter(_pid, _flags, prepared.Span);
         }
         OnCompleted();
     }
