@@ -352,7 +352,7 @@ public sealed class LeechCore : IDisposable
     /// <exception cref="VmmException">Thrown if the native scatter allocation fails.</exception>
     public unsafe LcScatterHandle ReadScatter(params ReadOnlySpan<ulong> pas)
     {
-        if (!Lci.LcAllocScatter1((uint)pas.Length, out var pppMEMs))
+        if (!Lci.LcAllocScatter1((uint)pas.Length, out var pppMEMs) || pppMEMs == IntPtr.Zero)
         {
             throw new VmmException("LcAllocScatter1 FAIL");
         }

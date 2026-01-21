@@ -347,7 +347,7 @@ public sealed partial class Vmm : IDisposable
     /// <exception cref="VmmException">Thrown if the native scatter allocation fails.</exception>
     public unsafe LeechCore.LcScatterHandle MemReadScatter(uint pid, VmmFlags flags, params ReadOnlySpan<ulong> vas)
     {
-        if (!Lci.LcAllocScatter1((uint)vas.Length, out var pppMEMs))
+        if (!Lci.LcAllocScatter1((uint)vas.Length, out var pppMEMs) || pppMEMs == IntPtr.Zero)
         {
             throw new VmmException("LcAllocScatter1 FAIL");
         }
