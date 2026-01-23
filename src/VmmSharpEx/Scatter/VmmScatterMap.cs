@@ -11,12 +11,10 @@ namespace VmmSharpEx.Scatter
     /// <summary>
     /// Convenience mapping API that allows for multiple 'rounds' of <see cref="VmmScatterSlim"/> operations to be executed in sequence.
     /// </summary>
-    /// <remarks>
-    /// IMPORTANT: This API is **NOT THREAD SAFE**, you must keep operations synchronous or undefined behavior may occur.
-    /// </remarks>
     public sealed class VmmScatterMap<T> : IDisposable
         where T : IScatter<T>
     {
+        private readonly Lock _sync = new();
         private readonly PooledList<IScatter> _rounds = new(capacity: 16);
         private readonly Vmm _vmm;
         private readonly uint _pid;
@@ -44,10 +42,13 @@ namespace VmmSharpEx.Scatter
         /// <exception cref="VmmException"></exception>
         public T AddRound(VmmFlags flags = VmmFlags.NONE)
         {
-            ObjectDisposedException.ThrowIf(_disposed, this);
-            var round = T.Create(_vmm, _pid, flags);
-            _rounds.Add(round);
-            return round;
+            lock (_sync)
+            {
+                ObjectDisposedException.ThrowIf(_disposed, this);
+                var round = T.Create(_vmm, _pid, flags);
+                _rounds.Add(round);
+                return round;
+            }
         }
 
         /// <summary>
@@ -59,15 +60,17 @@ namespace VmmSharpEx.Scatter
         /// <exception cref="VmmException"></exception>
         public void Execute()
         {
-            ObjectDisposedException.ThrowIf(_disposed, this);
-            if (_rounds.Count > 0)
+            lock (_sync)
             {
+                ObjectDisposedException.ThrowIf(_disposed, this);
+                if (_rounds.Count == 0)
+                    return;
                 foreach (var round in _rounds)
                 {
                     round.Execute();
                 }
-                OnCompleted();
             }
+            OnCompleted();
         }
 
         public void Dispose()
@@ -75,11 +78,14 @@ namespace VmmSharpEx.Scatter
             if (Interlocked.Exchange(ref _disposed, true) == false)
             {
                 Completed = null;
-                foreach (var round in _rounds)
+                lock (_sync)
                 {
-                    round.Dispose();
+                    foreach (var round in _rounds)
+                    {
+                        round.Dispose();
+                    }
+                    _rounds.Dispose();
                 }
-                _rounds.Dispose();
             }
         }
     }
