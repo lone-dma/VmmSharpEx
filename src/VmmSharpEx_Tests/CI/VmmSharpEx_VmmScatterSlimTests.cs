@@ -12,13 +12,13 @@ using VmmSharpEx_Tests.CI.Internal;
 namespace VmmSharpEx_Tests.CI;
 
 [Collection(nameof(CICollection))]
-public unsafe class VmmSharpEx_VmmScatterTests : CITest
+public unsafe class VmmSharpEx_VmmScatterSlimTests : CITest
 {
     private readonly Vmm _vmm;
     private readonly ulong _heapBase;
     private readonly int _heapLen;
 
-    public VmmSharpEx_VmmScatterTests(CIVmmFixture fixture)
+    public VmmSharpEx_VmmScatterSlimTests(CIVmmFixture fixture)
     {
         _vmm = fixture.Vmm;
         _heapBase = fixture.Heap;
@@ -32,7 +32,7 @@ public unsafe class VmmSharpEx_VmmScatterTests : CITest
         return _heapBase + (ulong)offset;
     }
 
-    private VmmScatter CreateScatter(VmmFlags flags = VmmFlags.NONE) => _vmm.CreateScatter(Vmm.PID_PHYSICALMEMORY, flags);
+    private VmmScatterSlim CreateScatter(VmmFlags flags = VmmFlags.NONE) => new VmmScatterSlim(_vmm, Vmm.PID_PHYSICALMEMORY, flags);
 
     [Fact]
     public void Scatter_PrepareRead_Execute_ReadBytes()

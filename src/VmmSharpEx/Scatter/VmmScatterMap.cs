@@ -9,14 +9,15 @@ using VmmSharpEx.Options;
 namespace VmmSharpEx.Scatter
 {
     /// <summary>
-    /// Convenience mapping API that allows for multiple 'rounds' of <see cref="VmmScatter"/> operations to be executed in sequence.
+    /// Convenience mapping API that allows for multiple 'rounds' of <see cref="VmmScatterSlim"/> operations to be executed in sequence.
     /// </summary>
     /// <remarks>
     /// IMPORTANT: This API is **NOT THREAD SAFE**, you must keep operations synchronous or undefined behavior may occur.
     /// </remarks>
-    public sealed class VmmScatterMap : IDisposable
+    public sealed class VmmScatterMap<T> : IDisposable
+        where T : IScatter<T>
     {
-        private readonly PooledList<VmmScatter> _rounds = new(capacity: 16);
+        private readonly PooledList<IScatter> _rounds = new(capacity: 16);
         private readonly Vmm _vmm;
         private readonly uint _pid;
         private bool _disposed;
@@ -29,7 +30,7 @@ namespace VmmSharpEx.Scatter
 
         private VmmScatterMap() { throw new NotImplementedException(); }
 
-        internal VmmScatterMap(Vmm vmm, uint pid)
+        public VmmScatterMap(Vmm vmm, uint pid)
         {
             _vmm = vmm;
             _pid = pid;
@@ -39,12 +40,12 @@ namespace VmmSharpEx.Scatter
         /// Add a new scatter round to this map. Rounds will be executed in the order they are added when <see cref="Execute"/> is called.
         /// </summary>
         /// <param name="flags">Vmm Flag Options for this operation.</param>
-        /// <returns>Object reference to the added <see cref="VmmScatter"/> instance.</returns>
+        /// <returns>Object reference to the added <see cref="VmmScatterSlim"/> instance.</returns>
         /// <exception cref="VmmException"></exception>
-        public VmmScatter AddRound(VmmFlags flags = VmmFlags.NONE)
+        public T AddRound(VmmFlags flags = VmmFlags.NONE)
         {
             ObjectDisposedException.ThrowIf(_disposed, this);
-            var round = new VmmScatter(_vmm, _pid, flags);
+            var round = T.Create(_vmm, _pid, flags);
             _rounds.Add(round);
             return round;
         }

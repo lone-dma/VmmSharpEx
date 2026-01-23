@@ -23,7 +23,6 @@ using System.Text;
 using VmmSharpEx.Internal;
 using VmmSharpEx.Options;
 using VmmSharpEx.Refresh;
-using VmmSharpEx.Scatter;
 
 namespace VmmSharpEx;
 
@@ -742,28 +741,6 @@ public sealed partial class Vmm : IDisposable
     public bool MemVirt2Phys(uint pid, ulong va, out ulong pa)
     {
         return Vmmi.VMMDLL_MemVirt2Phys(_handle, pid, va, out pa);
-    }
-
-    /// <summary>
-    /// Initialize a scatter handle used to read/write multiple virtual memory regions in a single call.
-    /// </summary>
-    /// <param name="pid">PID to create <see cref="VmmScatter"/> over.</param>
-    /// <param name="flags">VMM flag options for this operation.</param>
-    /// <returns>Newly instantiated <see cref="VmmScatter"/> handle.</returns>
-    /// <exception cref="VmmException">Thrown if the underlying scatter handle cannot be created.</exception>
-    public VmmScatter CreateScatter(uint pid, VmmFlags flags = VmmFlags.NONE)
-    {
-        return new VmmScatter(this, pid, flags);
-    }
-
-    /// <summary>
-    /// Initialize a scatter map that can be used to coordinate multiple <see cref="VmmScatter"/> instances (rounds).
-    /// </summary>
-    /// <param name="pid">PID to create this <see cref="VmmScatterMap"/> over.</param>
-    /// <returns>Newly instantiated <see cref="VmmScatterMap"/> handle.</returns>
-    public VmmScatterMap CreateScatterMap(uint pid)
-    {
-        return new VmmScatterMap(this, pid);
     }
 
     #endregion

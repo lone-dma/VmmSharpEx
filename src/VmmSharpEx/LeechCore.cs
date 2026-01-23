@@ -670,7 +670,7 @@ public sealed class LeechCore : IDisposable
         /// DANGER: Do not access this memory after the memory is freed via <see cref="Lci.LcMemFree"/>.
         /// </remarks>
         public readonly unsafe ReadOnlySpan<byte> Data => new(
-            pointer: pb.ToPointer(), 
+            pointer: pb.ToPointer(),
             length: checked((int)cb));
     }
 

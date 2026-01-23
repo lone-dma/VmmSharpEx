@@ -1,0 +1,488 @@
+﻿/*  
+ *  VmmSharpEx by Lone (Lone DMA)
+ *  Copyright (C) 2025 AGPL-3.0
+*/
+
+using Collections.Pooled;
+using System.Buffers;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+using System.Text;
+using VmmSharpEx.Extensions;
+using VmmSharpEx.Options;
+
+namespace VmmSharpEx.Scatter;
+
+/// <summary>
+/// The <see cref="VmmScatterSlim"/> class is used to ease the reading of memory in bulk using this managed VmmSharpEx implementation by Lone.
+/// This implementation is mostly managed, except for a native call to perform the scatter read operation (using VMMDLL_MemReadScatter).
+/// </summary>
+public sealed class VmmScatterSlim : IScatter, IScatter<VmmScatterSlim>, IDisposable
+{
+    #region Fields / Ctors
+
+    private readonly Lock _sync = new();
+    private readonly PooledSet<ulong> _prepared = new();
+    private readonly Vmm _vmm;
+    private readonly uint _pid;
+    private readonly VmmFlags _flags;
+    private readonly bool _isKernel;
+    private readonly bool _isUser;
+    private LeechCore.LcScatterHandle? _scatter;
+    private bool _disposed;
+
+    /// <summary>
+    /// Maximum read size in bytes for any single entry.
+    /// DEFAULT: No Limit (<see cref="int.MaxValue"/>)
+    /// </summary>
+    public static int MaxReadSize { get; set; } = int.MaxValue; // Buffer Spans/Arrays are limited to int.MaxValue anyway.
+
+    /// <summary>
+    /// Event is fired upon completion of <see cref="Execute"/>. Exceptions are handled/ignored.
+    /// </summary>
+    public event EventHandler<VmmScatterSlim>? Completed;
+    private void OnCompleted()
+    {
+        foreach (var callback in Completed?.GetInvocationList() ?? Enumerable.Empty<Delegate>())
+        {
+            try
+            {
+                ((EventHandler<VmmScatterSlim>)callback).Invoke(this, this);
+            }
+            catch { }
+        }
+    }
+
+    private VmmScatterSlim() { throw new NotImplementedException(); }
+
+    public VmmScatterSlim(Vmm vmm, uint pid, VmmFlags flags = VmmFlags.NONE)
+    {
+        _vmm = vmm;
+        _pid = pid;
+        _flags = flags;
+        bool isPhysical = pid == Vmm.PID_PHYSICALMEMORY;
+        _isKernel = !isPhysical && (pid & Vmm.PID_PROCESS_WITH_KERNELMEMORY) != 0;
+        _isUser = !isPhysical && !_isKernel;
+    }
+
+    static VmmScatterSlim IScatter<VmmScatterSlim>.Create(Vmm vmm, uint pid, VmmFlags flags)
+    {
+        return new VmmScatterSlim(vmm, pid, flags);
+    }
+
+    #endregion
+
+    #region Public API
+
+    /// <summary>
+    /// Prepare to read memory of a certain size.
+    /// </summary>
+    /// <remarks>
+    /// Can be used with any Read* method as long as the size matches.
+    /// For example this would be used with <see cref="ReadString(ulong, int, Encoding)"/>, after calling <see cref="Execute"/>.
+    /// </remarks>
+    /// <param name="address">Address of the memory to be read.</param>
+    /// <param name="cb">Count of bytes to be read.</param>
+    /// <returns><see langword="true"/> if successful, otherwise <see langword="false"/>.</returns>
+    public bool PrepareRead(ulong address, int cb)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        if ((_isKernel && !address.IsValidKernelVA()) ||
+            (_isUser && !address.IsValidUserVA()) ||
+            cb <= 0 ||
+            cb > MaxReadSize)
+        {
+            return false;
+        }
+        ulong pageCount = VmmUtilities.ADDRESS_AND_SIZE_TO_SPAN_PAGES(address, (uint)cb);
+        ulong pageBase = VmmUtilities.PAGE_ALIGN(address);
+        lock (_sync)
+        {
+            for (ulong p = 0; p < pageCount; p++)
+            {
+                ulong pageAddr = checked(pageBase + (p << 12));
+                _ = _prepared.Add(pageAddr);
+            }
+        }
+        return true;
+    }
+
+    /// <summary>
+    /// Prepare to read memory from an array of a certain struct.
+    /// </summary>
+    /// <remarks>
+    /// Corresponds with the <see cref="ReadArray{T}(ulong, int)"/>, <see cref="ReadPooled{T}(ulong, int)"/>, or <see cref="ReadSpan{T}(ulong, Span{T})"/> methods, that should be called after <see cref="Execute"/>.
+    /// </remarks>
+    /// <typeparam name="T">The <see langword="unmanaged"/> struct type for this operation.</typeparam>
+    /// <param name="address">Address of the array to be read.</param>
+    /// <param name="count">Number of array elements to be read.</param>
+    /// <returns><see langword="true"/> if successful, otherwise <see langword="false"/>.</returns>
+    public unsafe bool PrepareReadArray<T>(ulong address, int count)
+        where T : unmanaged
+    {
+        if (count <= 0)
+            return false;
+        int cb = checked(sizeof(T) * count);
+        return PrepareRead(address, cb);
+    }
+
+    /// <summary>
+    /// Prepare to read memory of a certain struct.
+    /// </summary>
+    /// <remarks>
+    /// Corresponds with the <see cref="ReadValue{T}(ulong, out T)"/> method, that should be called after <see cref="Execute"/>.
+    /// </remarks>
+    /// <typeparam name="T">The <see langword="unmanaged"/> struct type for this operation.</typeparam>
+    /// <param name="address">Address of the memory to be read.</param>
+    /// <returns><see langword="true"/> if successful, otherwise <see langword="false"/>.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public unsafe bool PrepareReadValue<T>(ulong address)
+        where T : unmanaged, allows ref struct
+    {
+        return PrepareRead(address, sizeof(T));
+    }
+
+    /// <summary>
+    /// Prepare to read memory of a Windows x64 pointer type.
+    /// </summary>
+    /// <remarks>
+    /// Corresponds with the <see cref="ReadPtr(ulong, out VmmPointer)"/> method, that should be called after <see cref="Execute"/>.
+    /// </remarks>
+    /// <param name="address">Address of the memory to be read.</param>
+    /// <returns><see langword="true"/> if successful, otherwise <see langword="false"/>.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public unsafe bool PrepareReadPtr(ulong address)
+    {
+        return PrepareRead(address, sizeof(VmmPointer));
+    }
+
+    /// <summary>
+    /// Execute any prepared read operations.
+    /// Can be called multiple times to re-execute the same prepared operations.
+    /// </summary>
+    /// <remarks>
+    /// If there are no prepared operations, this method is a no-op.
+    /// </remarks>
+    /// <exception cref="VmmException"></exception>
+    public void Execute()
+    {
+        lock (_sync)
+        {
+            ObjectDisposedException.ThrowIf(_disposed, this);
+            if (_prepared.Count == 0)
+                return; // no-op
+            _scatter?.Dispose(); // Clear previous scatter if any
+            _scatter = null;
+            using var prepared = _prepared.ToPooledMemory();
+            _scatter = _vmm.MemReadScatter(_pid, _flags, prepared.Span);
+        }
+        OnCompleted();
+    }
+
+    /// <summary>
+    /// Read memory from an address into a byte array.
+    /// </summary>
+    /// <remarks>
+    /// This should be called after <see cref="Execute"/>.
+    /// NOTE: This method incurs a heap allocation for the returned byte array. For high-performance use other read methods instead.
+    /// </remarks>
+    /// <param name="address">Address to read from.</param>
+    /// <param name="cb">Count of bytes to be read.</param>
+    /// <returns>A byte array with the read memory, otherwise <see langword="null"/>.</returns>
+    public byte[]? Read(ulong address, int cb)
+    {
+        if (cb <= 0)
+            return null;
+        var array = new byte[cb];
+        if (!ReadSpanInternal(address, array))
+            return null;
+        return array;
+    }
+
+    /// <summary>
+    /// Read memory from an address to a pointer of a buffer that can accept <paramref name="cb"/> bytes.
+    /// </summary>
+    /// <param name="address">Address to read from.</param>
+    /// <param name="cb">Count of bytes to be read.</param>
+    /// <param name="pb">Pointer to buffer to receive read. You must make sure the buffer is pinned/fixed.</param>
+    /// <returns><see langword="true"/> if successful, otherwise <see langword="false"/>.</returns>
+    public unsafe bool Read(ulong address, int cb, void* pb)
+    {
+        if (cb <= 0)
+            return false;
+        var dest = new Span<byte>(pb, cb);
+        return ReadSpanInternal(address, dest);
+    }
+
+    /// <summary>
+    /// Read memory from an address to a pointer of a buffer that can accept <paramref name="cb"/> bytes.
+    /// </summary>
+    /// <param name="address">Address to read from.</param>
+    /// <param name="cb">Count of bytes to be read.</param>
+    /// <param name="pb">Pointer to buffer to receive read. You must make sure the buffer is pinned/fixed.</param>
+    /// <returns><see langword="true"/> if successful, otherwise <see langword="false"/>.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public unsafe bool Read(ulong address, int cb, IntPtr pb)
+    {
+        return Read(address, cb, pb.ToPointer());
+    }
+
+    /// <summary>
+    /// Read memory from an address into a struct type.
+    /// </summary>
+    /// <remarks>
+    /// This should be called after <see cref="Execute"/>.
+    /// </remarks>
+    /// <typeparam name="T">The <see langword="unmanaged"/> struct type for this operation.</typeparam>
+    /// <param name="address">Address to read from.</param>
+    /// <param name="result">Field in which the span <typeparamref name="T"/> is populated. If the read fails this will be <see langword="default"/>.</param>
+    /// <returns><see langword="true"/> if successful, otherwise <see langword="false"/>.</returns>
+    public unsafe bool ReadValue<T>(ulong address, out T result)
+        where T : unmanaged, allows ref struct
+    {
+        result = default;
+        fixed (void* pResult = &result)
+        {
+            var dest = new Span<byte>(pResult, sizeof(T));
+            return ReadSpanInternal(address, dest);
+        }
+    }
+
+    /// <summary>
+    /// Read memory from an address into a Windows x64 pointer type.
+    /// </summary>
+    /// <remarks>
+    /// This should be called after <see cref="Execute"/>.
+    /// </remarks>
+    /// <param name="address">Address to read from.</param>
+    /// <param name="result">Field in which the span <see cref="VmmPointer"/> is populated. If the read fails this will be <see langword="default"/>.</param>
+    /// <returns><see langword="true"/> if successful, otherwise <see langword="false"/>.</returns>
+    public bool ReadPtr(ulong address, out VmmPointer result)
+    {
+        if (!ReadValue(address, out result) ||
+            (_isKernel && !result.IsValidKernelVA) ||
+            (_isUser && !result.IsValidUserVA) ||
+            result == 0)
+        {
+            return false;
+        }
+        return true;
+    }
+
+    /// <summary>
+    /// Read memory from an address into an array of a certain type.
+    /// </summary>
+    /// <remarks>
+    /// NOTE: This method incurs a heap allocation for the returned byte array. For high-performance use other read methods instead. This should be called after <see cref="Execute"/>.
+    /// </remarks>
+    /// <typeparam name="T">The <see langword="unmanaged"/> struct type for this operation.</typeparam>
+    /// <param name="address">Address to read from.</param>
+    /// <param name="count">The number of array elements to read.</param>
+    /// <returns>An array on success; otherwise <see langword="null"/>.</returns>
+    public T[]? ReadArray<T>(ulong address, int count)
+        where T : unmanaged
+    {
+        if (count <= 0)
+            return null;
+        var array = new T[count];
+        if (!ReadSpanInternal(address, array))
+            return null;
+        return array;
+    }
+
+    /// <summary>
+    /// Read memory from an address into a pooled array of a certain type.
+    /// </summary>
+    /// <remarks>
+    /// This should be called after <see cref="Execute"/>.
+    /// </remarks>
+    /// <typeparam name="T">The <see langword="unmanaged"/> struct type for this operation.</typeparam>
+    /// <param name="address">Address to read from.</param>
+    /// <param name="count">The number of array elements to read.</param>
+    /// <returns><see cref="IMemoryOwner{T}"/> lease, or <see langword="null"/> if failed. Be sure to call <see cref="IDisposable.Dispose()"/> when done.</returns>
+    public IMemoryOwner<T>? ReadPooled<T>(ulong address, int count)
+        where T : unmanaged
+    {
+        if (count <= 0)
+            return null;
+        var pooled = new PooledMemory<T>(count);
+        if (!ReadSpanInternal(address, pooled.Span))
+        {
+            pooled.Dispose();
+            return null;
+        }
+        return pooled;
+    }
+
+    /// <summary>
+    /// Read memory from an address into a Span of a certain type.
+    /// </summary>
+    /// <remarks>
+    /// This should be called after <see cref="Execute"/>.
+    /// </remarks>
+    /// <typeparam name="T">The <see langword="unmanaged"/> struct type for this operation.</typeparam>
+    /// <param name="address">Address to read from.</param>
+    /// <param name="span">The span to read into.</param>
+    /// <returns><see langword="true"/> if successful, otherwise <see langword="false"/>.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public bool ReadSpan<T>(ulong address, Span<T> span)
+        where T : unmanaged
+    {
+        return ReadSpanInternal(address, span);
+    }
+
+    /// <summary>
+    /// Read memory from an address into a managed string.
+    /// </summary>
+    /// <remarks>
+    /// This should be called after <see cref="Execute"/>.
+    /// </remarks>
+    /// <param name="address">Address to read from.</param>
+    /// <param name="cb">Count of bytes to read. Keep in mind some string encodings are 2-4 bytes per character.</param>
+    /// <param name="encoding">String Encoding for this read.</param>
+    /// <returns>C# Managed <see cref="System.String"/>. Otherwise, <see langword="null"/> if failed.</returns>
+    public string? ReadString(ulong address, int cb, Encoding encoding)
+    {
+        if (cb <= 0)
+            return null;
+        ArgumentNullException.ThrowIfNull(encoding, nameof(encoding));
+        byte[]? rentedBytes = null;
+        char[]? rentedChars = null;
+        try
+        {
+            Span<byte> bytesSource = cb <= 256 ?
+                stackalloc byte[cb] : (rentedBytes = ArrayPool<byte>.Shared.Rent(cb));
+            var bytes = bytesSource.Slice(0, cb); // Rented Pool can have more than cb
+            if (!ReadSpan(address, bytes))
+            {
+                return null;
+            }
+
+            int charCount = encoding.GetCharCount(bytes);
+            Span<char> charsSource = charCount <= 128 ?
+                stackalloc char[charCount] : (rentedChars = ArrayPool<char>.Shared.Rent(charCount));
+            var chars = charsSource.Slice(0, charCount);
+            encoding.GetChars(bytes, chars);
+            int nt = chars.IndexOf('\0');
+            return nt != -1 ?
+                chars.Slice(0, nt).ToString() : chars.ToString(); // Only one string allocation
+        }
+        finally
+        {
+            if (rentedBytes is not null)
+                ArrayPool<byte>.Shared.Return(rentedBytes);
+            if (rentedChars is not null)
+                ArrayPool<char>.Shared.Return(rentedChars);
+        }
+    }
+
+    /// <summary>
+    /// Resets the prepared read operations, and results buffer.
+    /// </summary>
+    public void Reset()
+    {
+        lock (_sync)
+        {
+            ObjectDisposedException.ThrowIf(_disposed, this);
+            _prepared.Clear();
+            _scatter?.Dispose();
+            _scatter = null;
+        }
+    }
+
+    #endregion
+
+    #region Internal
+
+    /// <summary>
+    /// Process the Scatter Read bytes into the span.
+    /// </summary>
+    /// <typeparam name="T">Span type</typeparam>
+    /// <param name="addr">Address of read.</param>
+    /// <param name="span">Result buffer</param>
+    /// <returns><see langword="true"/> if successful, otherwise <see langword="false"/>.</returns>
+    private bool ReadSpanInternal<T>(ulong addr, Span<T> span)
+        where T : unmanaged
+    {
+        lock (_sync)
+        {
+            ObjectDisposedException.ThrowIf(_disposed, this);
+            ArgumentNullException.ThrowIfNull(_scatter, nameof(_scatter));
+            if (span.IsEmpty)
+            {
+                return false;
+            }
+            var spanBytes = MemoryMarshal.AsBytes(span); // Cast to byte span for processing
+            int cbTotal = spanBytes.Length; // After casting Length will be adjusted to number of byte elements for our total count of bytes
+            int pageOffset = (int)VmmUtilities.BYTE_OFFSET(addr); // Get object offset from the page start address
+
+            int cb = Math.Min(cbTotal, 0x1000 - pageOffset); // bytes to read current page
+            int cbRead = 0; // track number of bytes copied to ensure nothing is missed
+
+            ulong numPages = VmmUtilities.ADDRESS_AND_SIZE_TO_SPAN_PAGES(addr, (uint)cbTotal); // number of pages to read from (in case span spans multiple pages)
+            ulong basePageAddr = VmmUtilities.PAGE_ALIGN(addr);
+
+            for (ulong p = 0; p < numPages; p++)
+            {
+                ulong pageAddr = checked(basePageAddr + (p << 12)); // get current page addr
+                if (_scatter.Results.TryGetValue(pageAddr, out var scatter)) // retrieve page of mem needed
+                {
+                    scatter.Data
+                        .Slice(pageOffset, cb)
+                        .CopyTo(spanBytes.Slice(cbRead, cb)); // Copy bytes to buffer
+                    checked { cbRead += cb; }
+                }
+                else // read failed -> break
+                {
+                    return false;
+                }
+
+                cb = Math.Clamp(cbTotal - cbRead, 0, 0x1000); // Size the next read
+                pageOffset = 0x0; // Next page (if any) should start at 0x0
+            }
+
+            if (cbRead != cbTotal)
+            {
+                return false;
+            }
+            return true;
+        }
+    }
+
+    /// <summary>
+    /// <see cref="object.ToString"/> override.
+    /// </summary>
+    /// <remarks>
+    /// Prints the state of the <see cref="VmmScatterSlim"/> object.
+    /// </remarks>
+    public override string ToString()
+    {
+        if (_disposed)
+        {
+            return "VmmScatter:NotValid";
+        }
+
+        if (_pid == Vmm.PID_PHYSICALMEMORY)
+        {
+            return "VmmScatter:physical";
+        }
+
+        return $"VmmScatter:virtual:{_pid}";
+    }
+
+    public void Dispose()
+    {
+        if (Interlocked.Exchange(ref _disposed, true) == false)
+        {
+            Completed = null;
+            lock (_sync)
+            {
+                _prepared.Dispose();
+                _scatter?.Dispose();
+                _scatter = null;
+            }
+        }
+    }
+
+    #endregion
+}
