@@ -13,6 +13,10 @@ namespace VmmSharpEx.Scatter
         void Execute();
     }
 
+    /// <summary>
+    /// Interface defining discrete Scatter Operations APIs with a strongly-typed 'Create' factory method.
+    /// </summary>
+    /// <typeparam name="TSelf"><see cref="IScatter"/> type.</typeparam>
     public interface IScatter<TSelf> : IScatter
         where TSelf : IScatter<TSelf>
     {
