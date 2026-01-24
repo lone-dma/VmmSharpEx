@@ -19,7 +19,6 @@ using Collections.Pooled;
 using System.Buffers;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using System.Security.Cryptography;
 using System.Text;
 using VmmSharpEx.Internal;
 using VmmSharpEx.Options;
@@ -30,7 +29,7 @@ namespace VmmSharpEx.Scatter;
 /// The <see cref="VmmScatter"/> class is used to ease the reading and writing of memory in bulk using the VMM Scatter API.
 /// </summary>
 /// <remarks>
-/// This API has been enhanced in VmmSharpEx over the original VmmSharp implementation.
+/// WARNING: Failure to call <see cref="Dispose"/> will result in native memory leaks.
 /// </remarks>
 public sealed class VmmScatter : IDisposable
 {
@@ -114,7 +113,7 @@ public sealed class VmmScatter : IDisposable
         }
     }
 
-    private unsafe void FreeNativeAllocations()
+    private void FreeNativeAllocations()
     {
         foreach (var entry in _preparedReads.Values)
         {
