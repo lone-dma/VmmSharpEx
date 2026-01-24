@@ -28,6 +28,9 @@ namespace VmmSharpEx.Scatter;
 /// The <see cref="VmmScatter"/> class is used to ease the reading and writing of memory in bulk using the official MemProcFS Scatter API via vmm.dll.
 /// All operations incur native calls to vmm.dll (using VMMDLL_Scatter_Initialize).
 /// </summary>
+/// <remarks>
+/// This API is left intact for compatibility with existing code, but new development will be focused on <see cref="VmmScatterSlim"/>.
+/// </remarks>
 public sealed class VmmScatter : IScatter, IScatter<VmmScatter>, IDisposable
 {
     #region Base Functionality
