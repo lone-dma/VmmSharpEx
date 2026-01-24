@@ -10,12 +10,13 @@ using System.Runtime.InteropServices;
 using System.Text;
 using VmmSharpEx.Extensions;
 using VmmSharpEx.Options;
+using VmmSharpEx.Internal;
 
 namespace VmmSharpEx.Scatter;
 
 /// <summary>
 /// The <see cref="VmmScatterSlim"/> class is used to ease the reading of memory in bulk using this managed VmmSharpEx implementation by Lone.
-/// This implementation is mostly managed, except for a native call to perform the scatter read operation (using VMMDLL_MemReadScatter).
+/// This implementation is mostly managed, except for a native call to perform the scatter read operation (using <see cref="Vmmi.VMMDLL_MemReadScatter(nint, uint, nint, uint, VmmFlags)"/>).
 /// </summary>
 public sealed class VmmScatterSlim : IScatter, IScatter<VmmScatterSlim>, IDisposable
 {
