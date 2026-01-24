@@ -1,9 +1,8 @@
-﻿/*  
+/*  
  *  VmmSharpEx by Lone (Lone DMA)
  *  Copyright (C) 2025 AGPL-3.0
 */
 
-using Collections.Pooled;
 using VmmSharpEx.Options;
 
 namespace VmmSharpEx.Scatter
@@ -12,17 +11,18 @@ namespace VmmSharpEx.Scatter
     /// Convenience mapping API that allows for multiple 'rounds' of <see cref="VmmScatter"/> operations to be executed in sequence.
     /// </summary>
     /// <remarks>
-    /// IMPORTANT: This API is **NOT THREAD SAFE**, you must keep operations synchronous or undefined behavior may occur.
     /// </remarks>
     public sealed class VmmScatterMap : IDisposable
     {
-        private readonly PooledList<VmmScatter> _rounds = new(capacity: 16);
+        private readonly Lock _sync = new();
+        private readonly List<VmmScatter> _rounds = new();
         private readonly Vmm _vmm;
         private readonly uint _pid;
         private bool _disposed;
 
         /// <summary>
         /// Event is fired upon completion of <see cref="Execute"/>.
+        /// Exceptions are not handled and will propagate to the caller of <see cref="Execute"/>.
         /// </summary>
         public event EventHandler? Completed;
         private void OnCompleted() => Completed?.Invoke(this, EventArgs.Empty);
@@ -43,10 +43,13 @@ namespace VmmSharpEx.Scatter
         /// <exception cref="VmmException"></exception>
         public VmmScatter AddRound(VmmFlags flags = VmmFlags.NONE)
         {
-            ObjectDisposedException.ThrowIf(_disposed, this);
-            var round = new VmmScatter(_vmm, _pid, flags);
-            _rounds.Add(round);
-            return round;
+            lock (_sync)
+            {
+                ObjectDisposedException.ThrowIf(_disposed, this);
+                var round = new VmmScatter(_vmm, _pid, flags);
+                _rounds.Add(round);
+                return round;
+            }
         }
 
         /// <summary>
@@ -58,27 +61,32 @@ namespace VmmSharpEx.Scatter
         /// <exception cref="VmmException"></exception>
         public void Execute()
         {
-            ObjectDisposedException.ThrowIf(_disposed, this);
-            if (_rounds.Count > 0)
+            lock (_sync)
             {
+                ObjectDisposedException.ThrowIf(_disposed, this);
+                if (_rounds.Count == 0)
+                    return;
                 foreach (var round in _rounds)
                 {
                     round.Execute();
                 }
-                OnCompleted();
             }
+            OnCompleted();
         }
 
         public void Dispose()
         {
-            if (Interlocked.Exchange(ref _disposed, true) == false)
+            lock (_sync)
             {
-                Completed = null;
-                foreach (var round in _rounds)
+                if (!_disposed)
                 {
-                    round.Dispose();
+                    Completed = null;
+                    foreach (var round in _rounds)
+                    {
+                        round.Dispose();
+                    }
+                    _disposed = true;
                 }
-                _rounds.Dispose();
             }
         }
     }

@@ -1047,6 +1047,15 @@ internal static partial class Vmmi
         ulong va,
         uint cb);
 
+    [LibraryImport("vmm.dll", EntryPoint = "VMMDLL_Scatter_PrepareEx")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static unsafe partial bool VMMDLL_Scatter_PrepareEx(
+        IntPtr hS,
+        ulong va,
+        uint cb,
+        byte* pb,
+        uint* pcbRead);
+
     [LibraryImport("vmm.dll", EntryPoint = "VMMDLL_Scatter_PrepareWrite")]
     [return: MarshalAs(UnmanagedType.Bool)]
     public static unsafe partial bool VMMDLL_Scatter_PrepareWrite(
