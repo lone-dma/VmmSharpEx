@@ -4,6 +4,7 @@
 */
 
 using Collections.Pooled;
+using System.Runtime.CompilerServices;
 using VmmSharpEx.Options;
 
 namespace VmmSharpEx.Scatter
@@ -60,6 +61,7 @@ namespace VmmSharpEx.Scatter
         /// If no rounds have been added, this method is a no-op.
         /// </remarks>
         /// <exception cref="VmmException"></exception>
+        [MethodImpl(MethodImplOptions.NoInlining)]
         public void Execute()
         {
             lock (_sync)

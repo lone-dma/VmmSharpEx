@@ -98,8 +98,8 @@ public unsafe class VmmSharpEx_VmmScatterTests : CITest
     {
         using var scatter = CreateScatter();
         ulong addr = HeapAddr(0x500);
-        const ulong value = 0xDEADBEEFCAFEBABEUL;
-        Assert.True(scatter.PrepareWriteValue(addr, value));
+        ulong value = 0xDEADBEEFCAFEBABEUL;
+        Assert.True(scatter.PrepareWriteValue(addr, ref value));
         scatter.Execute();
         Assert.True(_vmm.MemReadValue<ulong>(Vmm.PID_PHYSICALMEMORY, addr, out var actual));
         Assert.Equal(value, actual);
@@ -157,10 +157,10 @@ public unsafe class VmmSharpEx_VmmScatterTests : CITest
         ulong addrValue = HeapAddr(0x800);
         ulong addrArray = HeapAddr(0x900);
         ulong addrBytes = HeapAddr(0xA00);
-        const int value = 0x55667788;
+        int value = 0x55667788;
         var arraySrc = Enumerable.Range(1, 16).Select(i => (uint)(i * 5)).ToArray();
         var bytesSrc = Enumerable.Range(0, 24).Select(i => (byte)(0xF0 + i)).ToArray();
-        Assert.True(scatter.PrepareWriteValue(addrValue, value));
+        Assert.True(scatter.PrepareWriteValue(addrValue, ref value));
         Assert.True(scatter.PrepareWriteSpan<uint>(addrArray, arraySrc));
         Assert.True(scatter.PrepareWriteSpan<byte>(addrBytes, bytesSrc));
         scatter.Execute();

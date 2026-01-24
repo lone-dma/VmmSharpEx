@@ -162,6 +162,7 @@ public sealed class VmmScatter : IDisposable
     /// <param name="address">Address of the memory to be read.</param>
     /// <param name="cb">Count of bytes to be read.</param>
     /// <returns><see langword="true"/> if the operation is successful, otherwise <see langword="false"/>.</returns>
+    [MethodImpl(MethodImplOptions.NoInlining)]
     public bool PrepareRead(ulong address, int cb)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
@@ -238,6 +239,7 @@ public sealed class VmmScatter : IDisposable
     /// <param name="address">The address that will be written to.</param>
     /// <param name="data">The data that will be written.</param>
     /// <returns><see langword="true"/> if the operation is successful, otherwise <see langword="false"/>.</returns>
+    [MethodImpl(MethodImplOptions.NoInlining)]
     public unsafe bool PrepareWriteSpan<T>(ulong address, Span<T> data)
         where T : unmanaged
     {
@@ -249,9 +251,9 @@ public sealed class VmmScatter : IDisposable
         bool ret;
         lock (_sync)
         {
-            fixed (T* pb = data)
+            fixed (void* pb = data)
             {
-                IsPrepared = ret = Vmmi.VMMDLL_Scatter_PrepareWrite(_handle, address, (byte*)pb, (uint)cb);
+                IsPrepared = ret = Vmmi.VMMDLL_Scatter_PrepareWrite(_handle, address, pb, (uint)cb);
                 return ret;
             }
         }
@@ -267,7 +269,8 @@ public sealed class VmmScatter : IDisposable
     /// <param name="address">The address that will be written to.</param>
     /// <param name="value">The value that will be written.</param>
     /// <returns><see langword="true"/> if the operation is successful, otherwise <see langword="false"/>.</returns>
-    public unsafe bool PrepareWriteValue<T>(ulong address, T value)
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    public unsafe bool PrepareWriteValue<T>(ulong address, ref T value)
         where T : unmanaged, allows ref struct
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
@@ -275,7 +278,10 @@ public sealed class VmmScatter : IDisposable
         bool ret;
         lock (_sync)
         {
-            IsPrepared = ret = Vmmi.VMMDLL_Scatter_PrepareWrite(_handle, address, (byte*)&value, (uint)sizeof(T));
+            fixed (void* pb = &value)
+            {
+                IsPrepared = ret = Vmmi.VMMDLL_Scatter_PrepareWrite(_handle, address, pb, (uint)sizeof(T));
+            }
         }
         return ret;
     }
@@ -287,6 +293,7 @@ public sealed class VmmScatter : IDisposable
     /// If there are no prepared operations, this method is a no-op.
     /// </remarks>
     /// <exception cref="VmmException"></exception>
+    [MethodImpl(MethodImplOptions.NoInlining)]
     public void Execute()
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
@@ -366,7 +373,7 @@ public sealed class VmmScatter : IDisposable
         }
         lock (_sync)
         {
-            return Vmmi.VMMDLL_Scatter_Read(_handle, address, (uint)cb, (byte*)pb, out cbRead);
+            return Vmmi.VMMDLL_Scatter_Read(_handle, address, (uint)cb, pb, out cbRead);
         }
     }
 
@@ -400,9 +407,9 @@ public sealed class VmmScatter : IDisposable
         uint cb = (uint)sizeof(T);
         lock (_sync)
         {
-            fixed (T* pb = &result)
+            fixed (void* pb = &result)
             {
-                if (!Vmmi.VMMDLL_Scatter_Read(_handle, address, cb, (byte*)pb, out var cbRead) || cbRead != cb)
+                if (!Vmmi.VMMDLL_Scatter_Read(_handle, address, cb, pb, out var cbRead) || cbRead != cb)
                 {
                     return false;
                 }
@@ -452,9 +459,9 @@ public sealed class VmmScatter : IDisposable
         var array = new T[count];
         lock (_sync)
         {
-            fixed (T* pb = array)
+            fixed (void* pb = array)
             {
-                if (!Vmmi.VMMDLL_Scatter_Read(_handle, address, (uint)cb, (byte*)pb, out var cbRead) || cbRead != cb)
+                if (!Vmmi.VMMDLL_Scatter_Read(_handle, address, (uint)cb, pb, out var cbRead) || cbRead != cb)
                 {
                     return null;
                 }
@@ -483,9 +490,9 @@ public sealed class VmmScatter : IDisposable
         var data = new PooledMemory<T>(count);
         lock (_sync)
         {
-            fixed (T* pb = data.Span)
+            fixed (void* pb = data.Span)
             {
-                if (!Vmmi.VMMDLL_Scatter_Read(_handle, address, (uint)cb, (byte*)pb, out var cbRead) || cbRead != cb)
+                if (!Vmmi.VMMDLL_Scatter_Read(_handle, address, (uint)cb, pb, out var cbRead) || cbRead != cb)
                 {
                     data.Dispose();
                     return null;
@@ -514,9 +521,9 @@ public sealed class VmmScatter : IDisposable
         int cb = checked(sizeof(T) * span.Length);
         lock (_sync)
         {
-            fixed (T* pb = span)
+            fixed (void* pb = span)
             {
-                return Vmmi.VMMDLL_Scatter_Read(_handle, address, (uint)cb, (byte*)pb, out var cbRead) && cbRead == cb;
+                return Vmmi.VMMDLL_Scatter_Read(_handle, address, (uint)cb, pb, out var cbRead) && cbRead == cb;
             }
         }
     }
@@ -575,6 +582,7 @@ public sealed class VmmScatter : IDisposable
     /// Be sure to profile and compare performance before using this in performance critical code.
     /// </remarks>
     /// <exception cref="VmmException"></exception>
+    [MethodImpl(MethodImplOptions.NoInlining)]
     public void Clear()
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
