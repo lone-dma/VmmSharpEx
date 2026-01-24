@@ -9,8 +9,8 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
 using VmmSharpEx.Extensions;
-using VmmSharpEx.Options;
 using VmmSharpEx.Internal;
+using VmmSharpEx.Options;
 
 namespace VmmSharpEx.Scatter;
 
@@ -18,6 +18,9 @@ namespace VmmSharpEx.Scatter;
 /// The <see cref="VmmScatterSlim"/> class is used to ease the reading of memory in bulk using this managed VmmSharpEx implementation by Lone.
 /// This implementation is mostly managed, except for a native call to perform the scatter read operation (using <see cref="Vmmi.VMMDLL_MemReadScatter(nint, uint, nint, uint, VmmFlags)"/>).
 /// </summary>
+/// <remarks>
+/// Known issue: VMMDLL_MemReadScatter can cause audio crackling/static on some target systems while performing scatter reads. See: <see href="https://github.com/ufrisk/MemProcFS/issues/410"/>
+/// </remarks>
 public sealed class VmmScatterSlim : IScatter, IScatter<VmmScatterSlim>, IDisposable
 {
     #region Fields / Ctors
