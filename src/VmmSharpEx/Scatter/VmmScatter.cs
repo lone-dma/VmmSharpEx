@@ -106,8 +106,11 @@ public sealed class VmmScatter : IDisposable
 
     public void Dispose()
     {
-        Dispose(disposing: true);
-        GC.SuppressFinalize(this);
+        lock (_sync)
+        {
+            Dispose(disposing: true);
+            GC.SuppressFinalize(this);
+        }
     }
 
     private void Dispose(bool disposing)
