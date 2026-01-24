@@ -16,6 +16,7 @@ namespace VmmSharpEx.Scatter
     /// </remarks>
     public sealed class VmmScatterMap : IDisposable
     {
+        private readonly Lock _sync = new();
         private readonly PooledList<VmmScatter> _rounds = new(capacity: 16);
         private readonly Vmm _vmm;
         private readonly uint _pid;
@@ -29,7 +30,7 @@ namespace VmmSharpEx.Scatter
 
         private VmmScatterMap() { throw new NotImplementedException(); }
 
-        internal VmmScatterMap(Vmm vmm, uint pid)
+        public VmmScatterMap(Vmm vmm, uint pid)
         {
             _vmm = vmm;
             _pid = pid;
@@ -43,10 +44,13 @@ namespace VmmSharpEx.Scatter
         /// <exception cref="VmmException"></exception>
         public VmmScatter AddRound(VmmFlags flags = VmmFlags.NONE)
         {
-            ObjectDisposedException.ThrowIf(_disposed, this);
-            var round = new VmmScatter(_vmm, _pid, flags);
-            _rounds.Add(round);
-            return round;
+            lock (_sync)
+            {
+                ObjectDisposedException.ThrowIf(_disposed, this);
+                var round = new VmmScatter(_vmm, _pid, flags);
+                _rounds.Add(round);
+                return round;
+            }
         }
 
         /// <summary>
@@ -58,15 +62,17 @@ namespace VmmSharpEx.Scatter
         /// <exception cref="VmmException"></exception>
         public void Execute()
         {
-            ObjectDisposedException.ThrowIf(_disposed, this);
-            if (_rounds.Count > 0)
+            lock (_sync)
             {
+                ObjectDisposedException.ThrowIf(_disposed, this);
+                if (_rounds.Count == 0)
+                    return;
                 foreach (var round in _rounds)
                 {
                     round.Execute();
                 }
-                OnCompleted();
             }
+            OnCompleted();
         }
 
         public void Dispose()
@@ -74,11 +80,14 @@ namespace VmmSharpEx.Scatter
             if (Interlocked.Exchange(ref _disposed, true) == false)
             {
                 Completed = null;
-                foreach (var round in _rounds)
+                lock (_sync)
                 {
-                    round.Dispose();
+                    foreach (var round in _rounds)
+                    {
+                        round.Dispose();
+                    }
+                    _rounds.Dispose();
                 }
-                _rounds.Dispose();
             }
         }
     }
