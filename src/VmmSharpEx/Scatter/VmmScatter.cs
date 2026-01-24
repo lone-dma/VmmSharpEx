@@ -444,9 +444,7 @@ public sealed class VmmScatter : IDisposable
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
         if (count <= 0)
-        {
             return null;
-        }
         int cb = checked(sizeof(T) * count);
         var array = new T[count];
         lock (_sync)
@@ -477,9 +475,7 @@ public sealed class VmmScatter : IDisposable
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
         if (count <= 0)
-        {
             return null;
-        }
         int cb = checked(sizeof(T) * count);
         var data = new PooledMemory<T>(count);
         lock (_sync)
@@ -538,9 +534,7 @@ public sealed class VmmScatter : IDisposable
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
         if (cb <= 0)
-        {
             return null;
-        }
         byte[]? rentedBytes = null;
         char[]? rentedChars = null;
         try
