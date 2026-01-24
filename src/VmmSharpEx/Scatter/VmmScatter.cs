@@ -240,7 +240,7 @@ public sealed class VmmScatter : IDisposable
     /// <param name="data">The data that will be written.</param>
     /// <returns><see langword="true"/> if the operation is successful, otherwise <see langword="false"/>.</returns>
     [MethodImpl(MethodImplOptions.NoInlining)]
-    public unsafe bool PrepareWriteSpan<T>(ulong address, Span<T> data)
+    public unsafe bool PrepareWriteSpan<T>(ulong address, ReadOnlySpan<T> data)
         where T : unmanaged
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
@@ -270,7 +270,7 @@ public sealed class VmmScatter : IDisposable
     /// <param name="value">The value that will be written.</param>
     /// <returns><see langword="true"/> if the operation is successful, otherwise <see langword="false"/>.</returns>
     [MethodImpl(MethodImplOptions.NoInlining)]
-    public unsafe bool PrepareWriteValue<T>(ulong address, ref T value)
+    public unsafe bool PrepareWriteValue<T>(ulong address, in T value)
         where T : unmanaged, allows ref struct
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
