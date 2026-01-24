@@ -19,6 +19,7 @@ using Collections.Pooled;
 using System.Buffers;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Security.Cryptography;
 using System.Text;
 using VmmSharpEx.Internal;
 using VmmSharpEx.Options;
@@ -38,10 +39,11 @@ public sealed class VmmScatter : IDisposable
     private readonly Lock _sync = new();
     private readonly Dictionary<ScatterReadKey, ScatterReadBuffer> _preparedReads = new();
     private readonly Vmm _vmm;
-    private uint _pid;
-    private VmmFlags _flags;
+    private readonly uint _pid;
+    private readonly VmmFlags _flags;
     private IntPtr _handle;
     private bool _isPrepared;
+    private bool _disposed;
 
     /// <summary>
     /// <see langword="true"/> if the VmmScatter handle has at least one operation prepared, otherwise <see langword="false"/>.
@@ -58,15 +60,6 @@ public sealed class VmmScatter : IDisposable
                 _isPrepared = true;
             }
         }
-    }
-
-    /// <summary>
-    /// True if the VmmScatter handle has been disposed, otherwise false.
-    /// </summary>
-    public bool Disposed
-    {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => _handle == IntPtr.Zero;
     }
 
     /// <summary>
@@ -106,26 +99,13 @@ public sealed class VmmScatter : IDisposable
         return hS;
     }
 
-    ~VmmScatter() => Dispose(disposing: false);
-
     public void Dispose()
     {
-        Dispose(disposing: true);
-        GC.SuppressFinalize(this);
-    }
-
-    private unsafe void Dispose(bool disposing)
-    {
-        lock (_sync)
+        if (Interlocked.Exchange(ref _disposed, true) == false)
         {
-            if (_handle != IntPtr.Zero)
+            lock (_sync)
             {
-                if (disposing)
-                {
-                    Completed = null;
-                }
-
-                // Free all native allocations
+                Completed = null;
                 FreeNativeAllocations();
 
                 Vmmi.VMMDLL_Scatter_CloseHandle(_handle);
@@ -151,7 +131,7 @@ public sealed class VmmScatter : IDisposable
     /// </remarks>
     public override string ToString()
     {
-        if (Disposed)
+        if (_disposed)
         {
             return "VmmScatter:Disposed";
         }
@@ -182,7 +162,7 @@ public sealed class VmmScatter : IDisposable
     {
         lock (_sync)
         {
-            ObjectDisposedException.ThrowIf(Disposed, this);
+            ObjectDisposedException.ThrowIf(_disposed, this);
 
             var key = new ScatterReadKey(address, cb);
             if (_preparedReads.ContainsKey(key))
@@ -265,7 +245,7 @@ public sealed class VmmScatter : IDisposable
     {
         lock (_sync)
         {
-            ObjectDisposedException.ThrowIf(Disposed, this);
+            ObjectDisposedException.ThrowIf(_disposed, this);
             _vmm.ThrowIfMemWritesDisabled();
             uint cb = checked((uint)sizeof(T) * (uint)data.Length);
             fixed (T* pb = data)
@@ -292,7 +272,7 @@ public sealed class VmmScatter : IDisposable
     {
         lock (_sync)
         {
-            ObjectDisposedException.ThrowIf(Disposed, this);
+            ObjectDisposedException.ThrowIf(_disposed, this);
             _vmm.ThrowIfMemWritesDisabled();
             uint cb = (uint)sizeof(T);
             bool ret;
@@ -316,7 +296,7 @@ public sealed class VmmScatter : IDisposable
         {
             lock (_sync)
             {
-                ObjectDisposedException.ThrowIf(Disposed, this);
+                ObjectDisposedException.ThrowIf(_disposed, this);
 
                 if (!IsPrepared)
                     return;
@@ -348,7 +328,7 @@ public sealed class VmmScatter : IDisposable
     {
         lock (_sync)
         {
-            ObjectDisposedException.ThrowIf(Disposed, this);
+            ObjectDisposedException.ThrowIf(_disposed, this);
             var key = new ScatterReadKey(address, cb);
             if (_preparedReads.TryGetValue(key, out var prep))
             {
@@ -378,7 +358,7 @@ public sealed class VmmScatter : IDisposable
     {
         lock (_sync)
         {
-            ObjectDisposedException.ThrowIf(Disposed, this);
+            ObjectDisposedException.ThrowIf(_disposed, this);
             var key = new ScatterReadKey(address, cb);
             if (_preparedReads.TryGetValue(key, out var prep))
             {
@@ -424,7 +404,7 @@ public sealed class VmmScatter : IDisposable
     {
         lock (_sync)
         {
-            ObjectDisposedException.ThrowIf(Disposed, this);
+            ObjectDisposedException.ThrowIf(_disposed, this);
             uint cb = (uint)sizeof(T);
             result = default;
 
@@ -453,7 +433,7 @@ public sealed class VmmScatter : IDisposable
     /// <returns><see langword="true"/> if the operation is successful, otherwise <see langword="false"/>.</returns>
     public bool ReadPtr(ulong address, out VmmPointer result)
     {
-        if (ReadValue<VmmPointer>(address, out result) && result.IsValidVA)
+        if (ReadValue(address, out result) && result.IsValidVA)
         {
             return true;
         }
@@ -476,7 +456,7 @@ public sealed class VmmScatter : IDisposable
     {
         lock (_sync)
         {
-            ObjectDisposedException.ThrowIf(Disposed, this);
+            ObjectDisposedException.ThrowIf(_disposed, this);
             uint cb = checked((uint)sizeof(T) * (uint)count);
 
             var key = new ScatterReadKey(address, cb);
@@ -510,7 +490,7 @@ public sealed class VmmScatter : IDisposable
     {
         lock (_sync)
         {
-            ObjectDisposedException.ThrowIf(Disposed, this);
+            ObjectDisposedException.ThrowIf(_disposed, this);
             uint cb = checked((uint)sizeof(T) * (uint)count);
 
             var key = new ScatterReadKey(address, cb);
@@ -544,7 +524,7 @@ public sealed class VmmScatter : IDisposable
     {
         lock (_sync)
         {
-            ObjectDisposedException.ThrowIf(Disposed, this);
+            ObjectDisposedException.ThrowIf(_disposed, this);
             uint cb = checked((uint)sizeof(T) * (uint)span.Length);
 
             var key = new ScatterReadKey(address, cb);
@@ -604,25 +584,13 @@ public sealed class VmmScatter : IDisposable
     }
 
     /// <summary>
-    /// Clear the <see cref="VmmScatter"/> object to allow for new operations.
-    /// Also clears any previously set <see cref="Completed"/> event handlers.
+    /// Resets the scatter object, clearing all prepared operations.
     /// </summary>
-    /// <remarks>
-    /// IMPORTANT: Using <see cref="Clear(VmmFlags?, uint?)"/> and reusing a handle does not offer much (if any) performance benefit over creating a new handle.
-    /// Be sure to profile and compare performance before using this in performance critical code.
-    /// </remarks>
-    /// <param name="flags">[Optional] Flags to be set for new operations, otherwise uses existing flags.</param>
-    /// <param name="pid">[Optional] PID to be set for new operations, otherwise uses existing PID.</param>
-    /// <exception cref="VmmException"></exception>
-    public void Clear(VmmFlags? flags = null, uint? pid = null)
+    public void Reset()
     {
         lock (_sync)
         {
-            ObjectDisposedException.ThrowIf(Disposed, this);
-            if (flags is VmmFlags f)
-                _flags = f;
-            if (pid is uint p)
-                _pid = p;
+            ObjectDisposedException.ThrowIf(_disposed, this);
             _isPrepared = default;
             Completed = default;
 
