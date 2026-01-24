@@ -510,9 +510,7 @@ public sealed class VmmScatter : IDisposable
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
         if (span.IsEmpty)
-        {
             return false;
-        }
         int cb = checked(sizeof(T) * span.Length);
         lock (_sync)
         {
