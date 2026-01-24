@@ -31,7 +31,7 @@ namespace VmmSharpEx.Scatter;
 /// <remarks>
 /// This API has been enhanced in VmmSharpEx over the original VmmSharp implementation.
 /// </remarks>
-public sealed class VmmScatter : IDisposable
+public unsafe sealed class VmmScatter : IDisposable
 {
     #region Base Functionality
 
@@ -191,7 +191,7 @@ public sealed class VmmScatter : IDisposable
     /// <param name="count">Number of array elements to be read.</param>
     /// <returns><see langword="true"/> if the operation is successful, otherwise <see langword="false"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public unsafe bool PrepareReadArray<T>(ulong address, int count)
+    public bool PrepareReadArray<T>(ulong address, int count)
         where T : unmanaged
     {
         if (count <= 0)
@@ -209,7 +209,7 @@ public sealed class VmmScatter : IDisposable
     /// <param name="address">Address of the memory to be read.</param>
     /// <returns><see langword="true"/> if the operation is successful, otherwise <see langword="false"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public unsafe bool PrepareReadValue<T>(ulong address)
+    public bool PrepareReadValue<T>(ulong address)
         where T : unmanaged, allows ref struct
     {
         return PrepareRead(address, sizeof(T));
@@ -224,7 +224,7 @@ public sealed class VmmScatter : IDisposable
     /// <param name="address">Address of the memory to be read.</param>
     /// <returns><see langword="true"/> if the operation is successful, otherwise <see langword="false"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public unsafe bool PrepareReadPtr(ulong address)
+    public bool PrepareReadPtr(ulong address)
     {
         return PrepareRead(address, sizeof(VmmPointer));
     }
@@ -240,7 +240,7 @@ public sealed class VmmScatter : IDisposable
     /// <param name="data">The data that will be written.</param>
     /// <returns><see langword="true"/> if the operation is successful, otherwise <see langword="false"/>.</returns>
     [MethodImpl(MethodImplOptions.NoInlining)]
-    public unsafe bool PrepareWriteSpan<T>(ulong address, ReadOnlySpan<T> data)
+    public bool PrepareWriteSpan<T>(ulong address, ReadOnlySpan<T> data)
         where T : unmanaged
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
@@ -270,7 +270,7 @@ public sealed class VmmScatter : IDisposable
     /// <param name="value">The value that will be written.</param>
     /// <returns><see langword="true"/> if the operation is successful, otherwise <see langword="false"/>.</returns>
     [MethodImpl(MethodImplOptions.NoInlining)]
-    public unsafe bool PrepareWriteValue<T>(ulong address, in T value)
+    public bool PrepareWriteValue<T>(ulong address, in T value)
         where T : unmanaged, allows ref struct
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
@@ -319,7 +319,7 @@ public sealed class VmmScatter : IDisposable
     /// <param name="cb">Count of bytes to be read.</param>
     /// <returns>A byte array with the read memory, otherwise <see langword="null"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public unsafe byte[]? Read(ulong address, int cb) =>
+    public byte[]? Read(ulong address, int cb) =>
         ReadArray<byte>(address, cb);
 
     /// <summary>
@@ -333,7 +333,7 @@ public sealed class VmmScatter : IDisposable
     /// <param name="cb">Count of bytes to be read.</param>
     /// <param name="cbRead">Count of bytes actually read.</param>
     /// <returns>A byte array with the read memory, otherwise <see langword="null"/>. Be sure to also check <paramref name="cbRead"/>.</returns>
-    public unsafe byte[]? Read(ulong address, int cb, out uint cbRead)
+    public byte[]? Read(ulong address, int cb, out uint cbRead)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
         if (cb <= 0)
@@ -363,7 +363,7 @@ public sealed class VmmScatter : IDisposable
     /// <param name="pb">Pointer to buffer to receive read. You must make sure the buffer is pinned/fixed.</param>
     /// <param name="cbRead">Count of bytes actually read.</param>
     /// <returns><see langword="true"/> if the operation is successful, otherwise <see langword="false"/>. Be sure to also check <paramref name="cbRead"/>.</returns>
-    public unsafe bool Read(ulong address, int cb, void* pb, out uint cbRead)
+    public bool Read(ulong address, int cb, void* pb, out uint cbRead)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
         if (cb <= 0)
@@ -386,7 +386,7 @@ public sealed class VmmScatter : IDisposable
     /// <param name="cbRead">Count of bytes actually read.</param>
     /// <returns><see langword="true"/> if the operation is successful, otherwise <see langword="false"/>. Be sure to also check <paramref name="cbRead"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public unsafe bool Read(ulong address, int cb, IntPtr pb, out uint cbRead) =>
+    public bool Read(ulong address, int cb, IntPtr pb, out uint cbRead) =>
         Read(address, cb, pb.ToPointer(), out cbRead);
 
     /// <summary>
@@ -399,7 +399,7 @@ public sealed class VmmScatter : IDisposable
     /// <param name="address">Address to read from.</param>
     /// <param name="result">Field in which the result <typeparamref name="T"/> is populated. If the read fails this will be <see langword="default"/>.</param>
     /// <returns><see langword="true"/> if the operation is successful, otherwise <see langword="false"/>.</returns>
-    public unsafe bool ReadValue<T>(ulong address, out T result)
+    public bool ReadValue<T>(ulong address, out T result)
         where T : unmanaged, allows ref struct
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
@@ -449,7 +449,7 @@ public sealed class VmmScatter : IDisposable
     /// <param name="address">Address to read from.</param>
     /// <param name="count">The number of array elements to read.</param>
     /// <returns>An array on success; otherwise <see langword="null"/>.</returns>
-    public unsafe T[]? ReadArray<T>(ulong address, int count)
+    public T[]? ReadArray<T>(ulong address, int count)
         where T : unmanaged
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
@@ -480,7 +480,7 @@ public sealed class VmmScatter : IDisposable
     /// <param name="address">Address to read from.</param>
     /// <param name="count">The number of array elements to read.</param>
     /// <returns><see cref="IMemoryOwner{T}"/> lease, or <see langword="null"/> if failed. Be sure to call <see cref="IDisposable.Dispose()"/> when done.</returns>
-    public unsafe IMemoryOwner<T>? ReadPooled<T>(ulong address, int count)
+    public IMemoryOwner<T>? ReadPooled<T>(ulong address, int count)
         where T : unmanaged
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
@@ -512,7 +512,7 @@ public sealed class VmmScatter : IDisposable
     /// <param name="address">Address to read from.</param>
     /// <param name="span">The span to read into.</param>
     /// <returns><see langword="true"/> if the operation is successful, otherwise <see langword="false"/>.</returns>
-    public unsafe bool ReadSpan<T>(ulong address, Span<T> span)
+    public bool ReadSpan<T>(ulong address, Span<T> span)
         where T : unmanaged
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
