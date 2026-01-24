@@ -264,9 +264,9 @@ public sealed class VmmScatterSlim : IScatter, IScatter<VmmScatterSlim>, IDispos
     public bool ReadPtr(ulong address, out VmmPointer result)
     {
         if (!ReadValue(address, out result) ||
+            result == 0 ||
             (_isKernel && !result.IsValidKernelVA) ||
-            (_isUser && !result.IsValidUserVA) ||
-            result == 0)
+            (_isUser && !result.IsValidUserVA))
         {
             return false;
         }
