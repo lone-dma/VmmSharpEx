@@ -339,7 +339,6 @@ public sealed class VmmScatter : IDisposable
     /// <param name="pb">Pointer to buffer to receive read. You must make sure the buffer is pinned/fixed.</param>
     /// <param name="cbRead">Count of bytes actually read.</param>
     /// <returns><see langword="true"/> if the operation is successful, otherwise <see langword="false"/>. Be sure to also check <paramref name="cbRead"/>.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public unsafe bool Read(ulong address, int cb, void* pb, out uint cbRead)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
