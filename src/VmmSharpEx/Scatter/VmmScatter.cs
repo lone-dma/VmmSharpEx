@@ -171,7 +171,7 @@ public sealed class VmmScatter : IDisposable
         bool ret;
         lock (_sync)
         {
-            IsPrepared = ret = Vmmi.VMMDLL_Scatter_Prepare(_handle, address, checked((uint)cb));
+            IsPrepared = ret = Vmmi.VMMDLL_Scatter_Prepare(_handle, address, (uint)cb);
         }
         return ret;
     }
@@ -307,6 +307,20 @@ public sealed class VmmScatter : IDisposable
     /// </remarks>
     /// <param name="address">Address to read from.</param>
     /// <param name="cb">Count of bytes to be read.</param>
+    /// <returns>A byte array with the read memory, otherwise <see langword="null"/>.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public unsafe byte[]? Read(ulong address, int cb) =>
+        ReadArray<byte>(address, cb);
+
+    /// <summary>
+    /// Read memory from an address into a byte array. Read may be partial.
+    /// </summary>
+    /// <remarks>
+    /// This should be called after <see cref="Execute"/>.
+    /// NOTE: This method incurs a heap allocation for the returned byte array. For high-performance use other read methods instead.
+    /// </remarks>
+    /// <param name="address">Address to read from.</param>
+    /// <param name="cb">Count of bytes to be read.</param>
     /// <param name="cbRead">Count of bytes actually read.</param>
     /// <returns>A byte array with the read memory, otherwise <see langword="null"/>. Be sure to also check <paramref name="cbRead"/>.</returns>
     public unsafe byte[]? Read(ulong address, int cb, out uint cbRead)
@@ -332,7 +346,7 @@ public sealed class VmmScatter : IDisposable
     }
 
     /// <summary>
-    /// Read memory from an address to a pointer of a buffer that can accept <paramref name="cb"/> bytes.
+    /// Read memory from an address to a pointer of a buffer that can accept <paramref name="cb"/> bytes. Read may be partial.
     /// </summary>
     /// <param name="address">Address to read from.</param>
     /// <param name="cb">Count of bytes to be read.</param>
@@ -354,7 +368,7 @@ public sealed class VmmScatter : IDisposable
     }
 
     /// <summary>
-    /// Read memory from an address to a pointer of a buffer that can accept <paramref name="cb"/> bytes.
+    /// Read memory from an address to a pointer of a buffer that can accept <paramref name="cb"/> bytes. Read may be partial.
     /// </summary>
     /// <param name="address">Address to read from.</param>
     /// <param name="cb">Count of bytes to be read.</param>
@@ -414,8 +428,6 @@ public sealed class VmmScatter : IDisposable
         }
         return true;
     }
-
-
 
     /// <summary>
     /// Read memory from an address into an array of a certain type.
