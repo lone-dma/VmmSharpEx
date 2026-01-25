@@ -12,9 +12,6 @@ namespace VmmSharpEx.Scatter
     /// <summary>
     /// Convenience mapping API that allows for multiple 'rounds' of <see cref="VmmScatter"/> operations to be executed in sequence.
     /// </summary>
-    /// <remarks>
-    /// IMPORTANT: This API is **NOT THREAD SAFE**, you must keep operations synchronous or undefined behavior may occur.
-    /// </remarks>
     public sealed class VmmScatterMap : IDisposable
     {
         private readonly Lock _sync = new();
