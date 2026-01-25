@@ -119,7 +119,6 @@ public unsafe sealed class VmmScatter : IDisposable
             {
                 Completed = null;
             }
-            // No managed locks since a finalizer could be running.
             Vmmi.VMMDLL_Scatter_CloseHandle(_handle);
             _handle = IntPtr.Zero;
         }
