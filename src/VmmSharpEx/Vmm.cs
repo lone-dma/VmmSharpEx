@@ -178,7 +178,7 @@ public sealed partial class Vmm : IDisposable
     /// <inheritdoc />
     public void Dispose()
     {
-        Dispose(true);
+        Dispose(disposing: true);
         GC.SuppressFinalize(this);
     }
 
@@ -791,7 +791,7 @@ public sealed partial class Vmm : IDisposable
 
         public void Dispose()
         {
-            Dispose(true);
+            Dispose(disposing: true);
             GC.SuppressFinalize(this);
         }
 
