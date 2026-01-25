@@ -160,7 +160,6 @@ public unsafe sealed class VmmScatter : IDisposable
     /// <param name="address">Address of the memory to be read.</param>
     /// <param name="cb">Count of bytes to be read.</param>
     /// <returns><see langword="true"/> if the operation is successful, otherwise <see langword="false"/>.</returns>
-    [MethodImpl(MethodImplOptions.NoInlining)]
     public bool PrepareRead(ulong address, int cb)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
@@ -234,7 +233,6 @@ public unsafe sealed class VmmScatter : IDisposable
     /// <param name="address">The address that will be written to.</param>
     /// <param name="data">The data that will be written.</param>
     /// <returns><see langword="true"/> if the operation is successful, otherwise <see langword="false"/>.</returns>
-    [MethodImpl(MethodImplOptions.NoInlining)]
     public bool PrepareWriteSpan<T>(ulong address, ReadOnlySpan<T> data)
         where T : unmanaged
     {
@@ -261,7 +259,6 @@ public unsafe sealed class VmmScatter : IDisposable
     /// <param name="address">The address that will be written to.</param>
     /// <param name="value">The value that will be written.</param>
     /// <returns><see langword="true"/> if the operation is successful, otherwise <see langword="false"/>.</returns>
-    [MethodImpl(MethodImplOptions.NoInlining)]
     public bool PrepareWriteValue<T>(ulong address, in T value)
         where T : unmanaged, allows ref struct
     {
@@ -282,7 +279,6 @@ public unsafe sealed class VmmScatter : IDisposable
     /// If there are no prepared operations, this method is a no-op.
     /// </remarks>
     /// <exception cref="VmmException"></exception>
-    [MethodImpl(MethodImplOptions.NoInlining)]
     public void Execute()
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
@@ -550,7 +546,6 @@ public unsafe sealed class VmmScatter : IDisposable
     /// Be sure to profile and compare performance before using this in performance critical code.
     /// </remarks>
     /// <exception cref="VmmException"></exception>
-    [MethodImpl(MethodImplOptions.NoInlining)]
     public void Clear()
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
