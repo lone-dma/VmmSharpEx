@@ -37,6 +37,7 @@ public sealed class LeechCore : IDisposable
 {
     private readonly Vmm? _parent;
     private IntPtr _handle;
+    private bool _disposed;
 
     private LeechCore() { throw new NotImplementedException(); }
 
@@ -88,7 +89,7 @@ public sealed class LeechCore : IDisposable
     /// </summary>
     public void Dispose()
     {
-        Dispose(true);
+        Dispose(disposing: true);
         GC.SuppressFinalize(this);
     }
 
@@ -171,9 +172,10 @@ public sealed class LeechCore : IDisposable
 
     private void Dispose(bool disposing)
     {
-        if (Interlocked.Exchange(ref _handle, IntPtr.Zero) is IntPtr h && h != IntPtr.Zero)
+        if (Interlocked.Exchange(ref _disposed, true) == false)
         {
-            Lci.LcClose(h);
+            Lci.LcClose(_handle);
+            _handle = IntPtr.Zero;
         }
     }
 
@@ -516,6 +518,7 @@ public sealed class LeechCore : IDisposable
     {
         private readonly PooledDictionary<ulong, ScatterData> _results;
         private IntPtr _mems;
+        private bool _disposed;
 
         private LcScatterHandle() { throw new NotImplementedException(); }
 
@@ -541,19 +544,20 @@ public sealed class LeechCore : IDisposable
         /// </summary>
         public void Dispose()
         {
-            Dispose(true);
+            Dispose(disposing: true);
             GC.SuppressFinalize(this);
         }
 
         private unsafe void Dispose(bool disposing)
         {
-            if (Interlocked.Exchange(ref _mems, IntPtr.Zero) is IntPtr h && h != IntPtr.Zero)
+            if (Interlocked.Exchange(ref _disposed, true) == false)
             {
                 if (disposing)
                 {
                     _results.Dispose();
                 }
-                Lci.LcMemFree(h.ToPointer());
+                Lci.LcMemFree(_mems.ToPointer());
+                _mems = IntPtr.Zero;
             }
         }
 

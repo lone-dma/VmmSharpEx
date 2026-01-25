@@ -27,7 +27,7 @@ internal sealed class VmmRefresher : IDisposable
         {
             try
             {
-                while (await timer.WaitForNextTickAsync(ct))
+                while (!instance.IsDisposed && await timer.WaitForNextTickAsync(ct))
                 {
                     if (!instance.ConfigSet((VmmOption)option, 1))
                         instance.Log($"WARNING: {option} Auto Refresh Failed!", Vmm.LogLevel.Warning);

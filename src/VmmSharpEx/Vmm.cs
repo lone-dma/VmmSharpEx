@@ -17,15 +17,12 @@
 
 using Collections.Pooled;
 using System.Buffers;
-using System.Net;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
 using VmmSharpEx.Internal;
 using VmmSharpEx.Options;
 using VmmSharpEx.Refresh;
-using VmmSharpEx.Scatter;
-using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace VmmSharpEx;
 
@@ -51,11 +48,16 @@ public sealed partial class Vmm : IDisposable
     }
 
     private IntPtr _handle;
+    private bool _disposed;
 
     /// <summary>
     /// Gets the underlying <see cref="LeechCore"/> context associated with this <see cref="Vmm"/> instance.
     /// </summary>
     public LeechCore LeechCore { get; }
+    /// <summary>
+    /// True if this <see cref="Vmm"/> instance has been disposed; otherwise false.
+    /// </summary>
+    public bool IsDisposed => _disposed;
 
     private readonly bool _enableMemoryWriting = true;
 
@@ -176,7 +178,7 @@ public sealed partial class Vmm : IDisposable
     /// <inheritdoc />
     public void Dispose()
     {
-        Dispose(true);
+        Dispose(disposing: true);
         GC.SuppressFinalize(this);
     }
 
@@ -189,14 +191,15 @@ public sealed partial class Vmm : IDisposable
     /// </param>
     private void Dispose(bool disposing)
     {
-        if (Interlocked.Exchange(ref _handle, IntPtr.Zero) is IntPtr h && h != IntPtr.Zero)
+        if (Interlocked.Exchange(ref _disposed, true) == false)
         {
             if (disposing)
             {
                 LeechCore.Dispose();
                 RefreshManager.UnregisterAll(this);
             }
-            Vmmi.VMMDLL_Close(h);
+            Vmmi.VMMDLL_Close(_handle);
+            _handle = IntPtr.Zero;
         }
     }
 
@@ -731,28 +734,6 @@ public sealed partial class Vmm : IDisposable
         return Vmmi.VMMDLL_MemVirt2Phys(_handle, pid, va, out pa);
     }
 
-    /// <summary>
-    /// Initialize a scatter handle used to read/write multiple virtual memory regions in a single call.
-    /// </summary>
-    /// <param name="pid">PID to create <see cref="VmmScatter"/> over.</param>
-    /// <param name="flags">VMM flag options for this operation.</param>
-    /// <returns>Newly instantiated <see cref="VmmScatter"/> handle.</returns>
-    /// <exception cref="VmmException">Thrown if the underlying scatter handle cannot be created.</exception>
-    public VmmScatter CreateScatter(uint pid, VmmFlags flags = VmmFlags.NONE)
-    {
-        return new VmmScatter(this, pid, flags);
-    }
-
-    /// <summary>
-    /// Initialize a scatter map that can be used to coordinate multiple <see cref="VmmScatter"/> instances (rounds).
-    /// </summary>
-    /// <param name="pid">PID to create this <see cref="VmmScatterMap"/> over.</param>
-    /// <returns>Newly instantiated <see cref="VmmScatterMap"/> handle.</returns>
-    public VmmScatterMap CreateScatterMap(uint pid)
-    {
-        return new VmmScatterMap(this, pid);
-    }
-
     #endregion
 
     #region VFS (Virtual File System) functionality
@@ -810,7 +791,7 @@ public sealed partial class Vmm : IDisposable
 
         public void Dispose()
         {
-            Dispose(true);
+            Dispose(disposing: true);
             GC.SuppressFinalize(this);
         }
 
