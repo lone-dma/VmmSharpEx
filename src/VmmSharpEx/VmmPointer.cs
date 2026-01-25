@@ -4,6 +4,7 @@
 */
 
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using VmmSharpEx.Extensions;
 
 namespace VmmSharpEx
@@ -11,6 +12,7 @@ namespace VmmSharpEx
     /// <summary>
     /// Represents a pointer in the target x64 Windows System.
     /// </summary>
+    [StructLayout(LayoutKind.Sequential, Pack = 8, Size = sizeof(ulong))]
     public readonly struct VmmPointer
     {
         public static implicit operator VmmPointer(ulong x) => x;
