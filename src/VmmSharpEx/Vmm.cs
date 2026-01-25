@@ -195,7 +195,7 @@ public sealed partial class Vmm : IDisposable
         {
             if (disposing)
             {
-                LeechCore.Dispose();
+                LeechCore?.Dispose(); // Since this can be called from the ctor, Leechcore may be null here.
                 RefreshManager.UnregisterAll(this);
             }
             Vmmi.VMMDLL_Close(_handle);
