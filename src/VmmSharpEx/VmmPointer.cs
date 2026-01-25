@@ -11,6 +11,7 @@ namespace VmmSharpEx
 {
     /// <summary>
     /// Represents a pointer in the target x64 Windows System.
+    /// Can be implicitly casted to/from <see cref="ulong"/>.
     /// </summary>
     [StructLayout(LayoutKind.Sequential, Pack = 8, Size = sizeof(ulong))]
     public readonly struct VmmPointer
