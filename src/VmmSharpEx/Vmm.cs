@@ -53,6 +53,10 @@ public sealed partial class Vmm : IDisposable
     /// Gets the underlying <see cref="LeechCore"/> context associated with this <see cref="Vmm"/> instance.
     /// </summary>
     public LeechCore LeechCore { get; }
+    /// <summary>
+    /// True if this <see cref="Vmm"/> instance has been disposed; otherwise false.
+    /// </summary>
+    public bool IsDisposed => _handle == IntPtr.Zero;
 
     private readonly bool _enableMemoryWriting = true;
 

@@ -23,7 +23,7 @@ internal sealed class VmmRefresher : IDisposable
     private static async Task RunAsync(Vmm instance, RefreshOption option, TimeSpan interval, CancellationToken ct)
     {
         using var timer = new PeriodicTimer(interval);
-        while (!ct.IsCancellationRequested)
+        while (!ct.IsCancellationRequested && !instance.IsDisposed)
         {
             try
             {
