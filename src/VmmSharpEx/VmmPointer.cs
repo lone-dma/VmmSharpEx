@@ -4,13 +4,16 @@
 */
 
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using VmmSharpEx.Extensions;
 
 namespace VmmSharpEx
 {
     /// <summary>
     /// Represents a pointer in the target x64 Windows System.
+    /// Can be implicitly casted to/from <see cref="ulong"/>.
     /// </summary>
+    [StructLayout(LayoutKind.Sequential, Pack = 8, Size = sizeof(ulong))]
     public readonly struct VmmPointer
     {
         public static implicit operator VmmPointer(ulong x) => x;

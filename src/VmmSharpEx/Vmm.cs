@@ -48,11 +48,16 @@ public sealed partial class Vmm : IDisposable
     }
 
     private IntPtr _handle;
+    private bool _disposed;
 
     /// <summary>
     /// Gets the underlying <see cref="LeechCore"/> context associated with this <see cref="Vmm"/> instance.
     /// </summary>
     public LeechCore LeechCore { get; }
+    /// <summary>
+    /// True if this <see cref="Vmm"/> instance has been disposed; otherwise false.
+    /// </summary>
+    public bool IsDisposed => _disposed;
 
     private readonly bool _enableMemoryWriting = true;
 
@@ -173,7 +178,7 @@ public sealed partial class Vmm : IDisposable
     /// <inheritdoc />
     public void Dispose()
     {
-        Dispose(true);
+        Dispose(disposing: true);
         GC.SuppressFinalize(this);
     }
 
@@ -186,14 +191,15 @@ public sealed partial class Vmm : IDisposable
     /// </param>
     private void Dispose(bool disposing)
     {
-        if (Interlocked.Exchange(ref _handle, IntPtr.Zero) is IntPtr h && h != IntPtr.Zero)
+        if (Interlocked.Exchange(ref _disposed, true) == false)
         {
             if (disposing)
             {
-                LeechCore.Dispose();
+                LeechCore?.Dispose(); // Since this can be called from the ctor, Leechcore may be null here.
                 RefreshManager.UnregisterAll(this);
             }
-            Vmmi.VMMDLL_Close(h);
+            Vmmi.VMMDLL_Close(_handle);
+            _handle = IntPtr.Zero;
         }
     }
 
@@ -800,7 +806,7 @@ public sealed partial class Vmm : IDisposable
 
         public void Dispose()
         {
-            Dispose(true);
+            Dispose(disposing: true);
             GC.SuppressFinalize(this);
         }
 

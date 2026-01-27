@@ -10,6 +10,9 @@ Install-Package VmmSharpEx
 This library is **Windows Only**, and only bundles/targets the Windows x64 native libraries.
 
 ## Changelog
+- Version 3.160
+  - Bump MemProcFS to 5.16.12 (supports Chinese paths)
+  - Optimizations and stability improvements to Scatter API. Some minor breaking changes.
 - Version 3.150
   - Added new APIs: VMMDLL_MemReadPage, VMMDLL_WinGetThunkInfoIATW
   - Refactor VmmSearch to a static/stateless API. Provides better resource cleanup guarantees than the former object-based model. **This is a breaking change.**
