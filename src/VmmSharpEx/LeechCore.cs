@@ -652,10 +652,10 @@ public sealed class LeechCore : IDisposable
         [FieldOffset(16)]
         public readonly IntPtr pb;
         /// <summary>
-        /// Size of the native page buffer in bytes.
+        /// Size of the read request in bytes.
         /// </summary>
         [FieldOffset(24)]
-        public readonly uint cb;
+        public uint cb;
         /// <summary>
         /// Internal stack pointer (reserved).
         /// </summary>

@@ -160,21 +160,21 @@ public unsafe class VmmSharpEx_VmmTests : CITest
     {
         // Prepare patterns at page starts then scatter read.
         var startPage = _heapBase & ~0xffful;
-        var pageAddrs = new ulong[3];
-        for (int i = 0; i < pageAddrs.Length; i++)
+        var mems = new Vmm.MEM_SCATTER[3];
+        for (int i = 0; i < mems.Length; i++)
         {
             ulong pageAddr = startPage + (ulong)(i * 0x1000);
-            pageAddrs[i] = pageAddr;
+            mems[i] = new Vmm.MEM_SCATTER { Address = pageAddr, CB = 0x1000 };
             var pattern = new byte[16];
             for (int j = 0; j < pattern.Length; j++) pattern[j] = (byte)(i * 0x10 + j);
             Assert.True(_vmm.MemWriteArray<byte>(Vmm.PID_PHYSICALMEMORY, pageAddr, pattern));
         }
-        using var scatter = _vmm.MemReadScatter(Vmm.PID_PHYSICALMEMORY, VmmFlags.NONE, pageAddrs);
+        using var scatter = _vmm.MemReadScatter(Vmm.PID_PHYSICALMEMORY, VmmFlags.NONE, mems);
         Assert.NotNull(scatter);
-        foreach (var pageAddr in pageAddrs)
+        foreach (var mem in mems)
         {
-            Assert.True(scatter.Results.ContainsKey(pageAddr));
-            var data = scatter.Results[pageAddr];
+            Assert.True(scatter.Results.ContainsKey(mem.Address));
+            var data = scatter.Results[mem.Address];
             Assert.True(data.Data.Length >= 16);
         }
     }

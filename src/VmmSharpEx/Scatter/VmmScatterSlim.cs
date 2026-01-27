@@ -26,7 +26,7 @@ public sealed class VmmScatterSlim : IScatter, IScatter<VmmScatterSlim>, IDispos
     #region Fields / Ctors
 
     private readonly Lock _sync = new();
-    private readonly PooledSet<ulong> _prepared = new();
+    private readonly PooledDictionary<ulong, Vmm.MEM_SCATTER> _prepared = new();
     private readonly Vmm _vmm;
     private readonly uint _pid;
     private readonly VmmFlags _flags;
@@ -100,12 +100,49 @@ public sealed class VmmScatterSlim : IScatter, IScatter<VmmScatterSlim>, IDispos
         }
         ulong pageCount = VmmUtilities.ADDRESS_AND_SIZE_TO_SPAN_PAGES(address, (uint)cb);
         ulong pageBase = VmmUtilities.PAGE_ALIGN(address);
+        bool fForcePageRead = (_flags & VmmFlags.SCATTER_FORCE_PAGEREAD) != 0;
         lock (_sync)
         {
             for (ulong p = 0; p < pageCount; p++)
             {
                 ulong pageAddr = checked(pageBase + (p << 12));
-                _ = _prepared.Add(pageAddr);
+                ulong vaMem = pageAddr;
+                uint cbMem = 0x1000;
+
+                if ((pageCount == 1) && (cb <= 0x400) && !fForcePageRead)
+                {
+                    // single-page small read -> optimize MEM for small read.
+                    // NB! buffer allocation still remains 0x1000 even if not all is used for now.
+                    cbMem = ((uint)cb + 7u + (uint)(address & 7u)) & ~0x7u;
+                    vaMem = address & ~0x7ul;
+                    if ((vaMem & 0xffful) + cbMem > 0x1000u)
+                    {
+                        vaMem = (vaMem & ~0xffful) + 0x1000u - cbMem;
+                    }
+                }
+                _prepared.AddOrUpdate(
+                    pageAddr,
+                    // add: no existing entry
+                    _ => new Vmm.MEM_SCATTER()
+                    {
+                        Address = vaMem,
+                        CB = cbMem
+                    },
+                    // update: entry already exists
+                    (_, existing) =>
+                    {
+                        // If an entry already exists for this page, ensure we upgrade to full-page read.
+                        // This preserves correctness when multiple overlapping prepares hit the same page.
+                        if (existing.CB != 0x1000)
+                            return new Vmm.MEM_SCATTER()
+                            {
+                                Address = pageAddr,
+                                CB = 0x1000u
+                            };
+
+                        return existing;
+                    }
+                );
             }
         }
         return true;
@@ -177,7 +214,7 @@ public sealed class VmmScatterSlim : IScatter, IScatter<VmmScatterSlim>, IDispos
                 return; // no-op
             _scatter?.Dispose(); // Clear previous scatter if any
             _scatter = null;
-            using var prepared = _prepared.ToPooledMemory();
+            using var prepared = _prepared.Values.ToPooledMemory();
             _scatter = _vmm.MemReadScatter(_pid, _flags, prepared.Span);
         }
         OnCompleted();
@@ -416,40 +453,44 @@ public sealed class VmmScatterSlim : IScatter, IScatter<VmmScatterSlim>, IDispos
             {
                 return false;
             }
-            var spanBytes = MemoryMarshal.AsBytes(span); // Cast to byte span for processing
-            int cbTotal = spanBytes.Length; // After casting Length will be adjusted to number of byte elements for our total count of bytes
-            int pageOffset = (int)VmmUtilities.BYTE_OFFSET(addr); // Get object offset from the page start address
+            var spanBytes = MemoryMarshal.AsBytes(span);
+            int cbTotal = spanBytes.Length;
+            int cbRead = 0;
 
-            int cb = Math.Min(cbTotal, 0x1000 - pageOffset); // bytes to read current page
-            int cbRead = 0; // track number of bytes copied to ensure nothing is missed
-
-            ulong numPages = VmmUtilities.ADDRESS_AND_SIZE_TO_SPAN_PAGES(addr, (uint)cbTotal); // number of pages to read from (in case span spans multiple pages)
+            ulong numPages = VmmUtilities.ADDRESS_AND_SIZE_TO_SPAN_PAGES(addr, (uint)cbTotal);
             ulong basePageAddr = VmmUtilities.PAGE_ALIGN(addr);
+            ulong currentAddr = addr;
 
-            for (ulong p = 0; p < numPages; p++)
+            checked
             {
-                ulong pageAddr = checked(basePageAddr + (p << 12)); // get current page addr
-                if (_scatter.Results.TryGetValue(pageAddr, out var scatter)) // retrieve page of mem needed
+                for (ulong p = 0; p < numPages; p++)
                 {
+                    ulong pageAddr = basePageAddr + (p << 12);
+
+                    // Prepared entries are keyed by page base address.
+                    if (!_prepared.TryGetValue(pageAddr, out var mem))
+                        return false;
+
+                    // Scatter results are keyed by the actual qwA used (may be optimized 8-byte aligned).
+                    if (!_scatter.Results.TryGetValue(mem.Address, out var scatter))
+                        return false;
+
+                    int offset = (int)(currentAddr - mem.Address);
+                    int cbThis = Math.Clamp(cbTotal - cbRead, 0, scatter.Data.Length - offset);
+
+                    if (offset < 0 || cbThis <= 0)
+                        return false;
+
                     scatter.Data
-                        .Slice(pageOffset, cb)
-                        .CopyTo(spanBytes.Slice(cbRead, cb)); // Copy bytes to buffer
-                    checked { cbRead += cb; }
-                }
-                else // read failed -> break
-                {
-                    return false;
-                }
+                        .Slice(offset, cbThis)
+                        .CopyTo(spanBytes.Slice(cbRead, cbThis));
 
-                cb = Math.Clamp(cbTotal - cbRead, 0, 0x1000); // Size the next read
-                pageOffset = 0x0; // Next page (if any) should start at 0x0
+                    cbRead += cbThis;
+                    currentAddr += (ulong)cbThis;
+                }
             }
 
-            if (cbRead != cbTotal)
-            {
-                return false;
-            }
-            return true;
+            return cbRead == cbTotal;
         }
     }
 
