@@ -450,44 +450,41 @@ public sealed class VmmScatterSlim : IScatter, IScatter<VmmScatterSlim>, IDispos
             ObjectDisposedException.ThrowIf(_disposed, this);
             ArgumentNullException.ThrowIfNull(_scatter, nameof(_scatter));
             if (span.IsEmpty)
-            {
                 return false;
-            }
+
             var spanBytes = MemoryMarshal.AsBytes(span);
             int cbTotal = spanBytes.Length;
-            int cbRead = 0;
-
             ulong numPages = VmmUtilities.ADDRESS_AND_SIZE_TO_SPAN_PAGES(addr, (uint)cbTotal);
             ulong basePageAddr = VmmUtilities.PAGE_ALIGN(addr);
-            ulong currentAddr = addr;
 
-            checked
+            int pageOffset = (int)VmmUtilities.BYTE_OFFSET(addr);
+            int cb = Math.Min(cbTotal, 0x1000 - pageOffset);
+            int cbRead = 0;
+
+            for (ulong p = 0; p < numPages; p++)
             {
-                for (ulong p = 0; p < numPages; p++)
-                {
-                    ulong pageAddr = basePageAddr + (p << 12);
+                ulong pageAddr = checked(basePageAddr + (p << 12));
 
-                    // Prepared entries are keyed by page base address.
-                    if (!_prepared.TryGetValue(pageAddr, out var mem))
-                        return false;
+                // Look up prepared entry to get actual scatter key (may be optimized for tiny mem)
+                if (!_prepared.TryGetValue(pageAddr, out var mem))
+                    return false;
 
-                    // Scatter results are keyed by the actual qwA used (may be optimized 8-byte aligned).
-                    if (!_scatter.Results.TryGetValue(mem.Address, out var scatter))
-                        return false;
+                // Scatter results keyed by mem.Address (page-aligned or 8-byte aligned for tiny mem)
+                if (!_scatter.Results.TryGetValue(mem.Address, out var scatter))
+                    return false;
 
-                    int offset = (int)(currentAddr - mem.Address);
-                    int cbThis = Math.Clamp(cbTotal - cbRead, 0, scatter.Data.Length - offset);
+                // For tiny mem on first page, adjust offset relative to optimized address
+                int offset = (p == 0 && mem.CB != 0x1000)
+                    ? (int)(addr - mem.Address)
+                    : pageOffset;
 
-                    if (offset < 0 || cbThis <= 0)
-                        return false;
+                scatter.Data
+                    .Slice(offset, cb)
+                    .CopyTo(spanBytes.Slice(cbRead, cb));
 
-                    scatter.Data
-                        .Slice(offset, cbThis)
-                        .CopyTo(spanBytes.Slice(cbRead, cbThis));
-
-                    cbRead += cbThis;
-                    currentAddr += (ulong)cbThis;
-                }
+                checked { cbRead += cb; }
+                cb = Math.Clamp(cbTotal - cbRead, 0, 0x1000);
+                pageOffset = 0;
             }
 
             return cbRead == cbTotal;
