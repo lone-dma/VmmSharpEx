@@ -11,12 +11,14 @@ using System.Text;
 using VmmSharpEx.Extensions;
 using VmmSharpEx.Internal;
 using VmmSharpEx.Options;
+using static System.Net.WebRequestMethods;
 
 namespace VmmSharpEx.Scatter;
 
 /// <summary>
 /// The <see cref="VmmScatterSlim"/> class is used to ease the reading of memory in bulk using this managed VmmSharpEx implementation by Lone.
 /// This implementation is mostly managed, except for a native call to perform the mem read operation (using <see cref="Vmmi.VMMDLL_MemReadScatter(nint, uint, nint, uint, VmmFlags)"/>).
+/// Implementation follows <see href="https://github.com/ufrisk/MemProcFS/blob/master/vmm/vmmdll_scatter.c"/> as closely as possible.
 /// </summary>
 /// <remarks>
 /// Known issue: VMMDLL_MemReadScatter can cause audio crackling/static on some target systems while performing mem reads. See: <see href="https://github.com/ufrisk/MemProcFS/issues/410"/>
