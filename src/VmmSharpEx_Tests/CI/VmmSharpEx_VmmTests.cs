@@ -160,11 +160,11 @@ public unsafe class VmmSharpEx_VmmTests : CITest
     {
         // Prepare patterns at page starts then scatter read.
         var startPage = _heapBase & ~0xffful;
-        var mems = new LeechCore.MEM_SCATTER[3];
+        var mems = new ulong[3];
         for (int i = 0; i < mems.Length; i++)
         {
             ulong pageAddr = startPage + (ulong)(i * 0x1000);
-            mems[i] = new LeechCore.MEM_SCATTER { qwA = pageAddr, cb = 0x1000 };
+            mems[i] = pageAddr;
             var pattern = new byte[16];
             for (int j = 0; j < pattern.Length; j++) pattern[j] = (byte)(i * 0x10 + j);
             Assert.True(_vmm.MemWriteArray<byte>(Vmm.PID_PHYSICALMEMORY, pageAddr, pattern));
@@ -173,8 +173,8 @@ public unsafe class VmmSharpEx_VmmTests : CITest
         Assert.NotNull(scatter);
         foreach (var mem in mems)
         {
-            Assert.True(scatter.Results.ContainsKey(mem.qwA));
-            var data = scatter.Results[mem.qwA];
+            Assert.True(scatter.Results.ContainsKey(mem));
+            var data = scatter.Results[mem];
             Assert.True(data.Data.Length >= 16);
         }
     }

@@ -19,7 +19,6 @@ using Collections.Pooled;
 using System.Buffers;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using VmmSharpEx.Extensions;
 using VmmSharpEx.Internal;
 using VmmSharpEx.Options;
 
@@ -350,48 +349,37 @@ public sealed class LeechCore : IDisposable
     /// <see cref="MEM_SCATTER.Data"/>. Ensure the returned <see cref="LcScatterHandle"/> is disposed before those buffers
     /// are accessed by other operations.
     /// </remarks>
-    /// <param name="mems">Page-aligned physical memory addresses.</param>
+    /// <param name="pas">Page-aligned physical memory addresses.</param>
     /// <returns>An <see cref="LcScatterHandle"/> that owns the native buffers.</returns>
     /// <exception cref="VmmException">Thrown if the native scatter allocation fails.</exception>
-    public unsafe LcScatterHandle ReadScatter(params ReadOnlySpan<MEM_SCATTER> mems)
+    public unsafe LcScatterHandle ReadScatter(params Span<ulong> pas)
     {
-        if (!Lci.LcAllocScatter1((uint)mems.Length, out var pppMEMs) || pppMEMs == IntPtr.Zero)
+        if (!Lci.LcAllocScatter1((uint)pas.Length, out var pppMEMs))
         {
             throw new VmmException("LcAllocScatter1 FAIL");
         }
-        try
+
+        var ppMEMs = (MEM_SCATTER_NATIVE**)pppMEMs.ToPointer();
+        for (var i = 0; i < pas.Length; i++)
         {
-            MEM_SCATTER_NATIVE** ppMEMs = (MEM_SCATTER_NATIVE**)pppMEMs.ToPointer();
-            for (int i = 0; i < mems.Length; i++)
-            {
-                MEM_SCATTER_NATIVE* pMEM = ppMEMs[i];
-                if (pMEM is null)
-                    continue;
-                pMEM->qwA = mems[i].qwA & 0xffful;
-                pMEM->cb = mems[i].cb;
-            }
-
-            Lci.LcReadScatter(_handle, (uint)mems.Length, pppMEMs);
-
-            var results = new PooledDictionary<ulong, MEM_SCATTER>(capacity: mems.Length);
-            for (int i = 0; i < mems.Length; i++)
-            {
-                MEM_SCATTER_NATIVE* pMEM = ppMEMs[i];
-                if (pMEM is null)
-                    continue;
-                if (pMEM->f)
-                {
-                    results[VmmUtilities.PAGE_ALIGN(pMEM->qwA)] = new MEM_SCATTER(pMEM->qwA, pMEM->cb, true, pMEM->pb);
-                }
-            }
-
-            return new LcScatterHandle(results, pppMEMs);
+            var pMEM = ppMEMs[i];
+            pMEM->qwA = pas[i] & ~0xffful;
+            pMEM->cb = 0x1000;
         }
-        catch
+
+        Lci.LcReadScatter(_handle, (uint)pas.Length, pppMEMs);
+
+        var results = new PooledDictionary<ulong, MEM_SCATTER>(capacity: pas.Length);
+        for (var i = 0; i < pas.Length; i++)
         {
-            Lci.LcMemFree(pppMEMs.ToPointer());
-            throw;
+            var pMEM = ppMEMs[i];
+            if (pMEM->f)
+            {
+                results[pMEM->qwA] = new MEM_SCATTER(pMEM->qwA, pMEM->cb, true, pMEM->pb);
+            }
         }
+
+        return new LcScatterHandle(results, pppMEMs);
     }
 
     /// <summary>

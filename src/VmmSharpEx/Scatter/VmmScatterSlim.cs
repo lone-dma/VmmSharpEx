@@ -5,7 +5,6 @@
 
 using Collections.Pooled;
 using System.Buffers;
-using System.Reflection.Metadata;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -488,48 +487,48 @@ public sealed class VmmScatterSlim : IScatter, IScatter<VmmScatterSlim>, IDispos
         where T : unmanaged
     {
         lock (_sync)
-        checked
-        {
-            ObjectDisposedException.ThrowIf(_disposed, this);
-            if (span.IsEmpty)
-                return false;
-
-            var spanBytes = MemoryMarshal.AsBytes(span);
-            int cbTotal = spanBytes.Length;
-            ulong numPages = VmmUtilities.ADDRESS_AND_SIZE_TO_SPAN_PAGES(addr, (uint)cbTotal);
-            ulong basePageAddr = VmmUtilities.PAGE_ALIGN(addr);
-
-            int pageOffset = (int)VmmUtilities.BYTE_OFFSET(addr);
-            int cb = Math.Min(cbTotal, 0x1000 - pageOffset);
-            int cbRead = 0;
-
-            for (ulong p = 0; p < numPages; p++)
+            checked
             {
-                ulong pageAddr = basePageAddr + (p << 12);
-                if (!_mems.TryGetValue(pageAddr, out var mem) || !mem.f)
+                ObjectDisposedException.ThrowIf(_disposed, this);
+                if (span.IsEmpty)
                     return false;
 
-                var data = mem.Data;
+                var spanBytes = MemoryMarshal.AsBytes(span);
+                int cbTotal = spanBytes.Length;
+                ulong numPages = VmmUtilities.ADDRESS_AND_SIZE_TO_SPAN_PAGES(addr, (uint)cbTotal);
+                ulong basePageAddr = VmmUtilities.PAGE_ALIGN(addr);
 
-                if (p == 0 && data.Length != 0x1000) // Tiny mem
+                int pageOffset = (int)VmmUtilities.BYTE_OFFSET(addr);
+                int cb = Math.Min(cbTotal, 0x1000 - pageOffset);
+                int cbRead = 0;
+
+                for (ulong p = 0; p < numPages; p++)
                 {
-                    pageOffset = (int)(addr - mem.qwA);
-                    // Validate the read falls within the tiny MEM range
-                    if (addr < mem.qwA || addr + (ulong)cb > mem.qwA + (ulong)data.Length)
+                    ulong pageAddr = basePageAddr + (p << 12);
+                    if (!_mems.TryGetValue(pageAddr, out var mem) || !mem.f)
                         return false;
+
+                    var data = mem.Data;
+
+                    if (p == 0 && data.Length != 0x1000) // Tiny mem
+                    {
+                        pageOffset = (int)(addr - mem.qwA);
+                        // Validate the read falls within the tiny MEM range
+                        if (addr < mem.qwA || addr + (ulong)cb > mem.qwA + (ulong)data.Length)
+                            return false;
+                    }
+
+                    data
+                        .Slice(pageOffset, cb)
+                        .CopyTo(spanBytes.Slice(cbRead, cb));
+
+                    cbRead += cb;
+                    cb = Math.Clamp(cbTotal - cbRead, 0, 0x1000);
+                    pageOffset = 0; // Next page (if any) starts at 0x0
                 }
 
-                data
-                    .Slice(pageOffset, cb)
-                    .CopyTo(spanBytes.Slice(cbRead, cb));
-
-                cbRead += cb;
-                cb = Math.Clamp(cbTotal - cbRead, 0, 0x1000);
-                pageOffset = 0; // Next page (if any) starts at 0x0
+                return cbRead == cbTotal;
             }
-
-            return cbRead == cbTotal;
-        }
     }
 
     /// <summary>
