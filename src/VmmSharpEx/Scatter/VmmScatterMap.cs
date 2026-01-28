@@ -9,7 +9,7 @@ using VmmSharpEx.Options;
 namespace VmmSharpEx.Scatter
 {
     /// <summary>
-    /// Convenience mapping API that allows for multiple 'rounds' of <see cref="VmmScatterSlim"/> operations to be executed in sequence.
+    /// Convenience mapping API that allows for multiple 'rounds' of <see cref="VmmScatterManaged"/> operations to be executed in sequence.
     /// </summary>
     public sealed class VmmScatterMap<T> : IDisposable
         where T : IScatter<T>
@@ -38,7 +38,7 @@ namespace VmmSharpEx.Scatter
         /// Add a new scatter round to this map. Rounds will be executed in the order they are added when <see cref="Execute"/> is called.
         /// </summary>
         /// <param name="flags">Vmm Flag Options for this operation.</param>
-        /// <returns>Object reference to the added <see cref="VmmScatterSlim"/> instance.</returns>
+        /// <returns>Object reference to the added <see cref="VmmScatterManaged"/> instance.</returns>
         /// <exception cref="VmmException"></exception>
         public T AddRound(VmmFlags flags = VmmFlags.NONE)
         {

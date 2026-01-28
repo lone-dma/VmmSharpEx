@@ -29,7 +29,7 @@ namespace VmmSharpEx.Scatter;
 /// All operations incur native calls to vmm.dll (using <see cref="Vmmi.VMMDLL_Scatter_Initialize(nint, uint, VmmFlags)"/>).
 /// </summary>
 /// <remarks>
-/// This API is left intact for compatibility with existing code, but new development will be focused on <see cref="VmmScatterSlim"/>.
+/// This API is left intact for compatibility with existing code, but new development will be focused on <see cref="VmmScatterManaged"/>.
 /// </remarks>
 public sealed class VmmScatter : IScatter, IScatter<VmmScatter>, IDisposable
 {

@@ -75,7 +75,7 @@ public unsafe class VmmSharpEx_VmmScatterMapTests : CITest
     [Fact]
     public void ScatterMap_VmmScatterSlim_CompletedEvent_Fires()
     {
-        using var map = CreateMap<VmmScatterSlim>();
+        using var map = CreateMap<VmmScatterManaged>();
         var round = map.AddRound();
         int fired = 0;
         map.Completed += (_, __) => fired++;
@@ -87,7 +87,7 @@ public unsafe class VmmSharpEx_VmmScatterMapTests : CITest
     [Fact]
     public void ScatterMap_VmmScatterSlim_AddRound_Execute_ReadBytes()
     {
-        using var map = CreateMap<VmmScatterSlim>();
+        using var map = CreateMap<VmmScatterManaged>();
         var round = map.AddRound();
         ulong addr = HeapAddr(0x1000);
         var pattern = Enumerable.Range(0, 32).Select(i => (byte)(i + 0x10)).ToArray();
@@ -102,7 +102,7 @@ public unsafe class VmmSharpEx_VmmScatterMapTests : CITest
     [Fact]
     public void ScatterMap_VmmScatterSlim_MultipleRounds_AllExecute()
     {
-        using var map = CreateMap<VmmScatterSlim>();
+        using var map = CreateMap<VmmScatterManaged>();
         var round1 = map.AddRound();
         var round2 = map.AddRound();
         ulong addr1 = HeapAddr(0x2000);

@@ -15,14 +15,14 @@ using VmmSharpEx.Options;
 namespace VmmSharpEx.Scatter;
 
 /// <summary>
-/// The <see cref="VmmScatterSlim"/> class is used to ease the reading of memory in bulk using this managed VmmSharpEx implementation by Lone.
-/// This implementation is mostly managed, except for a native call to perform the prepared read operation (using <see cref="Vmmi.VMMDLL_MemReadScatter(nint, uint, nint, uint, VmmFlags)"/>).
+/// The <see cref="VmmScatterManaged"/> class is used to ease the reading of memory in bulk using this managed VmmSharpEx implementation by Lone.
+/// This implementation is mostly managed, except for a native call to perform the prepared read operation (using <see cref="Vmmi.VMMDLL_MemReadScatter(nint, uint, nint, uint, VmmFlags)"/>), and some internal native interop.
 /// Implementation follows <see href="https://github.com/ufrisk/MemProcFS/blob/master/vmm/vmmdll_scatter.c"/> as closely as possible.
 /// </summary>
 /// <remarks>
 /// Known issue: VMMDLL_MemReadScatter can cause audio crackling/static on some target systems while performing prepared reads. See: <see href="https://github.com/ufrisk/MemProcFS/issues/410"/>
 /// </remarks>
-public sealed class VmmScatterSlim : IScatter, IScatter<VmmScatterSlim>, IDisposable
+public sealed class VmmScatterManaged : IScatter, IScatter<VmmScatterManaged>, IDisposable
 {
     #region Fields / Ctors
 
@@ -42,22 +42,22 @@ public sealed class VmmScatterSlim : IScatter, IScatter<VmmScatterSlim>, IDispos
     /// <summary>
     /// Event is fired upon completion of <see cref="Execute"/>. Exceptions are handled/ignored.
     /// </summary>
-    public event EventHandler<VmmScatterSlim>? Completed;
+    public event EventHandler<VmmScatterManaged>? Completed;
     private void OnCompleted()
     {
         foreach (var callback in Completed?.GetInvocationList() ?? Enumerable.Empty<Delegate>())
         {
             try
             {
-                ((EventHandler<VmmScatterSlim>)callback).Invoke(this, this);
+                ((EventHandler<VmmScatterManaged>)callback).Invoke(this, this);
             }
             catch { }
         }
     }
 
-    private VmmScatterSlim() { throw new NotImplementedException(); }
+    private VmmScatterManaged() { throw new NotImplementedException(); }
 
-    public VmmScatterSlim(Vmm vmm, uint pid, VmmFlags flags = VmmFlags.NONE)
+    public VmmScatterManaged(Vmm vmm, uint pid, VmmFlags flags = VmmFlags.NONE)
     {
         _vmm = vmm;
         _pid = pid;
@@ -67,9 +67,9 @@ public sealed class VmmScatterSlim : IScatter, IScatter<VmmScatterSlim>, IDispos
         _isUser = !isPhysical && !_isKernel;
     }
 
-    static VmmScatterSlim IScatter<VmmScatterSlim>.Create(Vmm vmm, uint pid, VmmFlags flags)
+    static VmmScatterManaged IScatter<VmmScatterManaged>.Create(Vmm vmm, uint pid, VmmFlags flags)
     {
-        return new VmmScatterSlim(vmm, pid, flags);
+        return new VmmScatterManaged(vmm, pid, flags);
     }
 
     #endregion
@@ -549,7 +549,7 @@ public sealed class VmmScatterSlim : IScatter, IScatter<VmmScatterSlim>, IDispos
     /// <see cref="object.ToString"/> override.
     /// </summary>
     /// <remarks>
-    /// Prints the state of the <see cref="VmmScatterSlim"/> object.
+    /// Prints the state of the <see cref="VmmScatterManaged"/> object.
     /// </remarks>
     public override string ToString()
     {
@@ -575,7 +575,7 @@ public sealed class VmmScatterSlim : IScatter, IScatter<VmmScatterSlim>, IDispos
         }
     }
 
-    ~VmmScatterSlim() => Dispose(disposing: false);
+    ~VmmScatterManaged() => Dispose(disposing: false);
 
     public void Dispose()
     {

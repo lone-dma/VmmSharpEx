@@ -36,7 +36,7 @@ public class VmmSharpEx_VmmScatterStressTest
         var threadLocalRandom = new ThreadLocal<Random>(() => new Random(Guid.NewGuid().GetHashCode()));
 
         // Shared scatter instance for naughty behavior
-        var sharedScatter = new VmmScatterSlim(_vmm, Vmm.PID_PHYSICALMEMORY);
+        var sharedScatter = new VmmScatterManaged(_vmm, Vmm.PID_PHYSICALMEMORY);
         bool sharedScatterDisposed = false;
 
         for (int t = 0; t < numThreads; t++)
@@ -57,14 +57,14 @@ public class VmmSharpEx_VmmScatterStressTest
 
                         // Naughty: sometimes use shared scatter, sometimes new
                         bool useShared = rand.Next(0, 4) == 0; // 25% chance
-                        VmmScatterSlim? scatter = null;
+                        VmmScatterManaged? scatter = null;
                         if (useShared && !sharedScatterDisposed)
                         {
                             scatter = sharedScatter;
                         }
                         else
                         {
-                            scatter = new VmmScatterSlim(_vmm, Vmm.PID_PHYSICALMEMORY);
+                            scatter = new VmmScatterManaged(_vmm, Vmm.PID_PHYSICALMEMORY);
                         }
                         try
                         {
@@ -106,7 +106,7 @@ public class VmmSharpEx_VmmScatterStressTest
         // Naughty: Use-after-dispose scenario
         try
         {
-            var scatter = new VmmScatterSlim(_vmm, Vmm.PID_PHYSICALMEMORY);
+            var scatter = new VmmScatterManaged(_vmm, Vmm.PID_PHYSICALMEMORY);
             scatter.Dispose();
             try
             {
@@ -146,7 +146,7 @@ public class VmmSharpEx_VmmScatterStressTest
         // Naughty: Double-dispose scenario
         try
         {
-            var scatter = new VmmScatterSlim(_vmm, Vmm.PID_PHYSICALMEMORY);
+            var scatter = new VmmScatterManaged(_vmm, Vmm.PID_PHYSICALMEMORY);
             scatter.Dispose();
             try
             {
@@ -166,7 +166,7 @@ public class VmmSharpEx_VmmScatterStressTest
         // Naughty: Concurrent PrepareRead/Execute/ReadSpan on the same instance
         try
         {
-            var scatter = new VmmScatterSlim(_vmm, Vmm.PID_PHYSICALMEMORY);
+            var scatter = new VmmScatterManaged(_vmm, Vmm.PID_PHYSICALMEMORY);
             var tasks = new List<Thread>();
             for (int i = 0; i < 8; i++)
             {
@@ -221,7 +221,7 @@ public class VmmSharpEx_VmmScatterStressTest
         // Naughty: Invalid address/size usage
         try
         {
-            var scatter = new VmmScatterSlim(_vmm, Vmm.PID_PHYSICALMEMORY);
+            var scatter = new VmmScatterManaged(_vmm, Vmm.PID_PHYSICALMEMORY);
             try
             {
                 scatter.PrepareRead(0xFFFFFFFFFFFFFFFF, 0x1000); // Invalid address
