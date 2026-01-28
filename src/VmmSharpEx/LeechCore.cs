@@ -381,7 +381,7 @@ public sealed class LeechCore : IDisposable
                     continue;
                 if (pMEM->f)
                 {
-                    results[VmmUtilities.PAGE_ALIGN(pMEM->qwA)] = new MEM_SCATTER(pMEM->qwA, pMEM->cb, pMEM->pb);
+                    results[VmmUtilities.PAGE_ALIGN(pMEM->qwA)] = new MEM_SCATTER(pMEM->qwA, pMEM->cb, true, pMEM->pb);
                 }
             }
 
@@ -616,13 +616,6 @@ public sealed class LeechCore : IDisposable
         {
             this.qwA = qwA;
             this.cb = cb;
-        }
-
-        internal MEM_SCATTER(ulong qwA, uint cb, IntPtr pb)
-        {
-            this.qwA = qwA;
-            this.cb = cb;
-            this.pb = pb;
         }
 
         internal MEM_SCATTER(ulong qwA, uint cb, bool f, IntPtr pb)

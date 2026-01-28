@@ -379,7 +379,7 @@ public sealed partial class Vmm : IDisposable
                     continue;
                 if (pMEM->f)
                 {
-                    results[VmmUtilities.PAGE_ALIGN(pMEM->qwA)] = new LeechCore.MEM_SCATTER(pMEM->qwA, pMEM->cb, pMEM->pb);
+                    results[VmmUtilities.PAGE_ALIGN(pMEM->qwA)] = new LeechCore.MEM_SCATTER(pMEM->qwA, pMEM->cb, true, pMEM->pb);
                 }
             }
 
