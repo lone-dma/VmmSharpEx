@@ -538,7 +538,7 @@ public sealed class VmmScatterSlim : IScatter, IScatter<VmmScatterSlim>, IDispos
 
                 cbRead += cb;
                 cb = Math.Clamp(cbTotal - cbRead, 0, 0x1000);
-                pageOffset = 0; // Next prepared (if any) starts at 0x0
+                pageOffset = 0; // Next page (if any) starts at 0x0
             }
 
             return cbRead == cbTotal;
