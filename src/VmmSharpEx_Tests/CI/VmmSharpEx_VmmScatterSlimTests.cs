@@ -177,7 +177,7 @@ public unsafe class VmmSharpEx_VmmScatterSlimTests : CITest
     [InlineData(64)]     // Small buffer
     [InlineData(0x100)]  // 256 bytes
     [InlineData(0x200)]  // 512 bytes
-    [InlineData(0x400)]  // Max tiny mem threshold
+    [InlineData(0x400)]  // Max tiny pMEM threshold
     public void Scatter_TinyMem_VariousSizes_PageAligned(int cb)
     {
         using var scatter = CreateScatter();
@@ -245,7 +245,7 @@ public unsafe class VmmSharpEx_VmmScatterSlimTests : CITest
     {
         using var scatter = CreateScatter(VmmFlags.SCATTER_FORCE_PAGEREAD);
         ulong addr = PageAlignedHeapAddr(4, 0x100);
-        int cb = 64; // Would normally be tiny mem
+        int cb = 64; // Would normally be tiny pMEM
         var pattern = CreatePattern(cb);
         WriteAndVerifyPattern(addr, pattern);
 
@@ -445,7 +445,7 @@ public unsafe class VmmSharpEx_VmmScatterSlimTests : CITest
         WriteAndVerifyPattern(pageBase + 0x100, pattern1);
         WriteAndVerifyPattern(pageBase + 0x200, pattern2);
 
-        // Prepare two reads on same page (both would be tiny mem individually)
+        // Prepare two reads on same page (both would be tiny pMEM individually)
         Assert.True(scatter.PrepareRead(pageBase + 0x100, 32));
         Assert.True(scatter.PrepareRead(pageBase + 0x200, 64)); // Should upgrade to full page
 

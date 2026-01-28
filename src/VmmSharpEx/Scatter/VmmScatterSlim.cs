@@ -16,20 +16,21 @@ namespace VmmSharpEx.Scatter;
 
 /// <summary>
 /// The <see cref="VmmScatterSlim"/> class is used to ease the reading of memory in bulk using this managed VmmSharpEx implementation by Lone.
-/// This implementation is mostly managed, except for a native call to perform the mem read operation (using <see cref="Vmmi.VMMDLL_MemReadScatter(nint, uint, nint, uint, VmmFlags)"/>).
+/// This implementation is mostly managed, except for a native call to perform the prepared read operation (using <see cref="Vmmi.VMMDLL_MemReadScatter(nint, uint, nint, uint, VmmFlags)"/>).
 /// Implementation follows <see href="https://github.com/ufrisk/MemProcFS/blob/master/vmm/vmmdll_scatter.c"/> as closely as possible.
 /// </summary>
 /// <remarks>
-/// Known issue: VMMDLL_MemReadScatter can cause audio crackling/static on some target systems while performing mem reads. See: <see href="https://github.com/ufrisk/MemProcFS/issues/410"/>
+/// Known issue: VMMDLL_MemReadScatter can cause audio crackling/static on some target systems while performing prepared reads. See: <see href="https://github.com/ufrisk/MemProcFS/issues/410"/>
 /// </remarks>
-public sealed class VmmScatterSlim : IScatter, IScatter<VmmScatterSlim>, IDisposable
+public unsafe sealed class VmmScatterSlim : IScatter, IScatter<VmmScatterSlim>, IDisposable
 {
     #region Fields / Ctors
 
     private const int SCATTER_MAX_SIZE_SINGLE = 0x40000000;
     private const ulong SCATTER_MAX_SIZE_TOTAL = 0x40000000000;
     private readonly Lock _sync = new();
-    private readonly PooledDictionary<ulong, LeechCore.MEM_SCATTER> _mems = new();
+    private readonly PooledDictionary<ulong, ScatterEntry> _prepared = new();
+    private readonly PooledDictionary<ulong, ScatterEntry> _results = new();
     private readonly Vmm _vmm;
     private readonly uint _pid;
     private readonly VmmFlags _flags;
@@ -92,7 +93,7 @@ public sealed class VmmScatterSlim : IScatter, IScatter<VmmScatterSlim>, IDispos
             (_isUser && !address.IsValidUserVA()) ||
             cb <= 0 ||
             cb >= SCATTER_MAX_SIZE_SINGLE ||
-            ((ulong)_mems.Count << 12) + (uint)cb > SCATTER_MAX_SIZE_TOTAL ||
+            ((ulong)_prepared.Count << 12) + (uint)cb > SCATTER_MAX_SIZE_TOTAL ||
             unchecked(address + (ulong)cb) < address)
         {
             return false;
@@ -110,7 +111,7 @@ public sealed class VmmScatterSlim : IScatter, IScatter<VmmScatterSlim>, IDispos
 
                 if ((pageCount == 1) && (cb <= 0x400) && !fForcePageRead)
                 {
-                    // single-page small read -> optimize MEM for small read.
+                    // single-prepared small read -> optimize MEM for small read.
                     // NB! buffer allocation still remains 0x1000 even if not all is used for now.
                     cbMem = ((uint)cb + 7u + (uint)(address & 7u)) & ~0x7u;
                     vaMem = address & ~0x7ul;
@@ -119,25 +120,19 @@ public sealed class VmmScatterSlim : IScatter, IScatter<VmmScatterSlim>, IDispos
                         vaMem = (vaMem & ~0xffful) + 0x1000u - cbMem;
                     }
                 }
-                _mems.AddOrUpdate(
+                _prepared.AddOrUpdate(
                     pageAddr,
                     // add: no existing entry
-                    _ => new LeechCore.MEM_SCATTER()
-                    {
-                        qwA = vaMem,
-                        cb = cbMem
-                    },
+                    _ => new ScatterEntry(qwA: vaMem, cb: cbMem),
                     // update: entry already exists
                     (_, existing) =>
                     {
-                        // If an entry already exists for this page, ensure we upgrade to full-page read.
-                        // This preserves correctness when multiple overlapping prepares hit the same page.
-                        if (existing.cb != 0x1000)
-                            return new LeechCore.MEM_SCATTER()
-                            {
-                                qwA = pageAddr,
-                                cb = 0x1000u
-                            };
+                        // If an entry already exists for this prepared, ensure we upgrade to full-prepared read.
+                        // This preserves correctness when multiple overlapping prepares hit the same prepared.
+                        if (existing.cb != 0x1000u)
+                        {
+                            return new ScatterEntry(qwA: pageAddr, cb: 0x1000u);
+                        }
 
                         return existing;
                     }
@@ -157,7 +152,7 @@ public sealed class VmmScatterSlim : IScatter, IScatter<VmmScatterSlim>, IDispos
     /// <param name="address">Address of the array to be read.</param>
     /// <param name="count">Number of array elements to be read.</param>
     /// <returns><see langword="true"/> if successful, otherwise <see langword="false"/>.</returns>
-    public unsafe bool PrepareReadArray<T>(ulong address, int count)
+    public bool PrepareReadArray<T>(ulong address, int count)
         where T : unmanaged
     {
         if (count <= 0)
@@ -176,7 +171,7 @@ public sealed class VmmScatterSlim : IScatter, IScatter<VmmScatterSlim>, IDispos
     /// <param name="address">Address of the memory to be read.</param>
     /// <returns><see langword="true"/> if successful, otherwise <see langword="false"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public unsafe bool PrepareReadValue<T>(ulong address)
+    public bool PrepareReadValue<T>(ulong address)
         where T : unmanaged, allows ref struct
     {
         return PrepareRead(address, sizeof(T));
@@ -191,7 +186,7 @@ public sealed class VmmScatterSlim : IScatter, IScatter<VmmScatterSlim>, IDispos
     /// <param name="address">Address of the memory to be read.</param>
     /// <returns><see langword="true"/> if successful, otherwise <see langword="false"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public unsafe bool PrepareReadPtr(ulong address)
+    public bool PrepareReadPtr(ulong address)
     {
         return PrepareRead(address, sizeof(VmmPointer));
     }
@@ -209,9 +204,13 @@ public sealed class VmmScatterSlim : IScatter, IScatter<VmmScatterSlim>, IDispos
         lock (_sync)
         {
             ObjectDisposedException.ThrowIf(_disposed, this);
-            if (_mems.Count == 0)
+            if (_prepared.Count == 0)
                 return; // no-op
-            FreeScatter();
+            if (_scatter != IntPtr.Zero) // Clear old results first (if any)
+            {
+                _results.Clear();
+                FreeScatter();
+            }
             _scatter = MemReadScatterInternal();
         }
         OnCompleted();
@@ -244,7 +243,7 @@ public sealed class VmmScatterSlim : IScatter, IScatter<VmmScatterSlim>, IDispos
     /// <param name="cb">Count of bytes to be read.</param>
     /// <param name="pb">Pointer to buffer to receive read. You must make sure the buffer is pinned/fixed.</param>
     /// <returns><see langword="true"/> if successful, otherwise <see langword="false"/>.</returns>
-    public unsafe bool Read(ulong address, int cb, void* pb)
+    public bool Read(ulong address, int cb, void* pb)
     {
         if (cb <= 0)
             return false;
@@ -260,7 +259,7 @@ public sealed class VmmScatterSlim : IScatter, IScatter<VmmScatterSlim>, IDispos
     /// <param name="pb">Pointer to buffer to receive read. You must make sure the buffer is pinned/fixed.</param>
     /// <returns><see langword="true"/> if successful, otherwise <see langword="false"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public unsafe bool Read(ulong address, int cb, IntPtr pb)
+    public bool Read(ulong address, int cb, IntPtr pb)
     {
         return Read(address, cb, pb.ToPointer());
     }
@@ -275,7 +274,7 @@ public sealed class VmmScatterSlim : IScatter, IScatter<VmmScatterSlim>, IDispos
     /// <param name="address">Address to read from.</param>
     /// <param name="result">Field in which the span <typeparamref name="T"/> is populated. If the read fails this will be <see langword="default"/>.</param>
     /// <returns><see langword="true"/> if successful, otherwise <see langword="false"/>.</returns>
-    public unsafe bool ReadValue<T>(ulong address, out T result)
+    public bool ReadValue<T>(ulong address, out T result)
         where T : unmanaged, allows ref struct
     {
         result = default;
@@ -422,7 +421,8 @@ public sealed class VmmScatterSlim : IScatter, IScatter<VmmScatterSlim>, IDispos
         lock (_sync)
         {
             ObjectDisposedException.ThrowIf(_disposed, this);
-            _mems.Clear();
+            _prepared.Clear();
+            _results.Clear();
             FreeScatter();
         }
     }
@@ -431,9 +431,33 @@ public sealed class VmmScatterSlim : IScatter, IScatter<VmmScatterSlim>, IDispos
 
     #region Internal
 
-    private unsafe IntPtr MemReadScatterInternal()
+    private readonly struct ScatterEntry
     {
-        int cMems = _mems.Count;
+        public readonly ulong qwA;
+        public readonly uint cb;
+        public readonly LeechCore.MEM_SCATTER_NATIVE* pMEM;
+
+        public ScatterEntry(ulong qwA, uint cb)
+        {
+            this.qwA = qwA;
+            this.cb = cb;
+        }
+
+        public ScatterEntry(LeechCore.MEM_SCATTER_NATIVE* pMEM)
+        {
+            this.pMEM = pMEM;
+        }
+
+        /// <summary>
+        /// Backing native pMEM struct.
+        /// </summary>
+        public LeechCore.MEM_SCATTER_NATIVE? MEM => pMEM is null ?
+            null : *pMEM;
+    }
+
+    private IntPtr MemReadScatterInternal()
+    {
+        int cMems = _prepared.Count;
         if (!Lci.LcAllocScatter1((uint)cMems, out var pppMEMs) || pppMEMs == IntPtr.Zero)
         {
             throw new VmmException("LcAllocScatter1 FAIL");
@@ -442,31 +466,17 @@ public sealed class VmmScatterSlim : IScatter, IScatter<VmmScatterSlim>, IDispos
         {
             var ppMEMs = (LeechCore.MEM_SCATTER_NATIVE**)pppMEMs.ToPointer();
             int i = 0;
-            foreach (var mem in _mems.Values)
+            foreach (var prepared in _prepared)
             {
                 var pMEM = ppMEMs[i++];
                 if (pMEM is null)
                     continue;
-                pMEM->qwA = mem.qwA;
-                pMEM->cb = mem.cb;
+                pMEM->qwA = prepared.Value.qwA;
+                pMEM->cb = prepared.Value.cb;
+                _results[prepared.Key] = new(pMEM: pMEM);
             }
 
             _ = Vmmi.VMMDLL_MemReadScatter(_vmm, _pid, pppMEMs, (uint)cMems, _flags);
-
-            for (i = 0; i < cMems; i++)
-            {
-                var pMEM = ppMEMs[i];
-                if (pMEM is null)
-                    continue;
-                if (pMEM->f)
-                {
-                    _mems[VmmUtilities.PAGE_ALIGN(pMEM->qwA)] = new(
-                        qwA: pMEM->qwA,
-                        cb: pMEM->cb,
-                        f: true,
-                        pb: pMEM->pb);
-                }
-            }
 
             return pppMEMs; // caller is responsible for freeing
         }
@@ -506,12 +516,11 @@ public sealed class VmmScatterSlim : IScatter, IScatter<VmmScatterSlim>, IDispos
                 for (ulong p = 0; p < numPages; p++)
                 {
                     ulong pageAddr = basePageAddr + (p << 12);
-                    if (!_mems.TryGetValue(pageAddr, out var mem) || !mem.f)
+                    if (!_results.TryGetValue(pageAddr, out var pMem) || pMem.MEM is not LeechCore.MEM_SCATTER_NATIVE mem || !mem.f)
                         return false;
-
                     var data = mem.Data;
 
-                    if (p == 0 && data.Length != 0x1000) // Tiny mem
+                    if (p == 0 && data.Length != 0x1000) // Tiny prepared
                     {
                         pageOffset = (int)(addr - mem.qwA);
                         // Validate the read falls within the tiny MEM range
@@ -525,7 +534,7 @@ public sealed class VmmScatterSlim : IScatter, IScatter<VmmScatterSlim>, IDispos
 
                     cbRead += cb;
                     cb = Math.Clamp(cbTotal - cbRead, 0, 0x1000);
-                    pageOffset = 0; // Next page (if any) starts at 0x0
+                    pageOffset = 0; // Next prepared (if any) starts at 0x0
                 }
 
                 return cbRead == cbTotal;
@@ -580,7 +589,8 @@ public sealed class VmmScatterSlim : IScatter, IScatter<VmmScatterSlim>, IDispos
             if (disposing)
             {
                 Completed = null;
-                _mems.Dispose();
+                _prepared.Dispose();
+                _results.Dispose();
             }
             FreeScatter();
         }

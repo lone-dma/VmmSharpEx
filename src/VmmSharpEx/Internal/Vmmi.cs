@@ -878,7 +878,7 @@ internal static partial class Vmmi
         public unsafe fixed byte pb[32];
 
         public unsafe fixed byte pbSkipMask[32];
-        //[MarshalAs(UnmanagedType.ByValArray, SizeConst = 32)] public byte[] pb;
+        //[MarshalAs(UnmanagedType.ByValArray, SizeConst = 32)] public byte[] pMEM;
         //[MarshalAs(UnmanagedType.ByValArray, SizeConst = 32)] public byte[] pbSkipMask;
     }
 
