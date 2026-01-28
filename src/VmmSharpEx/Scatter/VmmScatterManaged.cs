@@ -30,7 +30,7 @@ public sealed class VmmScatterManaged : IScatter, IScatter<VmmScatterManaged>, I
     private const ulong SCATTER_MAX_SIZE_TOTAL = 0x40000000000;
     private readonly Lock _sync = new();
     private readonly PooledDictionary<ulong, PreparedScatter> _prepared = new();
-    private readonly PooledDictionary<ulong, IntPtr> _results = new();
+    private readonly PooledDictionary<ulong, IntPtr> _results = new(); // stores LeechCore.MEM_SCATTER_NATIVE*
     private readonly Vmm _vmm;
     private readonly uint _pid;
     private readonly VmmFlags _flags;
