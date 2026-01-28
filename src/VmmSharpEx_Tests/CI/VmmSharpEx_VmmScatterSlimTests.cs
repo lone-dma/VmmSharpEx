@@ -41,11 +41,11 @@ public unsafe class VmmSharpEx_VmmScatterSlimTests : CITest
         // Align heap base UP to next page boundary to ensure we're within the heap
         ulong firstPageBase = (_heapBase + 0xFFFUL) & ~0xFFFUL;
         ulong addr = firstPageBase + (ulong)(pageIndex * 0x1000) + (ulong)offsetInPage;
-        
+
         // Verify the address and entire read range is within heap bounds
         long heapOffset = (long)(addr - _heapBase);
         Assert.InRange(heapOffset, 0, _heapLen - 1);
-        
+
         return addr;
     }
 

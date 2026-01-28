@@ -25,8 +25,10 @@ public sealed class VmmScatterSlim : IScatter, IScatter<VmmScatterSlim>, IDispos
 {
     #region Fields / Ctors
 
+    private const int SCATTER_MAX_SIZE_SINGLE = 0x40000000;
+    private const ulong SCATTER_MAX_SIZE_TOTAL = 0x40000000000;
     private readonly Lock _sync = new();
-    private readonly PooledDictionary<ulong, Vmm.MEM_SCATTER> _prepared = new();
+    private readonly PooledDictionary<ulong, LeechCore.MEM_SCATTER> _prepared = new();
     private readonly Vmm _vmm;
     private readonly uint _pid;
     private readonly VmmFlags _flags;
@@ -34,12 +36,6 @@ public sealed class VmmScatterSlim : IScatter, IScatter<VmmScatterSlim>, IDispos
     private readonly bool _isUser;
     private LeechCore.LcScatterHandle? _scatter;
     private bool _disposed;
-
-    /// <summary>
-    /// Maximum read size in bytes for any single entry.
-    /// DEFAULT: No Limit (<see cref="int.MaxValue"/>)
-    /// </summary>
-    public static int MaxReadSize { get; set; } = int.MaxValue; // Buffer Spans/Arrays are limited to int.MaxValue anyway.
 
     /// <summary>
     /// Event is fired upon completion of <see cref="Execute"/>. Exceptions are handled/ignored.
@@ -94,7 +90,9 @@ public sealed class VmmScatterSlim : IScatter, IScatter<VmmScatterSlim>, IDispos
         if ((_isKernel && !address.IsValidKernelVA()) ||
             (_isUser && !address.IsValidUserVA()) ||
             cb <= 0 ||
-            cb > MaxReadSize)
+            cb >= SCATTER_MAX_SIZE_SINGLE ||
+            ((ulong)_prepared.Count << 12) + (uint)cb > SCATTER_MAX_SIZE_TOTAL ||
+            unchecked(address + (ulong)cb) < address)
         {
             return false;
         }
@@ -123,21 +121,21 @@ public sealed class VmmScatterSlim : IScatter, IScatter<VmmScatterSlim>, IDispos
                 _prepared.AddOrUpdate(
                     pageAddr,
                     // add: no existing entry
-                    _ => new Vmm.MEM_SCATTER()
+                    _ => new LeechCore.MEM_SCATTER()
                     {
-                        Address = vaMem,
-                        CB = cbMem
+                        qwA = vaMem,
+                        cb = cbMem
                     },
                     // update: entry already exists
                     (_, existing) =>
                     {
                         // If an entry already exists for this page, ensure we upgrade to full-page read.
                         // This preserves correctness when multiple overlapping prepares hit the same page.
-                        if (existing.CB != 0x1000)
-                            return new Vmm.MEM_SCATTER()
+                        if (existing.cb != 0x1000)
+                            return new LeechCore.MEM_SCATTER()
                             {
-                                Address = pageAddr,
-                                CB = 0x1000u
+                                qwA = pageAddr,
+                                cb = 0x1000u
                             };
 
                         return existing;
@@ -446,49 +444,49 @@ public sealed class VmmScatterSlim : IScatter, IScatter<VmmScatterSlim>, IDispos
         where T : unmanaged
     {
         lock (_sync)
-        {
-            ObjectDisposedException.ThrowIf(_disposed, this);
-            ArgumentNullException.ThrowIfNull(_scatter, nameof(_scatter));
-            if (span.IsEmpty)
-                return false;
-
-            var spanBytes = MemoryMarshal.AsBytes(span);
-            int cbTotal = spanBytes.Length;
-            ulong numPages = VmmUtilities.ADDRESS_AND_SIZE_TO_SPAN_PAGES(addr, (uint)cbTotal);
-            ulong basePageAddr = VmmUtilities.PAGE_ALIGN(addr);
-
-            int pageOffset = (int)VmmUtilities.BYTE_OFFSET(addr);
-            int cb = Math.Min(cbTotal, 0x1000 - pageOffset);
-            int cbRead = 0;
-
-            for (ulong p = 0; p < numPages; p++)
+            checked
             {
-                ulong pageAddr = checked(basePageAddr + (p << 12));
-
-                // Look up prepared entry to get actual scatter key (may be optimized for tiny mem)
-                if (!_prepared.TryGetValue(pageAddr, out var mem))
+                ObjectDisposedException.ThrowIf(_disposed, this);
+                ArgumentNullException.ThrowIfNull(_scatter, nameof(_scatter));
+                if (span.IsEmpty)
                     return false;
 
-                // Scatter results keyed by mem.Address (page-aligned or 8-byte aligned for tiny mem)
-                if (!_scatter.Results.TryGetValue(mem.Address, out var scatter))
-                    return false;
+                var spanBytes = MemoryMarshal.AsBytes(span);
+                int cbTotal = spanBytes.Length;
+                ulong numPages = VmmUtilities.ADDRESS_AND_SIZE_TO_SPAN_PAGES(addr, (uint)cbTotal);
+                ulong basePageAddr = VmmUtilities.PAGE_ALIGN(addr);
 
-                // For tiny mem on first page, adjust offset relative to optimized address
-                int offset = (p == 0 && mem.CB != 0x1000)
-                    ? (int)(addr - mem.Address)
-                    : pageOffset;
+                int pageOffset = (int)VmmUtilities.BYTE_OFFSET(addr);
+                int cb = Math.Min(cbTotal, 0x1000 - pageOffset);
+                int cbRead = 0;
 
-                scatter.Data
-                    .Slice(offset, cb)
-                    .CopyTo(spanBytes.Slice(cbRead, cb));
+                for (ulong p = 0; p < numPages; p++)
+                {
+                    ulong pageAddr = basePageAddr + (p << 12);
+                    if (!_scatter.Results.TryGetValue(pageAddr, out var scatter))
+                        return false;
 
-                checked { cbRead += cb; }
-                cb = Math.Clamp(cbTotal - cbRead, 0, 0x1000);
-                pageOffset = 0;
+                    var data = scatter.Data;
+
+                    if (p == 0 && data.Length != 0x1000) // Tiny mem
+                    {
+                        pageOffset = (int)(addr - scatter.qwA);
+                        // Validate the read falls within the tiny MEM range
+                        if (addr < scatter.qwA || addr + (ulong)cb > scatter.qwA + (ulong)data.Length)
+                            return false;
+                    }
+
+                    data
+                        .Slice(pageOffset, cb)
+                        .CopyTo(spanBytes.Slice(cbRead, cb));
+
+                    cbRead += cb;
+                    cb = Math.Clamp(cbTotal - cbRead, 0, 0x1000);
+                    pageOffset = 0; // Next page (if any) starts at 0x0
+                }
+
+                return cbRead == cbTotal;
             }
-
-            return cbRead == cbTotal;
-        }
     }
 
     /// <summary>

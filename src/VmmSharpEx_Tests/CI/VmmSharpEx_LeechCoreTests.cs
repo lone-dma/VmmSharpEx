@@ -141,7 +141,7 @@ public unsafe class VmmSharpEx_LeechCoreTests : CITest
             for (int j = 0; j < pattern.Length; j++) pattern[j] = (byte)(i * 0x10 + j);
             Assert.True(_lc.WriteSpan(pages[i], pattern));
         }
-        using var scatter = _lc.ReadScatter(pages);
+        using var scatter = _lc.ReadScatter(pages.Select(pa => new LeechCore.MEM_SCATTER(pa)).ToArray());
         Assert.NotNull(scatter);
         for (int idx = 0; idx < pages.Length; idx++)
         {

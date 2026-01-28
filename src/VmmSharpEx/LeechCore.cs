@@ -19,6 +19,7 @@ using Collections.Pooled;
 using System.Buffers;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using VmmSharpEx.Extensions;
 using VmmSharpEx.Internal;
 using VmmSharpEx.Options;
 
@@ -346,40 +347,41 @@ public sealed class LeechCore : IDisposable
     /// </summary>
     /// <remarks>
     /// This operation does not copy read pages into managed memory; instead, native buffers are exposed via
-    /// <see cref="ScatterData.Data"/>. Ensure the returned <see cref="LcScatterHandle"/> is disposed before those buffers
+    /// <see cref="MEM_SCATTER.Data"/>. Ensure the returned <see cref="LcScatterHandle"/> is disposed before those buffers
     /// are accessed by other operations.
     /// </remarks>
-    /// <param name="pas">Page-aligned physical memory addresses.</param>
+    /// <param name="mems">Page-aligned physical memory addresses.</param>
     /// <returns>An <see cref="LcScatterHandle"/> that owns the native buffers.</returns>
     /// <exception cref="VmmException">Thrown if the native scatter allocation fails.</exception>
-    public unsafe LcScatterHandle ReadScatter(params ReadOnlySpan<ulong> pas)
+    public unsafe LcScatterHandle ReadScatter(params ReadOnlySpan<MEM_SCATTER> mems)
     {
-        if (!Lci.LcAllocScatter1((uint)pas.Length, out var pppMEMs) || pppMEMs == IntPtr.Zero)
+        if (!Lci.LcAllocScatter1((uint)mems.Length, out var pppMEMs) || pppMEMs == IntPtr.Zero)
         {
             throw new VmmException("LcAllocScatter1 FAIL");
         }
         try
         {
-            LcMemScatter** ppMEMs = (LcMemScatter**)pppMEMs.ToPointer();
-            for (int i = 0; i < pas.Length; i++)
+            MEM_SCATTER_NATIVE** ppMEMs = (MEM_SCATTER_NATIVE**)pppMEMs.ToPointer();
+            for (int i = 0; i < mems.Length; i++)
             {
-                LcMemScatter* pMEM = ppMEMs[i];
+                MEM_SCATTER_NATIVE* pMEM = ppMEMs[i];
                 if (pMEM is null)
                     continue;
-                pMEM->qwA = pas[i] & ~0xffful;
+                pMEM->qwA = mems[i].qwA;
+                pMEM->cb = mems[i].cb;
             }
 
-            Lci.LcReadScatter(_handle, (uint)pas.Length, pppMEMs);
+            Lci.LcReadScatter(_handle, (uint)mems.Length, pppMEMs);
 
-            var results = new PooledDictionary<ulong, ScatterData>(capacity: pas.Length);
-            for (int i = 0; i < pas.Length; i++)
+            var results = new PooledDictionary<ulong, MEM_SCATTER>(capacity: mems.Length);
+            for (int i = 0; i < mems.Length; i++)
             {
-                LcMemScatter* pMEM = ppMEMs[i];
+                MEM_SCATTER_NATIVE* pMEM = ppMEMs[i];
                 if (pMEM is null)
                     continue;
                 if (pMEM->f)
                 {
-                    results[pMEM->qwA] = new ScatterData(pMEM->pb, pMEM->cb);
+                    results[VmmUtilities.PAGE_ALIGN(pMEM->qwA)] = new MEM_SCATTER(pMEM->qwA, pMEM->cb, pMEM->pb);
                 }
             }
 
@@ -522,6 +524,22 @@ public sealed class LeechCore : IDisposable
         return true;
     }
 
+    #region Constants/Types
+
+    //---------------------------------------------------------------------
+    // LEECHCORE: CORE FUNCTIONALITY BELOW:
+    //---------------------------------------------------------------------
+
+    /// <summary>
+    /// Current <see cref="LCConfig"/> structure version used by this wrapper.
+    /// </summary>
+    public const uint LC_CONFIG_VERSION = 0xc0fd0002;
+
+    /// <summary>
+    /// Current <see cref="LCConfigErrorInfo"/> structure version used by this wrapper.
+    /// </summary>
+    public const uint LC_CONFIG_ERRORINFO_VERSION = 0xc0fe0002;
+
     /// <summary>
     /// Wraps native memory returned from a scatter read invocation.
     /// </summary>
@@ -531,13 +549,13 @@ public sealed class LeechCore : IDisposable
     /// </remarks>
     public sealed class LcScatterHandle : IDisposable
     {
-        private readonly PooledDictionary<ulong, ScatterData> _results;
+        private readonly PooledDictionary<ulong, MEM_SCATTER> _results;
         private IntPtr _mems;
         private bool _disposed;
 
         private LcScatterHandle() { throw new NotImplementedException(); }
 
-        internal LcScatterHandle(PooledDictionary<ulong, ScatterData> results, IntPtr mems)
+        internal LcScatterHandle(PooledDictionary<ulong, MEM_SCATTER> results, IntPtr mems)
         {
             _results = results;
             _mems = mems;
@@ -550,7 +568,7 @@ public sealed class LeechCore : IDisposable
         /// Only successful page reads are present. Keys are page-aligned addresses; values are the corresponding page
         /// buffers.
         /// </remarks>
-        public IReadOnlyDictionary<ulong, ScatterData> Results => _results;
+        public IReadOnlyDictionary<ulong, MEM_SCATTER> Results => _results;
 
         #region IDisposable
 
@@ -581,45 +599,40 @@ public sealed class LeechCore : IDisposable
         #endregion
     }
 
-    /// <summary>
-    /// Encapsulates native page data for a single scatter entry.
-    /// </summary>
-    public readonly struct ScatterData
+    public struct MEM_SCATTER
     {
-        private readonly IntPtr _pb;
-        private readonly int _cb;
+        public ulong qwA;
+        public uint cb;
+        private readonly IntPtr pb;
 
-        internal ScatterData(IntPtr pb, uint cb)
+        public MEM_SCATTER(ulong qwA)
         {
-            _pb = pb;
-            _cb = checked((int)cb); // fail if cb > int.MaxValue
+            this.qwA = qwA;
+            this.cb = 0x1000;
+        }
+
+        public MEM_SCATTER(ulong qwA, uint cb)
+        {
+            this.qwA = qwA;
+            this.cb = cb;
+        }
+
+        public MEM_SCATTER(ulong qwA, uint cb, IntPtr pb)
+        {
+            this.qwA = qwA;
+            this.cb = cb;
+            this.pb = pb;
         }
 
         /// <summary>
         /// Read-only view over the native page buffer.
         /// </summary>
         /// <remarks>
-        /// Do not access this memory after the owning <see cref="LcScatterHandle"/> has been disposed.
+        /// Do not access this memory after the owning handle has been disposed.
         /// </remarks>
         public readonly unsafe ReadOnlySpan<byte> Data =>
-            new(_pb.ToPointer(), _cb);
+            new(pb.ToPointer(), checked((int)cb));
     }
-
-    #region Constants/Types
-
-    //---------------------------------------------------------------------
-    // LEECHCORE: CORE FUNCTIONALITY BELOW:
-    //---------------------------------------------------------------------
-
-    /// <summary>
-    /// Current <see cref="LCConfig"/> structure version used by this wrapper.
-    /// </summary>
-    public const uint LC_CONFIG_VERSION = 0xc0fd0002;
-
-    /// <summary>
-    /// Current <see cref="LCConfigErrorInfo"/> structure version used by this wrapper.
-    /// </summary>
-    public const uint LC_CONFIG_ERRORINFO_VERSION = 0xc0fe0002;
 
     /// <summary>
     /// Native scatter descriptor mirroring <c>tdMEM_SCATTER</c> in <c>leechcore.h</c>.
@@ -628,7 +641,7 @@ public sealed class LeechCore : IDisposable
     /// This type is laid out for blittable interop.
     /// </remarks>
     [StructLayout(LayoutKind.Explicit, Size = 128)]
-    public struct LcMemScatter
+    public struct MEM_SCATTER_NATIVE
     {
         /// <summary>
         /// MEM_SCATTER_VERSION (internal).

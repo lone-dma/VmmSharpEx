@@ -20,6 +20,7 @@ using System.Buffers;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
+using VmmSharpEx.Extensions;
 using VmmSharpEx.Internal;
 using VmmSharpEx.Options;
 using VmmSharpEx.Refresh;
@@ -340,12 +341,6 @@ public sealed partial class Vmm : IDisposable
     /// </summary>
     public const uint PID_PROCESS_WITH_KERNELMEMORY = 0x80000000; // Combine with dwPID to enable process kernel memory (NB! use with extreme care).
 
-    public readonly struct MEM_SCATTER
-    {
-        public readonly ulong Address { get; init; }
-        public readonly uint CB { get; init; }
-    }
-
     /// <summary>
     /// Perform a scatter read of multiple page-sized virtual memory ranges.
     /// Does not copy the read memory to a managed byte buffer, but instead allows direct access to the native memory via a
@@ -356,7 +351,7 @@ public sealed partial class Vmm : IDisposable
     /// <param name="mems">Virtual addresses and sizes to read.</param>
     /// <returns>An <see cref="LeechCore.LcScatterHandle"/> owning the native buffers for the read pages.</returns>
     /// <exception cref="VmmException">Thrown if the native scatter allocation fails.</exception>
-    public unsafe LeechCore.LcScatterHandle MemReadScatter(uint pid, VmmFlags flags, params ReadOnlySpan<MEM_SCATTER> mems)
+    public unsafe LeechCore.LcScatterHandle MemReadScatter(uint pid, VmmFlags flags, params ReadOnlySpan<LeechCore.MEM_SCATTER> mems)
     {
         if (!Lci.LcAllocScatter1((uint)mems.Length, out var pppMEMs) || pppMEMs == IntPtr.Zero)
         {
@@ -364,20 +359,19 @@ public sealed partial class Vmm : IDisposable
         }
         try
         {
-            var ppMEMs = (LeechCore.LcMemScatter**)pppMEMs.ToPointer();
+            var ppMEMs = (LeechCore.MEM_SCATTER_NATIVE**)pppMEMs.ToPointer();
             for (int i = 0; i < mems.Length; i++)
             {
                 var pMEM = ppMEMs[i];
                 if (pMEM is null)
                     continue;
-                // Use Address directly - caller is responsible for alignment (supports small-read optimization).
-                pMEM->qwA = mems[i].Address;
-                pMEM->cb = mems[i].CB;
+                pMEM->qwA = mems[i].qwA;
+                pMEM->cb = mems[i].cb;
             }
 
             _ = Vmmi.VMMDLL_MemReadScatter(_handle, pid, pppMEMs, (uint)mems.Length, flags);
 
-            var results = new PooledDictionary<ulong, LeechCore.ScatterData>(capacity: mems.Length);
+            var results = new PooledDictionary<ulong, LeechCore.MEM_SCATTER>(capacity: mems.Length);
             for (int i = 0; i < mems.Length; i++)
             {
                 var pMEM = ppMEMs[i];
@@ -385,7 +379,7 @@ public sealed partial class Vmm : IDisposable
                     continue;
                 if (pMEM->f)
                 {
-                    results[pMEM->qwA] = new LeechCore.ScatterData(pMEM->pb, pMEM->cb);
+                    results[VmmUtilities.PAGE_ALIGN(pMEM->qwA)] = new LeechCore.MEM_SCATTER(pMEM->qwA, pMEM->cb, pMEM->pb);
                 }
             }
 
@@ -3482,7 +3476,7 @@ public sealed partial class Vmm : IDisposable
         IntPtr ctxUser,
         uint dwPID,
         uint cpMEMs,
-        LeechCore.LcMemScatter** ppMEMs
+        LeechCore.MEM_SCATTER_NATIVE** ppMEMs
     );
 
     /// <summary>
