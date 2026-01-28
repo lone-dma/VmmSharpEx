@@ -11,7 +11,6 @@ using System.Text;
 using VmmSharpEx.Extensions;
 using VmmSharpEx.Internal;
 using VmmSharpEx.Options;
-using static System.Net.WebRequestMethods;
 
 namespace VmmSharpEx.Scatter;
 
