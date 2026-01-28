@@ -561,16 +561,27 @@ public sealed class VmmScatterSlim : IScatter, IScatter<VmmScatterSlim>, IDispos
         }
     }
 
+    ~VmmScatterSlim() => Dispose(disposing: false);
+
     public void Dispose()
+    {
+        lock (_sync)
+        {
+            Dispose(disposing: true);
+            GC.SuppressFinalize(this);
+        }
+    }
+
+    private void Dispose(bool disposing)
     {
         if (Interlocked.Exchange(ref _disposed, true) == false)
         {
-            Completed = null;
-            lock (_sync)
+            if (disposing)
             {
+                Completed = null;
                 _mems.Dispose();
-                FreeScatter();
             }
+            FreeScatter();
         }
     }
 
