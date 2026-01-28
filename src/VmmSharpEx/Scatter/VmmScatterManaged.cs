@@ -30,7 +30,7 @@ public sealed class VmmScatterManaged : IScatter, IScatter<VmmScatterManaged>, I
     private const ulong SCATTER_MAX_SIZE_TOTAL = 0x40000000000;
     private readonly Lock _sync = new();
     private readonly PooledDictionary<ulong, PreparedScatter> _prepared = new();
-    private readonly PooledDictionary<ulong, ScatterResult> _results = new();
+    private readonly PooledDictionary<ulong, IntPtr> _results = new();
     private readonly Vmm _vmm;
     private readonly uint _pid;
     private readonly VmmFlags _flags;
@@ -443,16 +443,6 @@ public sealed class VmmScatterManaged : IScatter, IScatter<VmmScatterManaged>, I
         }
     }
 
-    private unsafe readonly struct ScatterResult
-    {
-        public readonly LeechCore.MEM_SCATTER_NATIVE* pMEM;
-
-        public ScatterResult(LeechCore.MEM_SCATTER_NATIVE* pMEM)
-        {
-            this.pMEM = pMEM;
-        }
-    }
-
     private unsafe IntPtr MemReadScatterInternal()
     {
         int cMems = _prepared.Count;
@@ -471,7 +461,7 @@ public sealed class VmmScatterManaged : IScatter, IScatter<VmmScatterManaged>, I
                     continue;
                 pMEM->qwA = prepared.Value.qwA;
                 pMEM->cb = prepared.Value.cb;
-                _results[prepared.Key] = new(pMEM: pMEM);
+                _results[prepared.Key] = (IntPtr)pMEM;
             }
 
             _ = Vmmi.VMMDLL_MemReadScatter(_vmm, _pid, pppMEMs, (uint)cMems, _flags);
@@ -514,15 +504,16 @@ public sealed class VmmScatterManaged : IScatter, IScatter<VmmScatterManaged>, I
             for (ulong p = 0; p < numPages; p++)
             {
                 ulong pageAddr = basePageAddr + (p << 12);
-                if (!_results.TryGetValue(pageAddr, out var result) || result.pMEM is null || !result.pMEM->f)
+                if (!_results.TryGetValue(pageAddr, out var result) || result == IntPtr.Zero)
                     return false;
 
-                var data = result.pMEM->Data;
+                var pMEM = (LeechCore.MEM_SCATTER_NATIVE*)result.ToPointer();
+                var data = pMEM->Data;
                 if (p == 0 && data.Length != 0x1000) // Tiny mem
                 {
-                    pageOffset = (int)(addr - result.pMEM->qwA);
+                    pageOffset = (int)(addr - pMEM->qwA);
                     // Validate the read falls within the tiny MEM range
-                    if (addr < result.pMEM->qwA || addr + (ulong)cb > result.pMEM->qwA + (ulong)data.Length)
+                    if (addr < pMEM->qwA || addr + (ulong)cb > pMEM->qwA + (ulong)data.Length)
                         return false;
                 }
 
