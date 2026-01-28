@@ -210,7 +210,7 @@ public sealed class VmmScatterSlim : IScatter, IScatter<VmmScatterSlim>, IDispos
             ObjectDisposedException.ThrowIf(_disposed, this);
             if (_mems.Count == 0)
                 return; // no-op
-            FreeLcScatter();
+            FreeScatter();
             _scatter = MemReadScatterInternal();
         }
         OnCompleted();
@@ -422,7 +422,7 @@ public sealed class VmmScatterSlim : IScatter, IScatter<VmmScatterSlim>, IDispos
         {
             ObjectDisposedException.ThrowIf(_disposed, this);
             _mems.Clear();
-            FreeLcScatter();
+            FreeScatter();
         }
     }
 
@@ -471,7 +471,7 @@ public sealed class VmmScatterSlim : IScatter, IScatter<VmmScatterSlim>, IDispos
         }
         catch
         {
-            Lci.LcMemFree(pppMEMs.ToPointer());
+            Lci.LcMemFree(pppMEMs);
             throw;
         }
     }
@@ -552,11 +552,11 @@ public sealed class VmmScatterSlim : IScatter, IScatter<VmmScatterSlim>, IDispos
         return $"VmmScatter:virtual:{_pid}";
     }
 
-    private unsafe void FreeLcScatter()
+    private void FreeScatter()
     {
         if (_scatter != IntPtr.Zero)
         {
-            Lci.LcMemFree(_scatter.ToPointer());
+            Lci.LcMemFree(_scatter);
             _scatter = IntPtr.Zero;
         }
     }
@@ -569,7 +569,7 @@ public sealed class VmmScatterSlim : IScatter, IScatter<VmmScatterSlim>, IDispos
             lock (_sync)
             {
                 _mems.Dispose();
-                FreeLcScatter();
+                FreeScatter();
             }
         }
     }

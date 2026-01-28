@@ -156,7 +156,7 @@ public sealed class LeechCore : IDisposable
                     }
                 }
 
-                Lci.LcMemFree(pLcErrorInfo.ToPointer());
+                Lci.LcMemFree(pLcErrorInfo);
             }
 
             return null;
@@ -506,7 +506,7 @@ public sealed class LeechCore : IDisposable
         {
             var src = new ReadOnlySpan<byte>(pbDataOut.ToPointer(), checked((int)cbDataOut));
             src.CopyTo(dataOut);
-            Lci.LcMemFree(pbDataOut.ToPointer());
+            Lci.LcMemFree(pbDataOut);
         }
 
         return true;
@@ -577,7 +577,7 @@ public sealed class LeechCore : IDisposable
                 {
                     _results.Dispose();
                 }
-                Lci.LcMemFree(_mems.ToPointer());
+                Lci.LcMemFree(_mems);
                 _mems = IntPtr.Zero;
             }
         }
