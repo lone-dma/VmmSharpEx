@@ -618,7 +618,7 @@ public sealed class LeechCore : IDisposable
             this.cb = cb;
         }
 
-        public MEM_SCATTER(ulong qwA, uint cb, IntPtr pb)
+        internal MEM_SCATTER(ulong qwA, uint cb, IntPtr pb)
         {
             this.qwA = qwA;
             this.cb = cb;
