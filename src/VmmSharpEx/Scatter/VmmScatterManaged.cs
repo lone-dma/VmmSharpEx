@@ -29,8 +29,8 @@ public sealed class VmmScatterManaged : IScatter, IScatter<VmmScatterManaged>, I
     private const int SCATTER_MAX_SIZE_SINGLE = 0x40000000;
     private const ulong SCATTER_MAX_SIZE_TOTAL = 0x40000000000;
     private readonly Lock _sync = new();
-    private readonly PooledDictionary<ulong, ScatterEntry> _prepared = new();
-    private readonly PooledDictionary<ulong, ScatterEntry> _results = new();
+    private readonly PooledDictionary<ulong, PreparedScatter> _prepared = new();
+    private readonly PooledDictionary<ulong, ScatterResult> _results = new();
     private readonly Vmm _vmm;
     private readonly uint _pid;
     private readonly VmmFlags _flags;
@@ -123,7 +123,7 @@ public sealed class VmmScatterManaged : IScatter, IScatter<VmmScatterManaged>, I
                 _prepared.AddOrUpdate(
                     pageAddr,
                     // add: no existing entry
-                    _ => new ScatterEntry(qwA: vaMem, cb: cbMem),
+                    _ => new PreparedScatter(qwA: vaMem, cb: cbMem),
                     // update: entry already exists
                     (_, existing) =>
                     {
@@ -131,7 +131,7 @@ public sealed class VmmScatterManaged : IScatter, IScatter<VmmScatterManaged>, I
                         // This preserves correctness when multiple overlapping prepares hit the same prepared.
                         if (existing.cb != 0x1000u)
                         {
-                            return new ScatterEntry(qwA: pageAddr, cb: 0x1000u);
+                            return new PreparedScatter(qwA: pageAddr, cb: 0x1000u);
                         }
 
                         return existing;
@@ -431,28 +431,26 @@ public sealed class VmmScatterManaged : IScatter, IScatter<VmmScatterManaged>, I
 
     #region Internal
 
-    private unsafe readonly struct ScatterEntry
+    private readonly struct PreparedScatter
     {
         public readonly ulong qwA;
         public readonly uint cb;
-        public readonly LeechCore.MEM_SCATTER_NATIVE* pMEM;
 
-        public ScatterEntry(ulong qwA, uint cb)
+        public PreparedScatter(ulong qwA, uint cb)
         {
             this.qwA = qwA;
             this.cb = cb;
         }
+    }
 
-        public ScatterEntry(LeechCore.MEM_SCATTER_NATIVE* pMEM)
+    private unsafe readonly struct ScatterResult
+    {
+        public readonly LeechCore.MEM_SCATTER_NATIVE* pMEM;
+
+        public ScatterResult(LeechCore.MEM_SCATTER_NATIVE* pMEM)
         {
             this.pMEM = pMEM;
         }
-
-        /// <summary>
-        /// Backing native pMEM struct.
-        /// </summary>
-        public readonly LeechCore.MEM_SCATTER_NATIVE? MEM => pMEM is null ?
-            null : *pMEM;
     }
 
     private unsafe IntPtr MemReadScatterInternal()
@@ -494,55 +492,55 @@ public sealed class VmmScatterManaged : IScatter, IScatter<VmmScatterManaged>, I
     /// <param name="addr">Address of read.</param>
     /// <param name="span">Result buffer</param>
     /// <returns><see langword="true"/> if successful, otherwise <see langword="false"/>.</returns>
-    private bool ReadSpanInternal<T>(ulong addr, Span<T> span)
+    private unsafe bool ReadSpanInternal<T>(ulong addr, Span<T> span)
         where T : unmanaged
     {
         lock (_sync)
-        checked
-        {
-            ObjectDisposedException.ThrowIf(_disposed, this);
-            if (span.IsEmpty || _scatter == IntPtr.Zero)
-                return false;
-
-            var spanBytes = MemoryMarshal.AsBytes(span);
-            int cbTotal = spanBytes.Length;
-            ulong numPages = VmmUtilities.ADDRESS_AND_SIZE_TO_SPAN_PAGES(addr, (uint)cbTotal);
-            ulong basePageAddr = VmmUtilities.PAGE_ALIGN(addr);
-
-            int pageOffset = (int)VmmUtilities.BYTE_OFFSET(addr);
-            int cb = Math.Min(cbTotal, 0x1000 - pageOffset);
-            int cbRead = 0;
-
-            for (ulong p = 0; p < numPages; p++)
+            checked
             {
-                ulong pageAddr = basePageAddr + (p << 12);
-                if (!_results.TryGetValue(pageAddr, out var pMem) || pMem.MEM is not LeechCore.MEM_SCATTER_NATIVE mem || !mem.f)
+                ObjectDisposedException.ThrowIf(_disposed, this);
+                if (span.IsEmpty || _scatter == IntPtr.Zero)
                     return false;
-                var data = mem.Data;
 
-                if (p == 0 && data.Length != 0x1000) // Tiny mem
+                var spanBytes = MemoryMarshal.AsBytes(span);
+                int cbTotal = spanBytes.Length;
+                ulong numPages = VmmUtilities.ADDRESS_AND_SIZE_TO_SPAN_PAGES(addr, (uint)cbTotal);
+                ulong basePageAddr = VmmUtilities.PAGE_ALIGN(addr);
+
+                int pageOffset = (int)VmmUtilities.BYTE_OFFSET(addr);
+                int cb = Math.Min(cbTotal, 0x1000 - pageOffset);
+                int cbRead = 0;
+
+                for (ulong p = 0; p < numPages; p++)
                 {
-                    pageOffset = (int)(addr - mem.qwA);
-                    // Validate the read falls within the tiny MEM range
-                    if (addr < mem.qwA || addr + (ulong)cb > mem.qwA + (ulong)data.Length)
+                    ulong pageAddr = basePageAddr + (p << 12);
+                    if (!_results.TryGetValue(pageAddr, out var result) || result.pMEM is null || !result.pMEM->f)
                         return false;
+
+                    var data = result.pMEM->Data;
+                    if (p == 0 && data.Length != 0x1000) // Tiny mem
+                    {
+                        pageOffset = (int)(addr - result.pMEM->qwA);
+                        // Validate the read falls within the tiny MEM range
+                        if (addr < result.pMEM->qwA || addr + (ulong)cb > result.pMEM->qwA + (ulong)data.Length)
+                            return false;
+                    }
+
+                    // Bounds check: ensure we don't read past end of data buffer
+                    if (pageOffset + cb > data.Length)
+                        return false;
+
+                    data
+                        .Slice(pageOffset, cb)
+                        .CopyTo(spanBytes.Slice(cbRead, cb));
+
+                    cbRead += cb;
+                    cb = Math.Clamp(cbTotal - cbRead, 0, 0x1000);
+                    pageOffset = 0; // Next page (if any) starts at 0x0
                 }
 
-                // Bounds check: ensure we don't read past end of data buffer
-                if (pageOffset + cb > data.Length)
-                    return false;
-
-                data
-                    .Slice(pageOffset, cb)
-                    .CopyTo(spanBytes.Slice(cbRead, cb));
-
-                cbRead += cb;
-                cb = Math.Clamp(cbTotal - cbRead, 0, 0x1000);
-                pageOffset = 0; // Next page (if any) starts at 0x0
+                return cbRead == cbTotal;
             }
-
-            return cbRead == cbTotal;
-        }
     }
 
     /// <summary>
