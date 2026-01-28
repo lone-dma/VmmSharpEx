@@ -604,7 +604,7 @@ public sealed class LeechCore : IDisposable
         public ulong qwA;
         public uint cb;
         public readonly bool f;
-        private readonly IntPtr pb;
+        public readonly IntPtr pb;
 
         public MEM_SCATTER(ulong qwA)
         {
