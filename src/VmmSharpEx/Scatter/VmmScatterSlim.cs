@@ -88,21 +88,21 @@ public sealed class VmmScatterSlim : IScatter, IScatter<VmmScatterSlim>, IDispos
     /// <returns><see langword="true"/> if successful, otherwise <see langword="false"/>.</returns>
     public bool PrepareRead(ulong address, int cb)
     {
-        ObjectDisposedException.ThrowIf(_disposed, this);
-        if ((_isKernel && !address.IsValidKernelVA()) ||
-            (_isUser && !address.IsValidUserVA()) ||
-            cb <= 0 ||
-            cb >= SCATTER_MAX_SIZE_SINGLE ||
-            ((ulong)_prepared.Count << 12) + (uint)cb > SCATTER_MAX_SIZE_TOTAL ||
-            unchecked(address + (ulong)cb) < address)
-        {
-            return false;
-        }
-        ulong pageCount = VmmUtilities.ADDRESS_AND_SIZE_TO_SPAN_PAGES(address, (uint)cb);
-        ulong pageBase = VmmUtilities.PAGE_ALIGN(address);
-        bool fForcePageRead = (_flags & VmmFlags.SCATTER_FORCE_PAGEREAD) != 0;
         lock (_sync)
         {
+            ObjectDisposedException.ThrowIf(_disposed, this);
+            if ((_isKernel && !address.IsValidKernelVA()) ||
+                (_isUser && !address.IsValidUserVA()) ||
+                cb <= 0 ||
+                cb >= SCATTER_MAX_SIZE_SINGLE ||
+                ((ulong)_prepared.Count << 12) + (uint)cb > SCATTER_MAX_SIZE_TOTAL ||
+                unchecked(address + (ulong)cb) < address)
+            {
+                return false;
+            }
+            ulong pageCount = VmmUtilities.ADDRESS_AND_SIZE_TO_SPAN_PAGES(address, (uint)cb);
+            ulong pageBase = VmmUtilities.PAGE_ALIGN(address);
+            bool fForcePageRead = (_flags & VmmFlags.SCATTER_FORCE_PAGEREAD) != 0;
             for (ulong p = 0; p < pageCount; p++)
             {
                 ulong pageAddr = checked(pageBase + (p << 12));
