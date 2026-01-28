@@ -508,6 +508,8 @@ public sealed class VmmScatterManaged : IScatter, IScatter<VmmScatterManaged>, I
                     return false;
 
                 var pMEM = (LeechCore.MEM_SCATTER_NATIVE*)result;
+                if (!pMEM->f)
+                    return false;
                 var data = pMEM->Data;
                 if (p == 0 && data.Length != 0x1000) // Tiny mem
                 {
