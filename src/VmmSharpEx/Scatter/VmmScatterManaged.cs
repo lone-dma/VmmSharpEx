@@ -507,7 +507,7 @@ public sealed class VmmScatterManaged : IScatter, IScatter<VmmScatterManaged>, I
                 if (!_results.TryGetValue(pageAddr, out var result) || result == IntPtr.Zero)
                     return false;
 
-                var pMEM = (LeechCore.MEM_SCATTER_NATIVE*)result.ToPointer();
+                var pMEM = (LeechCore.MEM_SCATTER_NATIVE*)result;
                 var data = pMEM->Data;
                 if (p == 0 && data.Length != 0x1000) // Tiny mem
                 {
