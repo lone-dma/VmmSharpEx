@@ -365,7 +365,7 @@ public sealed partial class Vmm : IDisposable
                 var pMEM = ppMEMs[i];
                 if (pMEM is null)
                     continue;
-                pMEM->qwA = mems[i].qwA;
+                pMEM->qwA = mems[i].qwA & 0xffful;
                 pMEM->cb = mems[i].cb;
             }
 

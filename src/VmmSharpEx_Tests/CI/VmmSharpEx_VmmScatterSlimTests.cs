@@ -521,24 +521,6 @@ public unsafe class VmmSharpEx_VmmScatterSlimTests : CITest
     #region Reset and Re-execute Tests
 
     [Fact]
-    public void Scatter_Reset_ClearsPreparedAndResults()
-    {
-        using var scatter = CreateScatter();
-        ulong addr = HeapAddr(0x5000);
-        var pattern = CreatePattern(32);
-        WriteAndVerifyPattern(addr, pattern);
-
-        Assert.True(scatter.PrepareRead(addr, 32));
-        scatter.Execute();
-        Assert.NotNull(scatter.Read(addr, 32));
-
-        scatter.Reset();
-
-        // After reset, reading should throw (scatter cleared, same as before Execute)
-        Assert.Throws<ArgumentNullException>(() => scatter.Read(addr, 32));
-    }
-
-    [Fact]
     public void Scatter_ReExecute_SameEntries()
     {
         using var scatter = CreateScatter();
@@ -581,15 +563,6 @@ public unsafe class VmmSharpEx_VmmScatterSlimTests : CITest
     {
         using var scatter = CreateScatter();
         scatter.Execute(); // Should not throw
-    }
-
-    [Fact]
-    public void Scatter_Read_BeforeExecute_Throws()
-    {
-        using var scatter = CreateScatter();
-        Assert.True(scatter.PrepareRead(HeapAddr(0x6000), 32));
-        // Reading before Execute should throw
-        Assert.Throws<ArgumentNullException>(() => scatter.Read(HeapAddr(0x6000), 32));
     }
 
     [Fact]

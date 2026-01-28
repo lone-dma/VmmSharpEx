@@ -5,6 +5,7 @@
 
 using Collections.Pooled;
 using System.Buffers;
+using System.Reflection.Metadata;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -16,10 +17,10 @@ namespace VmmSharpEx.Scatter;
 
 /// <summary>
 /// The <see cref="VmmScatterSlim"/> class is used to ease the reading of memory in bulk using this managed VmmSharpEx implementation by Lone.
-/// This implementation is mostly managed, except for a native call to perform the scatter read operation (using <see cref="Vmmi.VMMDLL_MemReadScatter(nint, uint, nint, uint, VmmFlags)"/>).
+/// This implementation is mostly managed, except for a native call to perform the mem read operation (using <see cref="Vmmi.VMMDLL_MemReadScatter(nint, uint, nint, uint, VmmFlags)"/>).
 /// </summary>
 /// <remarks>
-/// Known issue: VMMDLL_MemReadScatter can cause audio crackling/static on some target systems while performing scatter reads. See: <see href="https://github.com/ufrisk/MemProcFS/issues/410"/>
+/// Known issue: VMMDLL_MemReadScatter can cause audio crackling/static on some target systems while performing mem reads. See: <see href="https://github.com/ufrisk/MemProcFS/issues/410"/>
 /// </remarks>
 public sealed class VmmScatterSlim : IScatter, IScatter<VmmScatterSlim>, IDisposable
 {
@@ -28,13 +29,13 @@ public sealed class VmmScatterSlim : IScatter, IScatter<VmmScatterSlim>, IDispos
     private const int SCATTER_MAX_SIZE_SINGLE = 0x40000000;
     private const ulong SCATTER_MAX_SIZE_TOTAL = 0x40000000000;
     private readonly Lock _sync = new();
-    private readonly PooledDictionary<ulong, LeechCore.MEM_SCATTER> _prepared = new();
+    private readonly PooledDictionary<ulong, LeechCore.MEM_SCATTER> _mems = new();
     private readonly Vmm _vmm;
     private readonly uint _pid;
     private readonly VmmFlags _flags;
     private readonly bool _isKernel;
     private readonly bool _isUser;
-    private LeechCore.LcScatterHandle? _scatter;
+    private IntPtr _scatter;
     private bool _disposed;
 
     /// <summary>
@@ -91,7 +92,7 @@ public sealed class VmmScatterSlim : IScatter, IScatter<VmmScatterSlim>, IDispos
             (_isUser && !address.IsValidUserVA()) ||
             cb <= 0 ||
             cb >= SCATTER_MAX_SIZE_SINGLE ||
-            ((ulong)_prepared.Count << 12) + (uint)cb > SCATTER_MAX_SIZE_TOTAL ||
+            ((ulong)_mems.Count << 12) + (uint)cb > SCATTER_MAX_SIZE_TOTAL ||
             unchecked(address + (ulong)cb) < address)
         {
             return false;
@@ -118,7 +119,7 @@ public sealed class VmmScatterSlim : IScatter, IScatter<VmmScatterSlim>, IDispos
                         vaMem = (vaMem & ~0xffful) + 0x1000u - cbMem;
                     }
                 }
-                _prepared.AddOrUpdate(
+                _mems.AddOrUpdate(
                     pageAddr,
                     // add: no existing entry
                     _ => new LeechCore.MEM_SCATTER()
@@ -208,12 +209,10 @@ public sealed class VmmScatterSlim : IScatter, IScatter<VmmScatterSlim>, IDispos
         lock (_sync)
         {
             ObjectDisposedException.ThrowIf(_disposed, this);
-            if (_prepared.Count == 0)
+            if (_mems.Count == 0)
                 return; // no-op
-            _scatter?.Dispose(); // Clear previous scatter if any
-            _scatter = null;
-            using var prepared = _prepared.Values.ToPooledMemory();
-            _scatter = _vmm.MemReadScatter(_pid, _flags, prepared.Span);
+            FreeLcScatter();
+            _scatter = MemReadScatterInternal();
         }
         OnCompleted();
     }
@@ -423,15 +422,60 @@ public sealed class VmmScatterSlim : IScatter, IScatter<VmmScatterSlim>, IDispos
         lock (_sync)
         {
             ObjectDisposedException.ThrowIf(_disposed, this);
-            _prepared.Clear();
-            _scatter?.Dispose();
-            _scatter = null;
+            _mems.Clear();
+            FreeLcScatter();
         }
     }
 
     #endregion
 
     #region Internal
+
+    private unsafe IntPtr MemReadScatterInternal()
+    {
+        int cMems = _mems.Count;
+        if (!Lci.LcAllocScatter1((uint)cMems, out var pppMEMs) || pppMEMs == IntPtr.Zero)
+        {
+            throw new VmmException("LcAllocScatter1 FAIL");
+        }
+        try
+        {
+            var ppMEMs = (LeechCore.MEM_SCATTER_NATIVE**)pppMEMs.ToPointer();
+            int i = 0;
+            foreach (var mem in _mems.Values)
+            {
+                var pMEM = ppMEMs[i++];
+                if (pMEM is null)
+                    continue;
+                pMEM->qwA = mem.qwA;
+                pMEM->cb = mem.cb;
+            }
+
+            _ = Vmmi.VMMDLL_MemReadScatter(_vmm, _pid, pppMEMs, (uint)cMems, _flags);
+
+            for (i = 0; i < cMems; i++)
+            {
+                var pMEM = ppMEMs[i];
+                if (pMEM is null)
+                    continue;
+                if (pMEM->f)
+                {
+                    _mems[VmmUtilities.PAGE_ALIGN(pMEM->qwA)] = new(
+                        qwA: pMEM->qwA,
+                        cb: pMEM->cb,
+                        f: true,
+                        pb: pMEM->pb);
+                }
+            }
+
+            return pppMEMs; // caller is responsible for freeing
+        }
+        catch
+        {
+            Lci.LcMemFree(pppMEMs.ToPointer());
+            throw;
+        }
+    }
 
     /// <summary>
     /// Process the Scatter Read bytes into the span.
@@ -447,7 +491,6 @@ public sealed class VmmScatterSlim : IScatter, IScatter<VmmScatterSlim>, IDispos
             checked
             {
                 ObjectDisposedException.ThrowIf(_disposed, this);
-                ArgumentNullException.ThrowIfNull(_scatter, nameof(_scatter));
                 if (span.IsEmpty)
                     return false;
 
@@ -463,16 +506,16 @@ public sealed class VmmScatterSlim : IScatter, IScatter<VmmScatterSlim>, IDispos
                 for (ulong p = 0; p < numPages; p++)
                 {
                     ulong pageAddr = basePageAddr + (p << 12);
-                    if (!_scatter.Results.TryGetValue(pageAddr, out var scatter))
+                    if (!_mems.TryGetValue(pageAddr, out var mem) || !mem.f)
                         return false;
 
-                    var data = scatter.Data;
+                    var data = mem.Data;
 
                     if (p == 0 && data.Length != 0x1000) // Tiny mem
                     {
-                        pageOffset = (int)(addr - scatter.qwA);
+                        pageOffset = (int)(addr - mem.qwA);
                         // Validate the read falls within the tiny MEM range
-                        if (addr < scatter.qwA || addr + (ulong)cb > scatter.qwA + (ulong)data.Length)
+                        if (addr < mem.qwA || addr + (ulong)cb > mem.qwA + (ulong)data.Length)
                             return false;
                     }
 
@@ -510,6 +553,15 @@ public sealed class VmmScatterSlim : IScatter, IScatter<VmmScatterSlim>, IDispos
         return $"VmmScatter:virtual:{_pid}";
     }
 
+    private unsafe void FreeLcScatter()
+    {
+        if (_scatter != IntPtr.Zero)
+        {
+            Lci.LcMemFree(_scatter.ToPointer());
+            _scatter = IntPtr.Zero;
+        }
+    }
+
     public void Dispose()
     {
         if (Interlocked.Exchange(ref _disposed, true) == false)
@@ -517,9 +569,8 @@ public sealed class VmmScatterSlim : IScatter, IScatter<VmmScatterSlim>, IDispos
             Completed = null;
             lock (_sync)
             {
-                _prepared.Dispose();
-                _scatter?.Dispose();
-                _scatter = null;
+                _mems.Dispose();
+                FreeLcScatter();
             }
         }
     }

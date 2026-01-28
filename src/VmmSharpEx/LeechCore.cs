@@ -367,7 +367,7 @@ public sealed class LeechCore : IDisposable
                 MEM_SCATTER_NATIVE* pMEM = ppMEMs[i];
                 if (pMEM is null)
                     continue;
-                pMEM->qwA = mems[i].qwA;
+                pMEM->qwA = mems[i].qwA & 0xffful;
                 pMEM->cb = mems[i].cb;
             }
 
@@ -603,6 +603,7 @@ public sealed class LeechCore : IDisposable
     {
         public ulong qwA;
         public uint cb;
+        public readonly bool f;
         private readonly IntPtr pb;
 
         public MEM_SCATTER(ulong qwA)
@@ -621,6 +622,14 @@ public sealed class LeechCore : IDisposable
         {
             this.qwA = qwA;
             this.cb = cb;
+            this.pb = pb;
+        }
+
+        internal MEM_SCATTER(ulong qwA, uint cb, bool f, IntPtr pb)
+        {
+            this.qwA = qwA;
+            this.cb = cb;
+            this.f = f;
             this.pb = pb;
         }
 
