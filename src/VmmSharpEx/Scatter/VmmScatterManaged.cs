@@ -451,7 +451,7 @@ public sealed class VmmScatterManaged : IScatter, IScatter<VmmScatterManaged>, I
         /// <summary>
         /// Backing native pMEM struct.
         /// </summary>
-        public LeechCore.MEM_SCATTER_NATIVE? MEM => pMEM is null ?
+        public readonly LeechCore.MEM_SCATTER_NATIVE? MEM => pMEM is null ?
             null : *pMEM;
     }
 
