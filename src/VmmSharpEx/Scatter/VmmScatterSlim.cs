@@ -501,7 +501,7 @@ public unsafe sealed class VmmScatterSlim : IScatter, IScatter<VmmScatterSlim>, 
             checked
             {
                 ObjectDisposedException.ThrowIf(_disposed, this);
-                if (span.IsEmpty)
+                if (span.IsEmpty || _scatter == IntPtr.Zero)
                     return false;
 
                 var spanBytes = MemoryMarshal.AsBytes(span);
