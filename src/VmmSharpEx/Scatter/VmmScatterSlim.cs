@@ -22,7 +22,7 @@ namespace VmmSharpEx.Scatter;
 /// <remarks>
 /// Known issue: VMMDLL_MemReadScatter can cause audio crackling/static on some target systems while performing prepared reads. See: <see href="https://github.com/ufrisk/MemProcFS/issues/410"/>
 /// </remarks>
-public unsafe sealed class VmmScatterSlim : IScatter, IScatter<VmmScatterSlim>, IDisposable
+public sealed class VmmScatterSlim : IScatter, IScatter<VmmScatterSlim>, IDisposable
 {
     #region Fields / Ctors
 
@@ -152,7 +152,7 @@ public unsafe sealed class VmmScatterSlim : IScatter, IScatter<VmmScatterSlim>, 
     /// <param name="address">Address of the array to be read.</param>
     /// <param name="count">Number of array elements to be read.</param>
     /// <returns><see langword="true"/> if successful, otherwise <see langword="false"/>.</returns>
-    public bool PrepareReadArray<T>(ulong address, int count)
+    public unsafe bool PrepareReadArray<T>(ulong address, int count)
         where T : unmanaged
     {
         if (count <= 0)
@@ -171,7 +171,7 @@ public unsafe sealed class VmmScatterSlim : IScatter, IScatter<VmmScatterSlim>, 
     /// <param name="address">Address of the memory to be read.</param>
     /// <returns><see langword="true"/> if successful, otherwise <see langword="false"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool PrepareReadValue<T>(ulong address)
+    public unsafe bool PrepareReadValue<T>(ulong address)
         where T : unmanaged, allows ref struct
     {
         return PrepareRead(address, sizeof(T));
@@ -186,7 +186,7 @@ public unsafe sealed class VmmScatterSlim : IScatter, IScatter<VmmScatterSlim>, 
     /// <param name="address">Address of the memory to be read.</param>
     /// <returns><see langword="true"/> if successful, otherwise <see langword="false"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool PrepareReadPtr(ulong address)
+    public unsafe bool PrepareReadPtr(ulong address)
     {
         return PrepareRead(address, sizeof(VmmPointer));
     }
@@ -243,7 +243,7 @@ public unsafe sealed class VmmScatterSlim : IScatter, IScatter<VmmScatterSlim>, 
     /// <param name="cb">Count of bytes to be read.</param>
     /// <param name="pb">Pointer to buffer to receive read. You must make sure the buffer is pinned/fixed.</param>
     /// <returns><see langword="true"/> if successful, otherwise <see langword="false"/>.</returns>
-    public bool Read(ulong address, int cb, void* pb)
+    public unsafe bool Read(ulong address, int cb, void* pb)
     {
         if (cb <= 0)
             return false;
@@ -259,7 +259,7 @@ public unsafe sealed class VmmScatterSlim : IScatter, IScatter<VmmScatterSlim>, 
     /// <param name="pb">Pointer to buffer to receive read. You must make sure the buffer is pinned/fixed.</param>
     /// <returns><see langword="true"/> if successful, otherwise <see langword="false"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool Read(ulong address, int cb, IntPtr pb)
+    public unsafe bool Read(ulong address, int cb, IntPtr pb)
     {
         return Read(address, cb, pb.ToPointer());
     }
@@ -274,7 +274,7 @@ public unsafe sealed class VmmScatterSlim : IScatter, IScatter<VmmScatterSlim>, 
     /// <param name="address">Address to read from.</param>
     /// <param name="result">Field in which the span <typeparamref name="T"/> is populated. If the read fails this will be <see langword="default"/>.</param>
     /// <returns><see langword="true"/> if successful, otherwise <see langword="false"/>.</returns>
-    public bool ReadValue<T>(ulong address, out T result)
+    public unsafe bool ReadValue<T>(ulong address, out T result)
         where T : unmanaged, allows ref struct
     {
         result = default;
@@ -431,7 +431,7 @@ public unsafe sealed class VmmScatterSlim : IScatter, IScatter<VmmScatterSlim>, 
 
     #region Internal
 
-    private readonly struct ScatterEntry
+    private unsafe readonly struct ScatterEntry
     {
         public readonly ulong qwA;
         public readonly uint cb;
@@ -455,7 +455,7 @@ public unsafe sealed class VmmScatterSlim : IScatter, IScatter<VmmScatterSlim>, 
             null : *pMEM;
     }
 
-    private IntPtr MemReadScatterInternal()
+    private unsafe IntPtr MemReadScatterInternal()
     {
         int cMems = _prepared.Count;
         if (!Lci.LcAllocScatter1((uint)cMems, out var pppMEMs) || pppMEMs == IntPtr.Zero)
