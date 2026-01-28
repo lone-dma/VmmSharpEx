@@ -520,7 +520,7 @@ public unsafe sealed class VmmScatterSlim : IScatter, IScatter<VmmScatterSlim>, 
                         return false;
                     var data = mem.Data;
 
-                    if (p == 0 && data.Length != 0x1000) // Tiny prepared
+                    if (p == 0 && data.Length != 0x1000) // Tiny mem
                     {
                         pageOffset = (int)(addr - mem.qwA);
                         // Validate the read falls within the tiny MEM range
