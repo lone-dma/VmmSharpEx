@@ -19,33 +19,28 @@ using Collections.Pooled;
 using System.Buffers;
 using System.Runtime.CompilerServices;
 using System.Text;
-using VmmSharpEx.Extensions;
 using VmmSharpEx.Internal;
 using VmmSharpEx.Options;
 
 namespace VmmSharpEx.Scatter;
 
 /// <summary>
-/// The <see cref="VmmScatter"/> class is used to ease the reading and writing of memory in bulk using the VMM Scatter API.
+/// The <see cref="VmmScatter"/> class is used to ease the reading and writing of memory in bulk using the official MemProcFS Scatter API via vmm.dll.
+/// All operations incur native calls to vmm.dll (using <see cref="Vmmi.VMMDLL_Scatter_Initialize(nint, uint, VmmFlags)"/>).
 /// </summary>
 /// <remarks>
-/// This API has been enhanced in VmmSharpEx over the original VmmSharp implementation.
+/// This API is left intact for compatibility with existing code, but new development will be focused on <see cref="VmmScatterManaged"/>.
 /// </remarks>
-public unsafe sealed class VmmScatter : IDisposable
+public sealed class VmmScatter : IScatter, IScatter<VmmScatter>, IDisposable
 {
     #region Base Functionality
 
-    // Internal Note: Synchronization is not needed, since vmmdll_scatter.c internally defines SCATTER_CALL_SYNCHRONIZED_IMPLEMENTATION on these calls.
-
     private readonly Vmm _vmm;
-    private readonly uint _pid;
-    private readonly VmmFlags _flags;
-    private readonly bool _isKernel;
-    private readonly bool _isUser;
+    private uint _pid;
+    private VmmFlags _flags;
     private IntPtr _handle;
-    private bool _disposed;
 
-    private volatile bool _isPrepared;
+    private bool _isPrepared;
     /// <summary>
     /// <see langword="true"/> if the VmmScatter handle has at least one operation prepared, otherwise <see langword="false"/>.
     /// </summary>
@@ -86,10 +81,12 @@ public unsafe sealed class VmmScatter : IDisposable
         _vmm = vmm;
         _pid = pid;
         _flags = flags;
-        bool isPhysical = pid == Vmm.PID_PHYSICALMEMORY;
-        _isKernel = !isPhysical && (pid & Vmm.PID_PROCESS_WITH_KERNELMEMORY) != 0;
-        _isUser = !isPhysical && !_isKernel;
         _handle = Create(vmm, pid, flags);
+    }
+
+    static VmmScatter IScatter<VmmScatter>.Create(Vmm vmm, uint pid, VmmFlags flags)
+    {
+        return new VmmScatter(vmm, pid, flags);
     }
 
     private static IntPtr Create(Vmm vmm, uint pid, VmmFlags flags)
@@ -113,14 +110,13 @@ public unsafe sealed class VmmScatter : IDisposable
 
     private void Dispose(bool disposing)
     {
-        if (Interlocked.Exchange(ref _disposed, true) == false)
+        if (Interlocked.Exchange(ref _handle, IntPtr.Zero) is IntPtr h && h != IntPtr.Zero)
         {
             if (disposing)
             {
                 Completed = null;
             }
-            Vmmi.VMMDLL_Scatter_CloseHandle(_handle);
-            _handle = IntPtr.Zero;
+            Vmmi.VMMDLL_Scatter_CloseHandle(h);
         }
     }
 
@@ -132,12 +128,12 @@ public unsafe sealed class VmmScatter : IDisposable
     /// </remarks>
     public override string ToString()
     {
-        if (_disposed)
+        if (_handle == IntPtr.Zero)
         {
-            return "VmmScatter:Disposed";
+            return "VmmScatter:NotValid";
         }
 
-        if (_pid == Vmm.PID_PHYSICALMEMORY)
+        if (_pid == 0xFFFFFFFF)
         {
             return "VmmScatter:physical";
         }
@@ -159,17 +155,10 @@ public unsafe sealed class VmmScatter : IDisposable
     /// <param name="address">Address of the memory to be read.</param>
     /// <param name="cb">Count of bytes to be read.</param>
     /// <returns><see langword="true"/> if the operation is successful, otherwise <see langword="false"/>.</returns>
-    public bool PrepareRead(ulong address, int cb)
+    public bool PrepareRead(ulong address, uint cb)
     {
-        ObjectDisposedException.ThrowIf(_disposed, this);
-        if ((_isKernel && !address.IsValidKernelVA()) ||
-            (_isUser && !address.IsValidUserVA()) ||
-            cb <= 0)
-        {
-            return false;
-        }
         bool ret;
-        IsPrepared = ret = Vmmi.VMMDLL_Scatter_Prepare(_handle, address, (uint)cb);
+        IsPrepared = ret = Vmmi.VMMDLL_Scatter_Prepare(_handle, address, cb);
         return ret;
     }
 
@@ -183,13 +172,13 @@ public unsafe sealed class VmmScatter : IDisposable
     /// <param name="address">Address of the array to be read.</param>
     /// <param name="count">Number of array elements to be read.</param>
     /// <returns><see langword="true"/> if the operation is successful, otherwise <see langword="false"/>.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool PrepareReadArray<T>(ulong address, int count)
+    public unsafe bool PrepareReadArray<T>(ulong address, int count)
         where T : unmanaged
     {
-        if (count <= 0)
-            return false;
-        return PrepareRead(address, checked(sizeof(T) * count));
+        uint cb = checked((uint)sizeof(T) * (uint)count);
+        bool ret;
+        IsPrepared = ret = Vmmi.VMMDLL_Scatter_Prepare(_handle, address, cb);
+        return ret;
     }
 
     /// <summary>
@@ -201,11 +190,13 @@ public unsafe sealed class VmmScatter : IDisposable
     /// <typeparam name="T">The <see langword="unmanaged"/> struct type for this operation.</typeparam>
     /// <param name="address">Address of the memory to be read.</param>
     /// <returns><see langword="true"/> if the operation is successful, otherwise <see langword="false"/>.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool PrepareReadValue<T>(ulong address)
+    public unsafe bool PrepareReadValue<T>(ulong address)
         where T : unmanaged, allows ref struct
     {
-        return PrepareRead(address, sizeof(T));
+        uint cb = (uint)sizeof(T);
+        bool ret;
+        IsPrepared = ret = Vmmi.VMMDLL_Scatter_Prepare(_handle, address, cb);
+        return ret;
     }
 
     /// <summary>
@@ -216,10 +207,12 @@ public unsafe sealed class VmmScatter : IDisposable
     /// </remarks>
     /// <param name="address">Address of the memory to be read.</param>
     /// <returns><see langword="true"/> if the operation is successful, otherwise <see langword="false"/>.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool PrepareReadPtr(ulong address)
+    public unsafe bool PrepareReadPtr(ulong address)
     {
-        return PrepareRead(address, sizeof(VmmPointer));
+        uint cb = (uint)sizeof(VmmPointer);
+        bool ret;
+        IsPrepared = ret = Vmmi.VMMDLL_Scatter_Prepare(_handle, address, cb);
+        return ret;
     }
 
     /// <summary>
@@ -232,18 +225,15 @@ public unsafe sealed class VmmScatter : IDisposable
     /// <param name="address">The address that will be written to.</param>
     /// <param name="data">The data that will be written.</param>
     /// <returns><see langword="true"/> if the operation is successful, otherwise <see langword="false"/>.</returns>
-    public bool PrepareWriteSpan<T>(ulong address, ReadOnlySpan<T> data)
+    public unsafe bool PrepareWriteSpan<T>(ulong address, Span<T> data)
         where T : unmanaged
     {
-        ObjectDisposedException.ThrowIf(_disposed, this);
         _vmm.ThrowIfMemWritesDisabled();
-        if (data.IsEmpty)
-            return false;
-        int cb = checked(sizeof(T) * data.Length);
+        uint cb = checked((uint)sizeof(T) * (uint)data.Length);
         bool ret;
-        fixed (void* pb = data)
+        fixed (T* pb = data)
         {
-            IsPrepared = ret = Vmmi.VMMDLL_Scatter_PrepareWrite(_handle, address, pb, (uint)cb);
+            IsPrepared = ret = Vmmi.VMMDLL_Scatter_PrepareWrite(_handle, address, (byte*)pb, cb);
             return ret;
         }
     }
@@ -258,16 +248,13 @@ public unsafe sealed class VmmScatter : IDisposable
     /// <param name="address">The address that will be written to.</param>
     /// <param name="value">The value that will be written.</param>
     /// <returns><see langword="true"/> if the operation is successful, otherwise <see langword="false"/>.</returns>
-    public bool PrepareWriteValue<T>(ulong address, in T value)
+    public unsafe bool PrepareWriteValue<T>(ulong address, T value)
         where T : unmanaged, allows ref struct
     {
-        ObjectDisposedException.ThrowIf(_disposed, this);
         _vmm.ThrowIfMemWritesDisabled();
+        uint cb = (uint)sizeof(T);
         bool ret;
-        fixed (void* pb = &value)
-        {
-            IsPrepared = ret = Vmmi.VMMDLL_Scatter_PrepareWrite(_handle, address, pb, (uint)sizeof(T));
-        }
+        IsPrepared = ret = Vmmi.VMMDLL_Scatter_PrepareWrite(_handle, address, (byte*)&value, cb);
         return ret;
     }
 
@@ -280,7 +267,6 @@ public unsafe sealed class VmmScatter : IDisposable
     /// <exception cref="VmmException"></exception>
     public void Execute()
     {
-        ObjectDisposedException.ThrowIf(_disposed, this);
         if (IsPrepared) // VMMDLL_Scatter_Execute will return FALSE if no operations are prepared, this may be expected behavior so we don't want to throw here.
         {
             if (!Vmmi.VMMDLL_Scatter_Execute(_handle))
@@ -298,34 +284,14 @@ public unsafe sealed class VmmScatter : IDisposable
     /// </remarks>
     /// <param name="address">Address to read from.</param>
     /// <param name="cb">Count of bytes to be read.</param>
-    /// <returns>A byte array with the read memory, otherwise <see langword="null"/>.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public byte[]? Read(ulong address, int cb) =>
-        ReadArray<byte>(address, cb);
-
-    /// <summary>
-    /// Read memory from an address into a byte array. Read may be partial.
-    /// </summary>
-    /// <remarks>
-    /// This should be called after <see cref="Execute"/>.
-    /// NOTE: This method incurs a heap allocation for the returned byte array. For high-performance use other read methods instead.
-    /// </remarks>
-    /// <param name="address">Address to read from.</param>
-    /// <param name="cb">Count of bytes to be read.</param>
     /// <param name="cbRead">Count of bytes actually read.</param>
     /// <returns>A byte array with the read memory, otherwise <see langword="null"/>. Be sure to also check <paramref name="cbRead"/>.</returns>
-    public byte[]? Read(ulong address, int cb, out uint cbRead)
+    public unsafe byte[]? Read(ulong address, uint cb, out uint cbRead)
     {
-        ObjectDisposedException.ThrowIf(_disposed, this);
-        if (cb <= 0)
-        {
-            cbRead = 0;
-            return null;
-        }
         var arr = new byte[cb];
         fixed (byte* pb = arr)
         {
-            if (!Vmmi.VMMDLL_Scatter_Read(_handle, address, (uint)cb, pb, out cbRead))
+            if (!Vmmi.VMMDLL_Scatter_Read(_handle, address, cb, pb, out cbRead))
             {
                 return null;
             }
@@ -334,34 +300,29 @@ public unsafe sealed class VmmScatter : IDisposable
     }
 
     /// <summary>
-    /// Read memory from an address to a pointer of a buffer that can accept <paramref name="cb"/> bytes. Read may be partial.
+    /// Read memory from an address to a pointer of a buffer that can accept <paramref name="cb"/> bytes.
     /// </summary>
     /// <param name="address">Address to read from.</param>
     /// <param name="cb">Count of bytes to be read.</param>
     /// <param name="pb">Pointer to buffer to receive read. You must make sure the buffer is pinned/fixed.</param>
     /// <param name="cbRead">Count of bytes actually read.</param>
-    /// <returns><see langword="true"/> if the operation is successful, otherwise <see langword="false"/>. Be sure to also check <paramref name="cbRead"/>.</returns>
-    public bool Read(ulong address, int cb, void* pb, out uint cbRead)
+    /// <returns>TRUE if successful, otherwise FALSE. Be sure to also check <paramref name="cbRead"/>.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public unsafe bool Read(ulong address, uint cb, void* pb, out uint cbRead)
     {
-        ObjectDisposedException.ThrowIf(_disposed, this);
-        if (cb <= 0)
-        {
-            cbRead = 0;
-            return false;
-        }
-        return Vmmi.VMMDLL_Scatter_Read(_handle, address, (uint)cb, pb, out cbRead);
+        return Vmmi.VMMDLL_Scatter_Read(_handle, address, cb, (byte*)pb, out cbRead);
     }
 
     /// <summary>
-    /// Read memory from an address to a pointer of a buffer that can accept <paramref name="cb"/> bytes. Read may be partial.
+    /// Read memory from an address to a pointer of a buffer that can accept <paramref name="cb"/> bytes.
     /// </summary>
     /// <param name="address">Address to read from.</param>
     /// <param name="cb">Count of bytes to be read.</param>
     /// <param name="pb">Pointer to buffer to receive read. You must make sure the buffer is pinned/fixed.</param>
     /// <param name="cbRead">Count of bytes actually read.</param>
-    /// <returns><see langword="true"/> if the operation is successful, otherwise <see langword="false"/>. Be sure to also check <paramref name="cbRead"/>.</returns>
+    /// <returns>TRUE if successful, otherwise FALSE. Be sure to also check <paramref name="cbRead"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool Read(ulong address, int cb, IntPtr pb, out uint cbRead) =>
+    public unsafe bool Read(ulong address, uint cb, IntPtr pb, out uint cbRead) =>
         Read(address, cb, pb.ToPointer(), out cbRead);
 
     /// <summary>
@@ -374,15 +335,14 @@ public unsafe sealed class VmmScatter : IDisposable
     /// <param name="address">Address to read from.</param>
     /// <param name="result">Field in which the result <typeparamref name="T"/> is populated. If the read fails this will be <see langword="default"/>.</param>
     /// <returns><see langword="true"/> if the operation is successful, otherwise <see langword="false"/>.</returns>
-    public bool ReadValue<T>(ulong address, out T result)
+    public unsafe bool ReadValue<T>(ulong address, out T result)
         where T : unmanaged, allows ref struct
     {
-        ObjectDisposedException.ThrowIf(_disposed, this);
-        result = default;
         uint cb = (uint)sizeof(T);
-        fixed (void* pb = &result)
+        result = default;
+        fixed (T* pb = &result)
         {
-            if (!Vmmi.VMMDLL_Scatter_Read(_handle, address, cb, pb, out var cbRead) || cbRead != cb)
+            if (!Vmmi.VMMDLL_Scatter_Read(_handle, address, cb, (byte*)pb, out var cbRead) || cbRead != cb)
             {
                 return false;
             }
@@ -401,15 +361,14 @@ public unsafe sealed class VmmScatter : IDisposable
     /// <returns><see langword="true"/> if the operation is successful, otherwise <see langword="false"/>.</returns>
     public bool ReadPtr(ulong address, out VmmPointer result)
     {
-        if (!ReadValue(address, out result) ||
-            result == 0 ||
-            (_isKernel && !result.IsValidKernelVA) ||
-            (_isUser && !result.IsValidUserVA))
+        if (ReadValue<VmmPointer>(address, out result) && result.IsValidVA)
         {
-            return false;
+            return true;
         }
-        return true;
+        return false;
     }
+
+
 
     /// <summary>
     /// Read memory from an address into an array of a certain type.
@@ -421,17 +380,14 @@ public unsafe sealed class VmmScatter : IDisposable
     /// <param name="address">Address to read from.</param>
     /// <param name="count">The number of array elements to read.</param>
     /// <returns>An array on success; otherwise <see langword="null"/>.</returns>
-    public T[]? ReadArray<T>(ulong address, int count)
+    public unsafe T[]? ReadArray<T>(ulong address, int count)
         where T : unmanaged
     {
-        ObjectDisposedException.ThrowIf(_disposed, this);
-        if (count <= 0)
-            return null;
-        int cb = checked(sizeof(T) * count);
+        uint cb = checked((uint)sizeof(T) * (uint)count);
         var array = new T[count];
-        fixed (void* pb = array)
+        fixed (T* pb = array)
         {
-            if (!Vmmi.VMMDLL_Scatter_Read(_handle, address, (uint)cb, pb, out var cbRead) || cbRead != cb)
+            if (!Vmmi.VMMDLL_Scatter_Read(_handle, address, cb, (byte*)pb, out var cbRead) || cbRead != cb)
             {
                 return null;
             }
@@ -449,17 +405,14 @@ public unsafe sealed class VmmScatter : IDisposable
     /// <param name="address">Address to read from.</param>
     /// <param name="count">The number of array elements to read.</param>
     /// <returns><see cref="IMemoryOwner{T}"/> lease, or <see langword="null"/> if failed. Be sure to call <see cref="IDisposable.Dispose()"/> when done.</returns>
-    public IMemoryOwner<T>? ReadPooled<T>(ulong address, int count)
+    public unsafe IMemoryOwner<T>? ReadPooled<T>(ulong address, int count)
         where T : unmanaged
     {
-        ObjectDisposedException.ThrowIf(_disposed, this);
-        if (count <= 0)
-            return null;
-        int cb = checked(sizeof(T) * count);
+        uint cb = checked((uint)sizeof(T) * (uint)count);
         var data = new PooledMemory<T>(count);
-        fixed (void* pb = data.Span)
+        fixed (T* pb = data.Span)
         {
-            if (!Vmmi.VMMDLL_Scatter_Read(_handle, address, (uint)cb, pb, out var cbRead) || cbRead != cb)
+            if (!Vmmi.VMMDLL_Scatter_Read(_handle, address, cb, (byte*)pb, out var cbRead) || cbRead != cb)
             {
                 data.Dispose();
                 return null;
@@ -478,16 +431,13 @@ public unsafe sealed class VmmScatter : IDisposable
     /// <param name="address">Address to read from.</param>
     /// <param name="span">The span to read into.</param>
     /// <returns><see langword="true"/> if the operation is successful, otherwise <see langword="false"/>.</returns>
-    public bool ReadSpan<T>(ulong address, Span<T> span)
+    public unsafe bool ReadSpan<T>(ulong address, Span<T> span)
         where T : unmanaged
     {
-        ObjectDisposedException.ThrowIf(_disposed, this);
-        if (span.IsEmpty)
-            return false;
-        int cb = checked(sizeof(T) * span.Length);
-        fixed (void* pb = span)
+        uint cb = checked((uint)sizeof(T) * (uint)span.Length);
+        fixed (T* pb = span)
         {
-            return Vmmi.VMMDLL_Scatter_Read(_handle, address, (uint)cb, pb, out var cbRead) && cbRead == cb;
+            return Vmmi.VMMDLL_Scatter_Read(_handle, address, cb, (byte*)pb, out var cbRead) && cbRead == cb;
         }
     }
 
@@ -503,9 +453,6 @@ public unsafe sealed class VmmScatter : IDisposable
     /// <returns>C# Managed <see cref="System.String"/>. Otherwise, <see langword="null"/> if failed.</returns>
     public string? ReadString(ulong address, int cb, Encoding encoding)
     {
-        ObjectDisposedException.ThrowIf(_disposed, this);
-        if (cb <= 0)
-            return null;
         byte[]? rentedBytes = null;
         char[]? rentedChars = null;
         try
@@ -541,13 +488,18 @@ public unsafe sealed class VmmScatter : IDisposable
     /// Also clears any previously set <see cref="Completed"/> event handlers.
     /// </summary>
     /// <remarks>
-    /// IMPORTANT: Using <see cref="Clear"/> and reusing a handle does not offer much (if any) performance benefit over creating a new handle.
+    /// IMPORTANT: Using <see cref="Clear(VmmFlags?, uint?)"/> and reusing a handle does not offer much (if any) performance benefit over creating a new handle.
     /// Be sure to profile and compare performance before using this in performance critical code.
     /// </remarks>
+    /// <param name="flags">[Optional] Flags to be set for new operations, otherwise uses existing flags.</param>
+    /// <param name="pid">[Optional] PID to be set for new operations, otherwise uses existing PID.</param>
     /// <exception cref="VmmException"></exception>
-    public void Clear()
+    public void Clear(VmmFlags? flags = null, uint? pid = null)
     {
-        ObjectDisposedException.ThrowIf(_disposed, this);
+        if (flags is VmmFlags f)
+            _flags = f;
+        if (pid is uint p)
+            _pid = p;
         _isPrepared = default;
         Completed = default;
         if (!Vmmi.VMMDLL_Scatter_Clear(_handle, _pid, _flags))
