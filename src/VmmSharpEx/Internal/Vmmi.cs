@@ -53,12 +53,12 @@ internal static partial class Vmmi
     public const uint VMMDLL_VFS_FILELIST_VERSION = 2;
 
     [StructLayout(LayoutKind.Sequential)]
-    public struct VMMDLL_VFS_FILELIST
+    public unsafe struct VMMDLL_VFS_FILELIST
     {
         public uint dwVersion;
         public uint _Reserved;
-        public IntPtr pfnAddFile;
-        public IntPtr pfnAddDirectory;
+        public delegate* unmanaged<IntPtr, byte*, ulong, IntPtr, int> pfnAddFile;
+        public delegate* unmanaged<IntPtr, byte*, IntPtr, int> pfnAddDirectory;
         public IntPtr h;
     }
 
@@ -1472,7 +1472,7 @@ internal static partial class Vmmi
         IntPtr hVMM,
         VmmMemCallbackType tp,
         IntPtr ctxUser,
-        Vmm.VMMDLL_MEM_CALLBACK_PFN pfnCB);
+        delegate* unmanaged<IntPtr, uint, uint, LeechCore.MEM_SCATTER_NATIVE**, void> pfnCB);
 
     [LibraryImport("vmm.dll", EntryPoint = "VMMDLL_WinGetThunkInfoIATW", StringMarshalling = StringMarshalling.Utf16)]
     [return: MarshalAs(UnmanagedType.Bool)]
