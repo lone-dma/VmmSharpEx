@@ -29,6 +29,7 @@ public static class VmmSearch
 {
     private const uint VMMDLL_MEM_SEARCH_VERSION = 0xfe3e0003;
     private const int VMMDLL_MEM_SEARCH_MAXLENGTH = 32;
+    private static readonly ConcurrentDictionary<IntPtr, SearchResult> _contexts = new();
 
     /// <summary>
     /// Asynchronously execute a memory search on the specified process.
@@ -96,7 +97,6 @@ public static class VmmSearch
         {
             fixed (void* pSearches = searches)
             {
-                Vmmi.SearchResultCallback del = SearchResultCallback; // Prevent delegate from being GC'ed during the call.
                 *context = new Vmmi.VMMDLL_MEM_SEARCH_CONTEXT
                 {
                     dwVersion = VMMDLL_MEM_SEARCH_VERSION,
@@ -104,10 +104,12 @@ public static class VmmSearch
                     vaMax = addr_max,
                     cMaxResult = cMaxResult,
                     ReadFlags = (uint)readFlags,
-                    pfnResultOptCB = Marshal.GetFunctionPointerForDelegate(del),
+                    pvUserPtrOpt = (IntPtr)context,
+                    pfnResultOptCB = &SearchResultCallback,
                     cSearch = (uint)searches.Length,
                     search = pSearches
                 };
+                _contexts.TryAdd((IntPtr)context, result);
                 var ctReg = ct.Register(() =>
                 {
                     context->fAbortRequested = 1;
@@ -125,23 +127,28 @@ public static class VmmSearch
 
                 ct.ThrowIfCancellationRequested();
                 return result;
-
-                bool SearchResultCallback(Vmmi.VMMDLL_MEM_SEARCH_CONTEXT ctx, ulong va, uint iSearch)
-                {
-                    var e = new SearchResult.Entry
-                    {
-                        Address = va,
-                        SearchTermId = iSearch
-                    };
-                    result._results.Add(e);
-                    return result._results.Count < ctx.cMaxResult;
-                }
             }
         }
         finally
         {
             NativeMemory.Free(context);
+            _contexts.TryRemove((IntPtr)context, out _);
         }
+    }
+
+    [UnmanagedCallersOnly]
+    private static int SearchResultCallback(Vmmi.VMMDLL_MEM_SEARCH_CONTEXT ctx, ulong va, uint iSearch)
+    {
+        if (!_contexts.TryGetValue(ctx.pvUserPtrOpt, out var result))
+            return 0;
+        var e = new SearchResult.Entry
+        {
+            Address = va,
+            SearchTermId = iSearch
+        };
+        result._results.Add(e);
+        return result._results.Count < ctx.cMaxResult ?
+            1 : 0;
     }
 
     private static unsafe Vmmi.VMMDLL_MEM_SEARCH_CONTEXT_SEARCHENTRY[] ProcessSearchEntries(IEnumerable<SearchItem>? items)

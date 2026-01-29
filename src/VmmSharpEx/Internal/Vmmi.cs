@@ -900,11 +900,11 @@ internal static partial class Vmmi
         private readonly uint _Filler2;
         private readonly uint cResult;
         public readonly ulong cbReadTotal;
-        private readonly IntPtr pvUserPtrOpt;
-        public IntPtr pfnResultOptCB;
+        public IntPtr pvUserPtrOpt;
+        public delegate* unmanaged<Vmmi.VMMDLL_MEM_SEARCH_CONTEXT, ulong, uint, int> pfnResultOptCB;
         public ulong ReadFlags;
-        private readonly int fForcePTE;
-        private readonly int fForceVAD;
+        private readonly int fForcePTE; // BOOL
+        private readonly int fForceVAD; // BOOL
         private readonly IntPtr pfnFilterOptCB;
     }
 
