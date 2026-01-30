@@ -127,8 +127,8 @@ public sealed class VmmScatterManaged : IScatter, IScatter<VmmScatterManaged>, I
                     // update: entry already exists
                     (_, existing) =>
                     {
-                        // If an entry already exists for this prepared, ensure we upgrade to full-prepared read.
-                        // This preserves correctness when multiple overlapping prepares hit the same prepared.
+                        // If an entry already exists for this page, ensure we upgrade to full-prepared read.
+                        // This preserves correctness when multiple requests overlap on the same page with different sizes/offsets.
                         if (existing.cb != 0x1000u)
                         {
                             return new PreparedScatter(qwA: pageAddr, cb: 0x1000u);
