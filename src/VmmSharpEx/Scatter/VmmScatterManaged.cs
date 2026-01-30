@@ -518,7 +518,7 @@ public sealed class VmmScatterManaged : IScatter, IScatter<VmmScatterManaged>, I
                             return false;
                     }
 
-                    // Bounds check: ensure we don't read past end of data buffer
+                    // Bounds check: ensure we don't read past end of data buffer (span will enforce its own bounds, but this will avoid throwing)
                     if (pageOffset + cb > data.Length)
                         return false;
 
