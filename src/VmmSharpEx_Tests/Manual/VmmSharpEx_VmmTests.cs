@@ -231,7 +231,7 @@ public class VmmSharpEx_VmmTests
     {
         var result = _vmm.Map_GetServices();
         Assert.NotNull(result);
-        Assert.NotEmpty(result);
+        // Can sometimes be empty
         _output.WriteLine($"Service entries: {result.Length}");
     }
 

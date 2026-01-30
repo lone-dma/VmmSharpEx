@@ -341,42 +341,55 @@ public sealed partial class Vmm : IDisposable
     public const uint PID_PROCESS_WITH_KERNELMEMORY = 0x80000000; // Combine with dwPID to enable process kernel memory (NB! use with extreme care).
 
     /// <summary>
-    /// Perform a scatter read of multiple page-sized virtual memory ranges.
-    /// Does not copy the read memory to a managed byte buffer, but instead allows direct access to the native memory via a
-    /// <see cref="Span{T}"/> view.
+    /// Perform a scatter read of multiple page-sized virtual/physical memory ranges.
     /// </summary>
-    /// <param name="pid">Process ID (PID) this operation will take place within.</param>
+    /// <param name="pid">Process ID (PID) this operation will take place upon.</param>
     /// <param name="flags">VMM read flags.</param>
-    /// <param name="vas">Page-aligned virtual addresses.</param>
-    /// <returns>An <see cref="LeechCore.LcScatterHandle"/> owning the native buffers for the read pages.</returns>
+    /// <param name="vas">Page-aligned memory addresses.</param>
+    /// <returns>Array of <see cref="LeechCore.MEM_SCATTER"/> results.</returns>
     /// <exception cref="VmmException">Thrown if the native scatter allocation fails.</exception>
-    public unsafe LeechCore.LcScatterHandle MemReadScatter(uint pid, VmmFlags flags, params Span<ulong> vas)
+    public unsafe LeechCore.MEM_SCATTER[] MemReadScatter(uint pid, VmmFlags flags, params ReadOnlySpan<ulong> vas)
     {
-        if (!Lci.LcAllocScatter1((uint)vas.Length, out var pppMEMs))
+        if (!Lci.LcAllocScatter1((uint)vas.Length, out var pppMEMs) || pppMEMs == IntPtr.Zero)
         {
             throw new VmmException("LcAllocScatter1 FAIL");
         }
-
-        var ppMEMs = (LeechCore.LcMemScatter**)pppMEMs.ToPointer();
-        for (var i = 0; i < vas.Length; i++)
+        try
         {
-            var pMEM = ppMEMs[i];
-            pMEM->qwA = vas[i] & ~0xffful;
-        }
-
-        _ = Vmmi.VMMDLL_MemReadScatter(_handle, pid, pppMEMs, (uint)vas.Length, flags);
-
-        var results = new PooledDictionary<ulong, LeechCore.ScatterData>(capacity: vas.Length);
-        for (var i = 0; i < vas.Length; i++)
-        {
-            var pMEM = ppMEMs[i];
-            if (pMEM->f)
+            var mems = new LeechCore.MEM_SCATTER[vas.Length];
+            var ppMEMs = (LeechCore.MEM_SCATTER_NATIVE**)pppMEMs.ToPointer();
+            int i;
+            for (i = 0; i < vas.Length; i++)
             {
-                results[pMEM->qwA] = new LeechCore.ScatterData(pMEM->pb, pMEM->cb);
+                var pMEM = ppMEMs[i];
+                if (pMEM is null)
+                    continue;
+                pMEM->qwA = vas[i] & ~0xffful;
+                pMEM->cb = 0x1000;
             }
-        }
 
-        return new LeechCore.LcScatterHandle(results, pppMEMs);
+            _ = Vmmi.VMMDLL_MemReadScatter(_handle, pid, pppMEMs, (uint)vas.Length, flags);
+
+            for (i = 0; i < vas.Length; i++)
+            {
+                var pMEM = ppMEMs[i];
+                if (pMEM is null)
+                    continue;
+                mems[i] = new()
+                {
+                    qwA = pMEM->qwA,
+                    f = pMEM->f,
+                    pb = new byte[0x1000]
+                };
+                Marshal.Copy(pMEM->pb, mems[i].pb!, 0, 0x1000);
+            }
+
+            return mems;
+        }
+        finally
+        {
+            Lci.LcMemFree(pppMEMs);
+        }
     }
 
     /// <summary>
@@ -489,6 +502,8 @@ public sealed partial class Vmm : IDisposable
     public unsafe T[]? MemReadArray<T>(uint pid, ulong va, int count, VmmFlags flags = VmmFlags.NONE)
         where T : unmanaged
     {
+        if (count <= 0)
+            return null;
         var array = new T[count];
         uint cb = checked((uint)sizeof(T) * (uint)count);
         fixed (T* pb = array)
@@ -513,6 +528,8 @@ public sealed partial class Vmm : IDisposable
     public unsafe IMemoryOwner<T>? MemReadPooled<T>(uint pid, ulong va, int count, VmmFlags flags = VmmFlags.NONE)
         where T : unmanaged
     {
+        if (count <= 0)
+            return null;
         var arr = new PooledMemory<T>(count);
         uint cb = checked((uint)sizeof(T) * (uint)count);
         fixed (T* pb = arr.Span)
@@ -804,33 +821,14 @@ public sealed partial class Vmm : IDisposable
         }
     }
 
-    /// <summary>
-    /// VFS list callback function for adding files.
-    /// </summary>
-    /// <param name="ctx">User-supplied context forwarded to the callback.</param>
-    /// <param name="name">The file name.</param>
-    /// <param name="cb">The file size in bytes.</param>
-    /// <param name="pExInfo">Pointer to <see cref="VMMDLL_VFS_FILELIST_EXINFO"/> if available; otherwise <see cref="IntPtr.Zero"/>.</param>
-    /// <returns><see langword="true"/> to continue enumeration; otherwise <see langword="false"/> to stop.</returns>
-    [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-    public delegate bool VfsCallBack_AddFile(GCHandle ctx, [MarshalAs(UnmanagedType.LPUTF8Str)] string name, ulong cb, IntPtr pExInfo);
-
-    /// <summary>
-    /// VFS list callback function for adding directories.
-    /// </summary>
-    /// <param name="ctx">User-supplied context forwarded to the callback.</param>
-    /// <param name="name">The directory name.</param>
-    /// <param name="pExInfo">Pointer to <see cref="VMMDLL_VFS_FILELIST_EXINFO"/> if available; otherwise <see cref="IntPtr.Zero"/>.</param>
-    /// <returns><see langword="true"/> to continue enumeration; otherwise <see langword="false"/> to stop.</returns>
-    [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-    public delegate bool VfsCallBack_AddDirectory(GCHandle ctx, [MarshalAs(UnmanagedType.LPUTF8Str)] string name, IntPtr pExInfo);
-
-    private static bool VfsList_AddFileCB(GCHandle h, [MarshalAs(UnmanagedType.LPUTF8Str)] string sName, ulong cb, IntPtr pExInfo)
+    [UnmanagedCallersOnly]
+    private static unsafe int VfsList_AddFileCB(IntPtr hCtx, byte* pName, ulong cb, IntPtr pExInfo)
     {
-        var ctx = (VfsContext?)h.Target ?? throw new ArgumentNullException(nameof(h));
+        var h = GCHandle.FromIntPtr(hCtx);
+        var ctx = (VfsContext?)h.Target ?? throw new ArgumentNullException(nameof(hCtx));
         var e = new VfsEntry
         {
-            name = sName,
+            name = Marshal.PtrToStringUTF8((IntPtr)pName) ?? string.Empty,
             isDirectory = false,
             size = cb
         };
@@ -840,15 +838,17 @@ public sealed partial class Vmm : IDisposable
         }
 
         ctx.Entries.Add(e);
-        return true;
+        return 1; // continue
     }
 
-    private static bool VfsList_AddDirectoryCB(GCHandle h, [MarshalAs(UnmanagedType.LPUTF8Str)] string sName, IntPtr pExInfo)
+    [UnmanagedCallersOnly]
+    private static unsafe int VfsList_AddDirectoryCB(IntPtr hCtx, byte* pName, IntPtr pExInfo)
     {
-        var ctx = (VfsContext?)h.Target ?? throw new ArgumentNullException(nameof(h));
+        var h = GCHandle.FromIntPtr(hCtx);
+        var ctx = (VfsContext?)h.Target ?? throw new ArgumentNullException(nameof(hCtx));
         var e = new VfsEntry
         {
-            name = sName,
+            name = Marshal.PtrToStringUTF8((IntPtr)pName) ?? string.Empty,
             isDirectory = true,
             size = 0
         };
@@ -858,27 +858,7 @@ public sealed partial class Vmm : IDisposable
         }
 
         ctx.Entries.Add(e);
-        return true;
-    }
-
-    /// <summary>
-    /// VFS list files and directories in a virtual file system path using callback functions.
-    /// </summary>
-    /// <param name="path">Virtual path to enumerate.</param>
-    /// <param name="ctx">A user-supplied context which will be passed on to the callback functions.</param>
-    /// <param name="callbackFile">Callback invoked per file entry.</param>
-    /// <param name="callbackDirectory">Callback invoked per directory entry.</param>
-    /// <returns><see langword="true"/> on success; otherwise <see langword="false"/>.</returns>
-    public bool VfsList(string path, VfsContext ctx, VfsCallBack_AddFile callbackFile, VfsCallBack_AddDirectory callbackDirectory)
-    {
-        Vmmi.VMMDLL_VFS_FILELIST FileList;
-        FileList.dwVersion = Vmmi.VMMDLL_VFS_FILELIST_VERSION;
-        var h = ctx._gcHandle;
-        FileList.h = Unsafe.As<GCHandle, IntPtr>(ref h);
-        FileList._Reserved = 0;
-        FileList.pfnAddFile = Marshal.GetFunctionPointerForDelegate(callbackFile);
-        FileList.pfnAddDirectory = Marshal.GetFunctionPointerForDelegate(callbackDirectory);
-        return Vmmi.VMMDLL_VfsList(_handle, path.Replace('/', '\\'), ref FileList);
+        return 1; // continue
     }
 
     /// <summary>
@@ -886,10 +866,16 @@ public sealed partial class Vmm : IDisposable
     /// </summary>
     /// <param name="path">Virtual path to enumerate.</param>
     /// <returns>A list with file and directory entries on success; a null list on failure.</returns>
-    public List<VfsEntry>? VfsList(string path)
+    public unsafe List<VfsEntry>? VfsList(string path)
     {
         using var ctx = new VfsContext();
-        if (!VfsList(path, ctx, VfsList_AddFileCB, VfsList_AddDirectoryCB))
+        Vmmi.VMMDLL_VFS_FILELIST FileList;
+        FileList.dwVersion = Vmmi.VMMDLL_VFS_FILELIST_VERSION;
+        FileList.h = GCHandle.ToIntPtr(ctx._gcHandle);
+        FileList._Reserved = 0;
+        FileList.pfnAddFile = &VfsList_AddFileCB;
+        FileList.pfnAddDirectory = &VfsList_AddDirectoryCB;
+        if (!Vmmi.VMMDLL_VfsList(_handle, path.Replace('/', '\\'), ref FileList))
             return null;
         return ctx.Entries;
     }
@@ -3448,63 +3434,19 @@ public sealed partial class Vmm : IDisposable
     }
 
     /// <summary>
-    /// Delegate for VMM log callback functions.
-    /// Please make sure you root this delegate so it doesn't get garbage collected!
-    /// </summary>
-    /// <param name="hVMM">The <see cref="Vmm"/> native handle.</param>
-    /// <param name="MID">Module ID.</param>
-    /// <param name="uszModule">Module name.</param>
-    /// <param name="dwLogLevel">Logging severity level.</param>
-    /// <param name="uszLogMessage">Log message.</param>
-    public delegate void VMMDLL_LOG_CALLBACK_PFN(
-        IntPtr hVMM,
-        uint MID,
-        [MarshalAs(UnmanagedType.LPUTF8Str)]
-        string uszModule,
-        LogLevel dwLogLevel,
-        [MarshalAs(UnmanagedType.LPUTF8Str)]
-        string uszLogMessage);
-
-    /// <summary>
-    /// Register or unregister an optional log callback function.
-    /// When vmm logs an action which is visible according to current logging
-    /// configuration the registered callback function will be called with details.
-    /// To clear an already registered callback function specify <see langword="null"/> as pfnCB.
-    /// Callback logging will follow file logging configuration even if no log file
-    /// is specified when a callback function is registered.
-    /// </summary>
-    /// <param name="pfnCB">The callback function to register, or <see langword="null"/> to unregister an existing callback.</param>
-    /// <returns><see langword="true"/> if the callback was successfully registered/unregistered, otherwise <see langword="false"/>.</returns>
-    public bool LogCallback(VMMDLL_LOG_CALLBACK_PFN? pfnCB)
-    {
-        return Vmmi.VMMDLL_LogCallback(_handle, pfnCB);
-    }
-
-    /// <summary>
-    /// Memory callback function definition.
-    /// Please make sure you root this delegate so it doesn't get garbage collected!
-    /// </summary>
-    /// <param name="ctxUser">User context pointer.</param>
-    /// <param name="dwPID">PID of target process; <c>(DWORD)-1</c> for physical memory.</param>
-    /// <param name="cpMEMs">Count of <paramref name="ppMEMs"/> entries.</param>
-    /// <param name="ppMEMs">Array of pointers to MEM scatter read headers.</param>
-    public unsafe delegate void VMMDLL_MEM_CALLBACK_PFN(
-        IntPtr ctxUser,
-        uint dwPID,
-        uint cpMEMs,
-        LeechCore.LcMemScatter** ppMEMs
-    );
-
-    /// <summary>
     /// Register or unregister an optional memory access callback function.
     /// It's possible to have one callback function registered for each type.
     /// To clear an already registered callback function specify NULL as pfnCB.
     /// </summary>
+    /// <remarks>
+    /// The callback must be a static method marked with <see cref="UnmanagedCallersOnlyAttribute"/> returning void with signature:
+    /// <c>(IntPtr ctxUser, uint dwPID, uint cpMEMs, LeechCore.MEM_SCATTER_NATIVE** ppMEMs)</c>
+    /// </remarks>
     /// <param name="type">type of callback to register / unregister - VMMDLL_MEM_CALLBACK_*.</param>
     /// <param name="context">user context pointer to be passed to the callback function.</param>
-    /// <param name="pfnCB">callback function to register / unregister.</param>
+    /// <param name="pfnCB">callback function pointer to register, or null to unregister.</param>
     /// <returns><see langword="true"/> if the callback was successfully registered/unregistered, otherwise <see langword="false"/>.</returns>
-    public bool MemCallback(VmmMemCallbackType type, IntPtr context, VMMDLL_MEM_CALLBACK_PFN pfnCB)
+    public unsafe bool MemCallback(VmmMemCallbackType type, IntPtr context, delegate* unmanaged<IntPtr, uint, uint, LeechCore.MEM_SCATTER_NATIVE**, void> pfnCB)
     {
         return Vmmi.VMMDLL_MemCallback(_handle, type, context, pfnCB);
     }
