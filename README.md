@@ -11,7 +11,7 @@ This library is **Windows Only**, and only bundles/targets the Windows x64 nativ
 
 ## Changelog
 - Version 3.200
-  - Refactored Scatter API slightly.
+  - Refactored Scatter API(s) slightly.
   - New VmmScatterManaged implementation. VmmScatter remains intact for compatibility purposes.
   - Fixed some major AOT issues with unmanaged callbacks/delegates (VmmSearch,etc.)
 - Version 3.160
