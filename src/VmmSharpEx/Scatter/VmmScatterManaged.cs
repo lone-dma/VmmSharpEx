@@ -485,55 +485,54 @@ public sealed class VmmScatterManaged : IScatter, IScatter<VmmScatterManaged>, I
     private unsafe bool ReadSpanInternal<T>(ulong addr, Span<T> span)
         where T : unmanaged
     {
-        lock (_sync)
-            checked
+        lock (_sync) checked
+        {
+            ObjectDisposedException.ThrowIf(_disposed, this);
+            if (span.IsEmpty || _scatter == IntPtr.Zero)
+                return false;
+
+            var spanBytes = MemoryMarshal.AsBytes(span);
+            int cbTotal = spanBytes.Length;
+            ulong numPages = VmmUtilities.ADDRESS_AND_SIZE_TO_SPAN_PAGES(addr, (uint)cbTotal);
+            ulong basePageAddr = VmmUtilities.PAGE_ALIGN(addr);
+
+            int pageOffset = (int)VmmUtilities.BYTE_OFFSET(addr);
+            int cb = Math.Min(cbTotal, 0x1000 - pageOffset);
+            int cbRead = 0;
+
+            for (ulong p = 0; p < numPages; p++)
             {
-                ObjectDisposedException.ThrowIf(_disposed, this);
-                if (span.IsEmpty || _scatter == IntPtr.Zero)
+                ulong pageAddr = basePageAddr + (p << 12);
+                if (!_results.TryGetValue(pageAddr, out var result) || result == IntPtr.Zero)
                     return false;
 
-                var spanBytes = MemoryMarshal.AsBytes(span);
-                int cbTotal = spanBytes.Length;
-                ulong numPages = VmmUtilities.ADDRESS_AND_SIZE_TO_SPAN_PAGES(addr, (uint)cbTotal);
-                ulong basePageAddr = VmmUtilities.PAGE_ALIGN(addr);
-
-                int pageOffset = (int)VmmUtilities.BYTE_OFFSET(addr);
-                int cb = Math.Min(cbTotal, 0x1000 - pageOffset);
-                int cbRead = 0;
-
-                for (ulong p = 0; p < numPages; p++)
+                var pMEM = (LeechCore.MEM_SCATTER_NATIVE*)result;
+                if (!pMEM->f)
+                    return false;
+                var data = pMEM->Data;
+                if (p == 0 && data.Length != 0x1000) // Tiny mem
                 {
-                    ulong pageAddr = basePageAddr + (p << 12);
-                    if (!_results.TryGetValue(pageAddr, out var result) || result == IntPtr.Zero)
+                    pageOffset = (int)(addr - pMEM->qwA);
+                    // Validate the read falls within the tiny MEM range
+                    if (addr < pMEM->qwA || addr + (ulong)cb > pMEM->qwA + (ulong)data.Length)
                         return false;
-
-                    var pMEM = (LeechCore.MEM_SCATTER_NATIVE*)result;
-                    if (!pMEM->f)
-                        return false;
-                    var data = pMEM->Data;
-                    if (p == 0 && data.Length != 0x1000) // Tiny mem
-                    {
-                        pageOffset = (int)(addr - pMEM->qwA);
-                        // Validate the read falls within the tiny MEM range
-                        if (addr < pMEM->qwA || addr + (ulong)cb > pMEM->qwA + (ulong)data.Length)
-                            return false;
-                    }
-
-                    // Bounds check: ensure we don't read past end of data buffer
-                    if (pageOffset + cb > data.Length)
-                        return false;
-
-                    data
-                        .Slice(pageOffset, cb)
-                        .CopyTo(spanBytes.Slice(cbRead, cb));
-
-                    cbRead += cb;
-                    cb = Math.Clamp(cbTotal - cbRead, 0, 0x1000);
-                    pageOffset = 0; // Next page (if any) starts at 0x0
                 }
 
-                return cbRead == cbTotal;
+                // Bounds check: ensure we don't read past end of data buffer
+                if (pageOffset + cb > data.Length)
+                    return false;
+
+                data
+                    .Slice(pageOffset, cb)
+                    .CopyTo(spanBytes.Slice(cbRead, cb));
+
+                cbRead += cb;
+                cb = Math.Clamp(cbTotal - cbRead, 0, 0x1000);
+                pageOffset = 0; // Next page (if any) starts at 0x0
             }
+
+            return cbRead == cbTotal;
+        }
     }
 
     /// <summary>
