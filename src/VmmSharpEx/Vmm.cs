@@ -380,7 +380,7 @@ public sealed partial class Vmm : IDisposable
                 f = pMEM->f,
                 pb = new byte[0x1000]
             };
-            Marshal.Copy(pMEM->pb, mems[i].pb, 0, 0x1000);
+            Marshal.Copy(pMEM->pb, mems[i].pb!, 0, 0x1000);
         }
 
         return mems;
