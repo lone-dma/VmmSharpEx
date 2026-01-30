@@ -354,36 +354,42 @@ public sealed partial class Vmm : IDisposable
         {
             throw new VmmException("LcAllocScatter1 FAIL");
         }
-
-        var mems = new LeechCore.MEM_SCATTER[vas.Length];
-        var ppMEMs = (LeechCore.MEM_SCATTER_NATIVE**)pppMEMs.ToPointer();
-        int i;
-        for (i = 0; i < vas.Length; i++)
+        try
         {
-            var pMEM = ppMEMs[i];
-            if (pMEM is null)
-                continue;
-            pMEM->qwA = vas[i] & ~0xffful;
-            pMEM->cb = 0x1000;
-        }
-
-        _ = Vmmi.VMMDLL_MemReadScatter(_handle, pid, pppMEMs, (uint)vas.Length, flags);
-
-        for (i = 0; i < vas.Length; i++)
-        {
-            var pMEM = ppMEMs[i];
-            if (pMEM is null)
-                continue;
-            mems[i] = new()
+            var mems = new LeechCore.MEM_SCATTER[vas.Length];
+            var ppMEMs = (LeechCore.MEM_SCATTER_NATIVE**)pppMEMs.ToPointer();
+            int i;
+            for (i = 0; i < vas.Length; i++)
             {
-                qwA = pMEM->qwA,
-                f = pMEM->f,
-                pb = new byte[0x1000]
-            };
-            Marshal.Copy(pMEM->pb, mems[i].pb!, 0, 0x1000);
-        }
+                var pMEM = ppMEMs[i];
+                if (pMEM is null)
+                    continue;
+                pMEM->qwA = vas[i] & ~0xffful;
+                pMEM->cb = 0x1000;
+            }
 
-        return mems;
+            _ = Vmmi.VMMDLL_MemReadScatter(_handle, pid, pppMEMs, (uint)vas.Length, flags);
+
+            for (i = 0; i < vas.Length; i++)
+            {
+                var pMEM = ppMEMs[i];
+                if (pMEM is null)
+                    continue;
+                mems[i] = new()
+                {
+                    qwA = pMEM->qwA,
+                    f = pMEM->f,
+                    pb = new byte[0x1000]
+                };
+                Marshal.Copy(pMEM->pb, mems[i].pb!, 0, 0x1000);
+            }
+
+            return mems;
+        }
+        finally
+        {
+            Lci.LcMemFree(pppMEMs);
+        }
     }
 
     /// <summary>

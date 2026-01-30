@@ -353,36 +353,42 @@ public sealed class LeechCore : IDisposable
         {
             throw new VmmException("LcAllocScatter1 FAIL");
         }
-
-        var mems = new MEM_SCATTER[pas.Length];
-        var ppMEMs = (MEM_SCATTER_NATIVE**)pppMEMs.ToPointer();
-        int i;
-        for (i = 0; i < pas.Length; i++)
+        try
         {
-            var pMEM = ppMEMs[i];
-            if (pMEM is null)
-                continue;
-            pMEM->qwA = pas[i] & ~0xffful;
-            pMEM->cb = 0x1000;
-        }
-
-        Lci.LcReadScatter(_handle, (uint)pas.Length, pppMEMs);
-
-        for (i = 0; i < pas.Length; i++)
-        {
-            var pMEM = ppMEMs[i];
-            if (pMEM is null)
-                continue;
-            mems[i] = new()
+            var mems = new MEM_SCATTER[pas.Length];
+            var ppMEMs = (MEM_SCATTER_NATIVE**)pppMEMs.ToPointer();
+            int i;
+            for (i = 0; i < pas.Length; i++)
             {
-                qwA = pMEM->qwA,
-                f = pMEM->f,
-                pb = new byte[0x1000]
-            };
-            Marshal.Copy(pMEM->pb, mems[i].pb!, 0, 0x1000);
-        }
+                var pMEM = ppMEMs[i];
+                if (pMEM is null)
+                    continue;
+                pMEM->qwA = pas[i] & ~0xffful;
+                pMEM->cb = 0x1000;
+            }
 
-        return mems;
+            Lci.LcReadScatter(_handle, (uint)pas.Length, pppMEMs);
+
+            for (i = 0; i < pas.Length; i++)
+            {
+                var pMEM = ppMEMs[i];
+                if (pMEM is null)
+                    continue;
+                mems[i] = new()
+                {
+                    qwA = pMEM->qwA,
+                    f = pMEM->f,
+                    pb = new byte[0x1000]
+                };
+                Marshal.Copy(pMEM->pb, mems[i].pb!, 0, 0x1000);
+            }
+
+            return mems;
+        }
+        finally
+        {
+            Lci.LcMemFree(pppMEMs);
+        }
     }
 
     /// <summary>
