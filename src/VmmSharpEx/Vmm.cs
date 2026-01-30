@@ -341,43 +341,49 @@ public sealed partial class Vmm : IDisposable
     public const uint PID_PROCESS_WITH_KERNELMEMORY = 0x80000000; // Combine with dwPID to enable process kernel memory (NB! use with extreme care).
 
     /// <summary>
-    /// Perform a scatter read of multiple page-sized virtual memory ranges.
-    /// Does not copy the read memory to a managed byte buffer, but instead allows direct access to the native memory via a
-    /// <see cref="Span{T}"/> view.
+    /// Perform a scatter read of multiple page-sized virtual/physical memory ranges.
     /// </summary>
-    /// <param name="pid">Process ID (PID) this operation will take place within.</param>
+    /// <param name="pid">Process ID (PID) this operation will take place upon.</param>
     /// <param name="flags">VMM read flags.</param>
-    /// <param name="vas">Virtual addresses and sizes to read.</param>
-    /// <returns>An <see cref="LeechCore.LcScatterHandle"/> owning the native buffers for the read pages.</returns>
+    /// <param name="vas">Page-aligned memory addresses.</param>
+    /// <returns>Array of <see cref="LeechCore.MEM_SCATTER"/> results.</returns>
     /// <exception cref="VmmException">Thrown if the native scatter allocation fails.</exception>
-    public unsafe LeechCore.LcScatterHandle MemReadScatter(uint pid, VmmFlags flags, params Span<ulong> vas)
+    public unsafe LeechCore.MEM_SCATTER[] MemReadScatter(uint pid, VmmFlags flags, params ReadOnlySpan<ulong> vas)
     {
         if (!Lci.LcAllocScatter1((uint)vas.Length, out var pppMEMs))
         {
             throw new VmmException("LcAllocScatter1 FAIL");
         }
 
+        var mems = new LeechCore.MEM_SCATTER[vas.Length];
         var ppMEMs = (LeechCore.MEM_SCATTER_NATIVE**)pppMEMs.ToPointer();
-        for (var i = 0; i < vas.Length; i++)
+        int i;
+        for (i = 0; i < vas.Length; i++)
         {
             var pMEM = ppMEMs[i];
+            if (pMEM is null)
+                continue;
             pMEM->qwA = vas[i] & ~0xffful;
-            pMEM->cb = 0x1000u;
+            pMEM->cb = 0x1000;
         }
 
         _ = Vmmi.VMMDLL_MemReadScatter(_handle, pid, pppMEMs, (uint)vas.Length, flags);
 
-        var results = new PooledDictionary<ulong, LeechCore.MEM_SCATTER>(capacity: vas.Length);
-        for (var i = 0; i < vas.Length; i++)
+        for (i = 0; i < vas.Length; i++)
         {
             var pMEM = ppMEMs[i];
-            if (pMEM->f)
+            if (pMEM is null)
+                continue;
+            mems[i] = new()
             {
-                results[pMEM->qwA] = new LeechCore.MEM_SCATTER(pMEM->qwA, pMEM->cb, true, pMEM->pb);
-            }
+                qwA = pMEM->qwA,
+                f = pMEM->f,
+                pb = new byte[0x1000]
+            };
+            Marshal.Copy(pMEM->pb, mems[i].pb, 0, 0x1000);
         }
 
-        return new LeechCore.LcScatterHandle(results, pppMEMs);
+        return mems;
     }
 
     /// <summary>

@@ -141,15 +141,16 @@ public unsafe class VmmSharpEx_LeechCoreTests : CITest
             for (int j = 0; j < pattern.Length; j++) pattern[j] = (byte)(i * 0x10 + j);
             Assert.True(_lc.WriteSpan(pages[i], pattern));
         }
-        using var scatter = _lc.ReadScatter(pages);
+        var scatter = _lc.ReadScatter(pages);
         Assert.NotNull(scatter);
+        Assert.Equal(pages.Length, scatter.Length);
         for (int idx = 0; idx < pages.Length; idx++)
         {
-            ulong page = pages[idx];
-            Assert.True(scatter.Results.ContainsKey(page));
-            var data = scatter.Results[page];
-            Assert.True(data.Data.Length >= 32);
-            for (int k = 0; k < 8; k++) Assert.Equal((byte)(idx * 0x10 + k), data.Data[k]);
+            ulong page = pages[idx] & ~0xffful;
+            var entry = scatter.Single(s => s.qwA == page);
+            Assert.NotNull(entry.pb);
+            Assert.True(entry.pb!.Length >= 32);
+            for (int k = 0; k < 8; k++) Assert.Equal((byte)(idx * 0x10 + k), entry.pb[k]);
         }
     }
 }
