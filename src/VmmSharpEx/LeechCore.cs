@@ -58,11 +58,10 @@ public sealed class LeechCore : IDisposable
             throw new VmmException("LeechCore: failed retrieving handle from Vmm.");
         }
 
-        var strDevice = string.Format("existing://0x{0:X}", pqwValue);
         var cfg = new LCConfig
         {
             dwVersion = LC_CONFIG_VERSION,
-            szDevice = strDevice
+            szDevice = $"existing://0x{pqwValue:X}"
         };
         var cfgNative = Marshal.AllocHGlobal(Marshal.SizeOf<LCConfig>());
         Marshal.StructureToPtr(cfg, cfgNative, false);
@@ -108,7 +107,7 @@ public sealed class LeechCore : IDisposable
     /// </summary>
     public override string ToString()
     {
-        return _handle == IntPtr.Zero ? "LeechCore:NULL" : $"LeechCore:{_handle.ToString("X")}";
+        return _disposed ? "LeechCore:Disposed" : $"LeechCore:{_handle:X}";
     }
 
     /// <summary>
@@ -152,7 +151,7 @@ public sealed class LeechCore : IDisposable
                     configErrorInfo.fUserInputRequest = e.fUserInputRequest;
                     if (e.cwszUserText > 0)
                     {
-                        configErrorInfo.strUserText = Marshal.PtrToStringUni((IntPtr)(pLcErrorInfo.ToInt64() + cbERROR_INFO));
+                        configErrorInfo.strUserText = Marshal.PtrToStringUni(checked((IntPtr)(pLcErrorInfo.ToInt64() + cbERROR_INFO)));
                     }
                 }
 
@@ -170,7 +169,9 @@ public sealed class LeechCore : IDisposable
 
     ~LeechCore() => Dispose(disposing: false);
 
+#pragma warning disable IDE0060 // Remove unused parameter
     private void Dispose(bool disposing)
+#pragma warning restore IDE0060 // Remove unused parameter
     {
         if (Interlocked.Exchange(ref _disposed, true) == false)
         {
@@ -374,13 +375,7 @@ public sealed class LeechCore : IDisposable
                 var pMEM = ppMEMs[i];
                 if (pMEM is null)
                     continue;
-                mems[i] = new()
-                {
-                    qwA = pMEM->qwA,
-                    f = pMEM->f,
-                    pb = new byte[0x1000]
-                };
-                Marshal.Copy(pMEM->pb, mems[i].pb!, 0, 0x1000);
+                mems[i] = pMEM->ToManaged();
             }
 
             return mems;
@@ -538,16 +533,26 @@ public sealed class LeechCore : IDisposable
     public const uint LC_CONFIG_ERRORINFO_VERSION = 0xc0fe0002;
 
     /// <summary>
+    /// Current <see cref="MEM_SCATTER_NATIVE"/> structure version used by this wrapper.
+    /// </summary>
+    public const uint MEM_SCATTER_VERSION = 0xc0fe0002;
+
+    /// <summary>
     /// Managed scatter descriptor mirroring <c>MEM_SCATTER</c> in <c>leechcore.h</c>.
     /// </summary>
-#pragma warning disable IDE1006 // Naming Styles
     public readonly struct MEM_SCATTER
     {
-        public readonly ulong qwA { get; init; }
-        public readonly bool f { get; init; }
-        public readonly byte[]? pb { get; init; }
+        public readonly ulong qwA;
+        public readonly bool f;
+        public readonly byte[]? pb;
+
+        internal MEM_SCATTER(ulong qwA, bool f, byte[] pb)
+        {
+            this.qwA = qwA;
+            this.f = f;
+            this.pb = pb;
+        }
     }
-#pragma warning restore IDE1006 // Naming Styles
 
     /// <summary>
     /// Native scatter descriptor mirroring <c>tdMEM_SCATTER</c> in <c>leechcore.h</c>.
@@ -568,7 +573,9 @@ public sealed class LeechCore : IDisposable
         /// <summary>
         /// Indicates whether the entry contains valid data (<see langword="true"/>) or not.
         /// </summary>
+#pragma warning disable IDE1006 // Naming Styles
         public readonly bool f => _f != 0;
+#pragma warning restore IDE1006 // Naming Styles
         /// <summary>
         /// Page-aligned address associated with this scatter entry.
         /// </summary>
@@ -604,6 +611,20 @@ public sealed class LeechCore : IDisposable
         public readonly unsafe ReadOnlySpan<byte> Data => new(
             pointer: pb.ToPointer(),
             length: checked((int)cb));
+
+        /// <summary>
+        /// Transfers the Scatter Result from Native Memory to Managed Memory.
+        /// </summary>
+        /// <returns>Managed <see cref="MEM_SCATTER"/> struct.</returns>
+        public readonly MEM_SCATTER ToManaged()
+        {
+            var pbManaged = new byte[cb];
+            Data.CopyTo(pbManaged);
+            return new MEM_SCATTER(
+                qwA: qwA,
+                f: f,
+                pb: pbManaged);
+        }
     }
 
     /// <summary>

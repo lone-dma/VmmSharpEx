@@ -8,10 +8,14 @@
 		<Platforms>x64</Platforms>
 		<AllowUnsafeBlocks>True</AllowUnsafeBlocks>
 	</PropertyGroup>
+	
+	<ItemGroup>
+		<InternalsVisibleTo Include="VmmSharpEx_Tests" xmlns="http://schemas.microsoft.com/developer/msbuild/2003" />
+	</ItemGroup>
 
 	<PropertyGroup>
 		<!-- Beta section - remove -->
-		<Version>3.200.0-beta.24</Version>
+		<Version>3.200.0-beta.25</Version>
 		<AssemblyVersion>3.200.0.0</AssemblyVersion>
 		<FileVersion>3.200.0.0</FileVersion>
 	</PropertyGroup>
@@ -71,6 +75,11 @@
 	<PropertyGroup>
 		<IsAotCompatible>true</IsAotCompatible>
 		<IsTrimmable>false</IsTrimmable> <!-- Disable trimming due to heavy interop usage -->
+	</PropertyGroup>
+
+	<PropertyGroup>
+		<EmitAotDiagnostics>true</EmitAotDiagnostics>
+		<EnableAotAnalyzers>true</EnableAotAnalyzers>
 	</PropertyGroup>
 	
 </Project>

@@ -5,6 +5,7 @@
 
 using System.Runtime.InteropServices;
 using VmmSharpEx;
+using VmmSharpEx.Internal;
 using VmmSharpEx_Tests.CI.Internal;
 
 namespace VmmSharpEx_Tests.CI;
@@ -151,6 +152,33 @@ public unsafe class VmmSharpEx_LeechCoreTests : CITest
             Assert.NotNull(entry.pb);
             Assert.True(entry.pb!.Length >= 32);
             for (int k = 0; k < 8; k++) Assert.Equal((byte)(idx * 0x10 + k), entry.pb[k]);
+        }
+    }
+
+    /// <summary>
+    /// If this test fails we may need to update <see cref="LeechCore.MEM_SCATTER_VERSION"/> and <see cref="LeechCore.MEM_SCATTER_NATIVE"/>.
+    /// </summary>
+    /// <exception cref="InvalidOperationException"></exception>
+    [Fact]
+    public unsafe void LeechCore_ScatterVersion_Valid()
+    {
+        if (!Lci.LcAllocScatter1(1, out var pppMEMs))
+            throw new InvalidOperationException("LcAllocScatter1 failed.");
+        try
+        {
+            var ppMEMs = (LeechCore.MEM_SCATTER_NATIVE**)pppMEMs;
+            var native0 = *ppMEMs[0];
+            var versionField = typeof(LeechCore.MEM_SCATTER_NATIVE)
+                .GetField("version", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
+                ?? throw new InvalidOperationException("Could not find version field in MEM_SCATTER_NATIVE.");
+
+            var actualVersion = (uint)(versionField.GetValue(native0)
+                ?? throw new InvalidOperationException("Could not read MEM_SCATTER_NATIVE.version value."));
+            Assert.Equal(LeechCore.MEM_SCATTER_VERSION, actualVersion);
+        }
+        finally
+        {
+            Lci.LcMemFree(pppMEMs);
         }
     }
 }

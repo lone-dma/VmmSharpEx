@@ -112,9 +112,9 @@ public sealed class VmmScatter : IScatter, IScatter<VmmScatter>, IDisposable
     /// </remarks>
     public override string ToString()
     {
-        if (_handle == IntPtr.Zero)
+        if (_disposed)
         {
-            return "VmmScatter:NotValid";
+            return "VmmScatter:Disposed";
         }
 
         if (_pid == Vmm.PID_PHYSICALMEMORY)

@@ -19,9 +19,6 @@ namespace VmmSharpEx.Scatter;
 /// This implementation is mostly managed, except for a native call to perform the prepared read operation (using <see cref="Vmmi.VMMDLL_MemReadScatter(nint, uint, nint, uint, VmmFlags)"/>), and some internal native interop.
 /// Implementation follows <see href="https://github.com/ufrisk/MemProcFS/blob/master/vmm/vmmdll_scatter.c"/> as closely as possible.
 /// </summary>
-/// <remarks>
-/// Known issue: VMMDLL_MemReadScatter can cause audio crackling/static on some target systems while performing prepared reads. See: <see href="https://github.com/ufrisk/MemProcFS/issues/410"/>
-/// </remarks>
 public sealed class VmmScatterManaged : IScatter, IScatter<VmmScatterManaged>, IDisposable
 {
     #region Fields / Ctors
@@ -88,58 +85,58 @@ public sealed class VmmScatterManaged : IScatter, IScatter<VmmScatterManaged>, I
     /// <returns><see langword="true"/> if successful, otherwise <see langword="false"/>.</returns>
     public bool PrepareRead(ulong address, int cb)
     {
-        lock (_sync)
-        {
-            ObjectDisposedException.ThrowIf(_disposed, this);
-            if ((_isKernel && !address.IsValidKernelVA()) ||
-                (_isUser && !address.IsValidUserVA()) ||
-                cb <= 0 ||
-                cb >= SCATTER_MAX_SIZE_SINGLE ||
-                ((ulong)_prepared.Count << 12) + (uint)cb > SCATTER_MAX_SIZE_TOTAL ||
-                unchecked(address + (ulong)cb) < address)
+        lock (_sync) checked
             {
-                return false;
-            }
-            ulong pageCount = VmmUtilities.ADDRESS_AND_SIZE_TO_SPAN_PAGES(address, (uint)cb);
-            ulong pageBase = VmmUtilities.PAGE_ALIGN(address);
-            bool fForcePageRead = (_flags & VmmFlags.SCATTER_FORCE_PAGEREAD) != 0;
-            for (ulong p = 0; p < pageCount; p++)
-            {
-                ulong pageAddr = checked(pageBase + (p << 12));
-                ulong vaMem = pageAddr;
-                uint cbMem = 0x1000;
-
-                if ((pageCount == 1) && (cb <= 0x400) && !fForcePageRead)
+                ObjectDisposedException.ThrowIf(_disposed, this);
+                if ((_isKernel && !address.IsValidKernelVA()) ||
+                    (_isUser && !address.IsValidUserVA()) ||
+                    cb <= 0 ||
+                    cb >= SCATTER_MAX_SIZE_SINGLE ||
+                    ((ulong)_prepared.Count << 12) + (uint)cb > SCATTER_MAX_SIZE_TOTAL ||
+                    unchecked(address + (ulong)cb) < address)
                 {
-                    // single-prepared small read -> optimize MEM for small read.
-                    // NB! buffer allocation still remains 0x1000 even if not all is used for now.
-                    cbMem = ((uint)cb + 7u + (uint)(address & 7u)) & ~0x7u;
-                    vaMem = address & ~0x7ul;
-                    if ((vaMem & 0xffful) + cbMem > 0x1000u)
-                    {
-                        vaMem = (vaMem & ~0xffful) + 0x1000u - cbMem;
-                    }
+                    return false;
                 }
-                _prepared.AddOrUpdate(
-                    pageAddr,
-                    // add: no existing entry
-                    _ => new PreparedScatter(qwA: vaMem, cb: cbMem),
-                    // update: entry already exists
-                    (_, existing) =>
-                    {
-                        // If an entry already exists for this page, ensure we upgrade to full-prepared read.
-                        // This preserves correctness when multiple requests overlap on the same page with different sizes/offsets.
-                        if (existing.cb != 0x1000u)
-                        {
-                            return new PreparedScatter(qwA: pageAddr, cb: 0x1000u);
-                        }
+                ulong pageCount = VmmUtilities.ADDRESS_AND_SIZE_TO_SPAN_PAGES(address, (uint)cb);
+                ulong firstPageBase = VmmUtilities.PAGE_ALIGN(address);
+                bool fForcePageRead = (_flags & VmmFlags.SCATTER_FORCE_PAGEREAD) != 0;
+                for (ulong p = 0; p < pageCount; p++)
+                {
+                    ulong pageBase = firstPageBase + (p << 12);
+                    ulong pageVa = pageBase;
+                    uint pageCb = 0x1000;
 
-                        return existing;
+                    if ((pageCount == 1) && (cb <= 0x400) && !fForcePageRead)
+                    {
+                        // single-prepared small read -> optimize MEM for small read.
+                        // NB! buffer allocation still remains 0x1000 even if not all is used for now.
+                        pageCb = ((uint)cb + 7u + (uint)(address & 7u)) & ~0x7u;
+                        pageVa = address & ~0x7ul;
+                        if ((pageVa & 0xffful) + pageCb > 0x1000u)
+                        {
+                            pageVa = (pageVa & ~0xffful) + 0x1000u - pageCb;
+                        }
                     }
-                );
+                    _prepared.AddOrUpdate(
+                        pageBase,
+                        // add: no existing entry
+                        _ => new PreparedScatter(qwA: pageVa, cb: pageCb),
+                        // update: entry already exists
+                        (_, existing) =>
+                        {
+                            // If an entry already exists for this page, ensure we upgrade to full-prepared read.
+                            // This preserves correctness when multiple requests overlap on the same page with different sizes/offsets.
+                            if (existing.cb != 0x1000u)
+                            {
+                                return new PreparedScatter(qwA: pageBase, cb: 0x1000u);
+                            }
+
+                            return existing;
+                        }
+                    );
+                }
+                return true;
             }
-        }
-        return true;
     }
 
     /// <summary>
@@ -545,15 +542,15 @@ public sealed class VmmScatterManaged : IScatter, IScatter<VmmScatterManaged>, I
     {
         if (_disposed)
         {
-            return "VmmScatter:NotValid";
+            return "VmmScatterManaged:Disposed";
         }
 
         if (_pid == Vmm.PID_PHYSICALMEMORY)
         {
-            return "VmmScatter:physical";
+            return "VmmScatterManaged:Physical";
         }
 
-        return $"VmmScatter:virtual:{_pid}";
+        return $"VmmScatterManaged:Virtual:{_pid}";
     }
 
     private void FreeScatter()

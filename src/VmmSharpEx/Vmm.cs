@@ -85,7 +85,7 @@ public sealed partial class Vmm : IDisposable
     /// <inheritdoc />
     public override string ToString()
     {
-        return _handle == IntPtr.Zero ? "Vmm:NULL" : $"Vmm:{_handle:X}";
+        return _disposed ? "Vmm:Disposed" : $"Vmm:{_handle:X}";
     }
 
     /// <summary>
@@ -121,7 +121,7 @@ public sealed partial class Vmm : IDisposable
             configErrorInfo.fUserInputRequest = e.fUserInputRequest;
             if (e.cwszUserText > 0)
             {
-                configErrorInfo.strUserText = Marshal.PtrToStringUni((IntPtr)(vaLcCreateErrorInfo + cbERROR_INFO));
+                configErrorInfo.strUserText = Marshal.PtrToStringUni(checked((IntPtr)(vaLcCreateErrorInfo + cbERROR_INFO)));
             }
         }
 
@@ -293,12 +293,7 @@ public sealed partial class Vmm : IDisposable
         bool applyMap = false,
         string? outputFile = null)
     {
-        var map = Map_GetPhysMem();
-        if (map is null)
-        {
-            throw new VmmException("Failed to get memory map.");
-        }
-
+        var map = Map_GetPhysMem() ?? throw new VmmException("Failed to get memory map.");
         var sb = new StringBuilder();
         for (var i = 0; i < map.Length; i++)
         {
@@ -375,13 +370,7 @@ public sealed partial class Vmm : IDisposable
                 var pMEM = ppMEMs[i];
                 if (pMEM is null)
                     continue;
-                mems[i] = new()
-                {
-                    qwA = pMEM->qwA,
-                    f = pMEM->f,
-                    pb = new byte[0x1000]
-                };
-                Marshal.Copy(pMEM->pb, mems[i].pb!, 0, 0x1000);
+                mems[i] = pMEM->ToManaged();
             }
 
             return mems;
@@ -1037,7 +1026,7 @@ public sealed partial class Vmm : IDisposable
             var m = new PteEntry[nM.cMap];
             for (var i = 0; i < nM.cMap; i++)
             {
-                var n = Marshal.PtrToStructure<Vmmi.VMMDLL_MAP_PTEENTRY>((IntPtr)(pMap.ToInt64() + cbMAP + i * cbENTRY));
+                var n = Marshal.PtrToStructure<Vmmi.VMMDLL_MAP_PTEENTRY>(checked((IntPtr)(pMap.ToInt64() + cbMAP + i * cbENTRY)));
                 PteEntry e;
                 e.vaBase = n.vaBase;
                 e.vaEnd = n.vaBase + (n.cPages << 12) - 1;
@@ -1088,7 +1077,7 @@ public sealed partial class Vmm : IDisposable
             var m = new VadEntry[nM.cMap];
             for (var i = 0; i < nM.cMap; i++)
             {
-                var n = Marshal.PtrToStructure<Vmmi.VMMDLL_MAP_VADENTRY>((IntPtr)(pMap.ToInt64() + cbMAP + i * cbENTRY));
+                var n = Marshal.PtrToStructure<Vmmi.VMMDLL_MAP_VADENTRY>(checked((IntPtr)(pMap.ToInt64() + cbMAP + i * cbENTRY)));
                 VadEntry e;
                 e.vaStart = n.vaStart;
                 e.vaEnd = n.vaEnd;
@@ -1154,7 +1143,7 @@ public sealed partial class Vmm : IDisposable
             var m = new VadExEntry[nM.cMap];
             for (var i = 0; i < nM.cMap; i++)
             {
-                var n = Marshal.PtrToStructure<Vmmi.VMMDLL_MAP_VADEXENTRY>((IntPtr)(pMap.ToInt64() + cbMAP + i * cbENTRY));
+                var n = Marshal.PtrToStructure<Vmmi.VMMDLL_MAP_VADEXENTRY>(checked((IntPtr)(pMap.ToInt64() + cbMAP + i * cbENTRY)));
                 VadExEntry e;
                 e.tp = n.tp;
                 e.iPML = n.iPML;
@@ -1205,7 +1194,7 @@ public sealed partial class Vmm : IDisposable
             var m = new ModuleEntry[nM.cMap];
             for (var i = 0; i < nM.cMap; i++)
             {
-                var n = Marshal.PtrToStructure<Vmmi.VMMDLL_MAP_MODULEENTRY>((IntPtr)(pMap.ToInt64() + cbMAP + i * cbENTRY));
+                var n = Marshal.PtrToStructure<Vmmi.VMMDLL_MAP_MODULEENTRY>(checked((IntPtr)(pMap.ToInt64() + cbMAP + i * cbENTRY)));
                 ModuleEntry e;
                 ModuleEntryDebugInfo eDbg;
                 ModuleEntryVersionInfo eVer;
@@ -1342,7 +1331,7 @@ public sealed partial class Vmm : IDisposable
             var m = new UnloadedModuleEntry[nM.cMap];
             for (var i = 0; i < nM.cMap; i++)
             {
-                var n = Marshal.PtrToStructure<Vmmi.VMMDLL_MAP_UNLOADEDMODULEENTRY>((IntPtr)(pMap.ToInt64() + cbMAP + i * cbENTRY));
+                var n = Marshal.PtrToStructure<Vmmi.VMMDLL_MAP_UNLOADEDMODULEENTRY>(checked((IntPtr)(pMap.ToInt64() + cbMAP + i * cbENTRY)));
                 UnloadedModuleEntry e;
                 e.vaBase = n.vaBase;
                 e.cbImageSize = n.cbImageSize;
@@ -1390,7 +1379,7 @@ public sealed partial class Vmm : IDisposable
             var m = new EATEntry[nM.cMap];
             for (var i = 0; i < nM.cMap; i++)
             {
-                var n = Marshal.PtrToStructure<Vmmi.VMMDLL_MAP_EATENTRY>((IntPtr)(pMap.ToInt64() + cbMAP + i * cbENTRY));
+                var n = Marshal.PtrToStructure<Vmmi.VMMDLL_MAP_EATENTRY>(checked((IntPtr)(pMap.ToInt64() + cbMAP + i * cbENTRY)));
                 EATEntry e;
                 e.vaFunction = n.vaFunction;
                 e.dwOrdinal = n.dwOrdinal;
@@ -1445,7 +1434,7 @@ public sealed partial class Vmm : IDisposable
             var m = new IATEntry[nM.cMap];
             for (var i = 0; i < nM.cMap; i++)
             {
-                var n = Marshal.PtrToStructure<Vmmi.VMMDLL_MAP_IATENTRY>((IntPtr)(pMap.ToInt64() + cbMAP + i * cbENTRY));
+                var n = Marshal.PtrToStructure<Vmmi.VMMDLL_MAP_IATENTRY>(checked((IntPtr)(pMap.ToInt64() + cbMAP + i * cbENTRY)));
                 IATEntry e;
                 e.vaFunction = n.vaFunction;
                 e.sFunction = n.uszFunction;
@@ -1497,7 +1486,7 @@ public sealed partial class Vmm : IDisposable
             result.heaps = new HeapEntry[nM.cMap];
             for (var i = 0; i < nM.cMap; i++)
             {
-                var nH = Marshal.PtrToStructure<Vmmi.VMMDLL_MAP_HEAPENTRY>((IntPtr)(pMap.ToInt64() + cbMAP + i * cbENTRY));
+                var nH = Marshal.PtrToStructure<Vmmi.VMMDLL_MAP_HEAPENTRY>(checked((IntPtr)(pMap.ToInt64() + cbMAP + i * cbENTRY)));
                 result.heaps[i].va = nH.va;
                 result.heaps[i].f32 = nH.f32;
                 result.heaps[i].tpHeap = nH.tp;
@@ -1507,7 +1496,7 @@ public sealed partial class Vmm : IDisposable
             result.segments = new HeapSegmentEntry[nM.cSegments];
             for (var i = 0; i < nM.cMap; i++)
             {
-                var nH = Marshal.PtrToStructure<Vmmi.VMMDLL_MAP_HEAPSEGMENTENTRY>((IntPtr)(nM.pSegments.ToInt64() + i * cbSEGENTRY));
+                var nH = Marshal.PtrToStructure<Vmmi.VMMDLL_MAP_HEAPSEGMENTENTRY>(checked((IntPtr)(nM.pSegments.ToInt64() + i * cbSEGENTRY)));
                 result.segments[i].va = nH.va;
                 result.segments[i].cb = nH.cb;
                 result.segments[i].tpHeapSegment = nH.tp;
@@ -1548,7 +1537,7 @@ public sealed partial class Vmm : IDisposable
             var m = new HeapAllocEntry[nM.cMap];
             for (var i = 0; i < nM.cMap; i++)
             {
-                var n = Marshal.PtrToStructure<Vmmi.VMMDLL_MAP_HEAPALLOCENTRY>((IntPtr)(pHeapAllocMap.ToInt64() + cbMAP + i * cbENTRY));
+                var n = Marshal.PtrToStructure<Vmmi.VMMDLL_MAP_HEAPALLOCENTRY>(checked((IntPtr)(pHeapAllocMap.ToInt64() + cbMAP + i * cbENTRY)));
                 m[i].va = n.va;
                 m[i].cb = n.cb;
                 m[i].tp = n.tp;
@@ -1588,7 +1577,7 @@ public sealed partial class Vmm : IDisposable
             var m = new ThreadEntry[nM.cMap];
             for (var i = 0; i < nM.cMap; i++)
             {
-                var n = Marshal.PtrToStructure<Vmmi.VMMDLL_MAP_THREADENTRY>((IntPtr)(pMap.ToInt64() + cbMAP + i * cbENTRY));
+                var n = Marshal.PtrToStructure<Vmmi.VMMDLL_MAP_THREADENTRY>(checked((IntPtr)(pMap.ToInt64() + cbMAP + i * cbENTRY)));
                 ThreadEntry e;
                 e.dwTID = n.dwTID;
                 e.dwPID = n.dwPID;
@@ -1654,7 +1643,7 @@ public sealed partial class Vmm : IDisposable
             var m = new ThreadCallstackEntry[nM.cMap];
             for (var i = 0; i < nM.cMap; i++)
             {
-                var n = Marshal.PtrToStructure<Vmmi.VMMDLL_MAP_THREAD_CALLSTACKENTRY>((IntPtr)(pMap.ToInt64() + cbMAP + i * cbENTRY));
+                var n = Marshal.PtrToStructure<Vmmi.VMMDLL_MAP_THREAD_CALLSTACKENTRY>(checked((IntPtr)(pMap.ToInt64() + cbMAP + i * cbENTRY)));
                 ThreadCallstackEntry e;
                 e.dwPID = pid;
                 e.dwTID = tid;
@@ -1703,7 +1692,7 @@ public sealed partial class Vmm : IDisposable
             var m = new HandleEntry[nM.cMap];
             for (var i = 0; i < nM.cMap; i++)
             {
-                var n = Marshal.PtrToStructure<Vmmi.VMMDLL_MAP_HANDLEENTRY>((IntPtr)(pMap.ToInt64() + cbMAP + i * cbENTRY));
+                var n = Marshal.PtrToStructure<Vmmi.VMMDLL_MAP_HANDLEENTRY>(checked((IntPtr)(pMap.ToInt64() + cbMAP + i * cbENTRY)));
                 HandleEntry e;
                 e.vaObject = n.vaObject;
                 e.dwHandle = n.dwHandle;
@@ -1951,7 +1940,7 @@ public sealed partial class Vmm : IDisposable
             var m = new ProcessInfo[pc];
             for (var i = 0; i < pc; i++)
             {
-                var n = Marshal.PtrToStructure<Vmmi.VMMDLL_PROCESS_INFORMATION>((IntPtr)(pMap + i * cbENTRY));
+                var n = Marshal.PtrToStructure<Vmmi.VMMDLL_PROCESS_INFORMATION>(checked((IntPtr)(pMap + i * cbENTRY)));
                 if (i == 0 && n.wVersion != Vmmi.VMMDLL_PROCESS_INFORMATION_VERSION)
                 {
                     return null;
@@ -2837,7 +2826,7 @@ public sealed partial class Vmm : IDisposable
             var m = new NetEntry[nM.cMap];
             for (var i = 0; i < nM.cMap; i++)
             {
-                var n = Marshal.PtrToStructure<Vmmi.VMMDLL_MAP_NETENTRY>((IntPtr)(pMap.ToInt64() + cbMAP + i * cbENTRY));
+                var n = Marshal.PtrToStructure<Vmmi.VMMDLL_MAP_NETENTRY>(checked((IntPtr)(pMap.ToInt64() + cbMAP + i * cbENTRY)));
                 NetEntry e;
                 e.dwPID = n.dwPID;
                 e.dwState = n.dwState;
@@ -2889,7 +2878,7 @@ public sealed partial class Vmm : IDisposable
             var m = new MemoryEntry[nM.cMap];
             for (var i = 0; i < nM.cMap; i++)
             {
-                var n = Marshal.PtrToStructure<Vmmi.VMMDLL_MAP_PHYSMEMENTRY>((IntPtr)(pMap.ToInt64() + cbMAP + i * cbENTRY));
+                var n = Marshal.PtrToStructure<Vmmi.VMMDLL_MAP_PHYSMEMENTRY>(checked((IntPtr)(pMap.ToInt64() + cbMAP + i * cbENTRY)));
                 MemoryEntry e;
                 e.pa = n.pa;
                 e.cb = n.cb;
@@ -2928,7 +2917,7 @@ public sealed partial class Vmm : IDisposable
             var m = new KDeviceEntry[nM.cMap];
             for (var i = 0; i < nM.cMap; i++)
             {
-                var n = Marshal.PtrToStructure<Vmmi.VMMDLL_MAP_KDEVICEENTRY>((IntPtr)(pMap.ToInt64() + cbMAP + i * cbENTRY));
+                var n = Marshal.PtrToStructure<Vmmi.VMMDLL_MAP_KDEVICEENTRY>(checked((IntPtr)(pMap.ToInt64() + cbMAP + i * cbENTRY)));
                 KDeviceEntry e;
                 e.va = n.va;
                 e.iDepth = n.iDepth;
@@ -2973,7 +2962,7 @@ public sealed partial class Vmm : IDisposable
             var m = new KDriverEntry[nM.cMap];
             for (var i = 0; i < nM.cMap; i++)
             {
-                var n = Marshal.PtrToStructure<Vmmi.VMMDLL_MAP_KDRIVERENTRY>((IntPtr)(pMap.ToInt64() + cbMAP + i * cbENTRY));
+                var n = Marshal.PtrToStructure<Vmmi.VMMDLL_MAP_KDRIVERENTRY>(checked((IntPtr)(pMap.ToInt64() + cbMAP + i * cbENTRY)));
                 KDriverEntry e;
                 e.va = n.va;
                 e.vaDriverStart = n.vaDriverStart;
@@ -3023,7 +3012,7 @@ public sealed partial class Vmm : IDisposable
             var m = new KObjectEntry[nM.cMap];
             for (var i = 0; i < nM.cMap; i++)
             {
-                var n = Marshal.PtrToStructure<Vmmi.VMMDLL_MAP_KOBJECTENTRY>((IntPtr)(pMap.ToInt64() + cbMAP + i * cbENTRY));
+                var n = Marshal.PtrToStructure<Vmmi.VMMDLL_MAP_KOBJECTENTRY>(checked((IntPtr)(pMap.ToInt64() + cbMAP + i * cbENTRY)));
                 KObjectEntry e;
                 e.va = n.va;
                 e.vaParent = n.vaParent;
@@ -3075,7 +3064,7 @@ public sealed partial class Vmm : IDisposable
             var eM = new PoolEntry[nM.cMap];
             for (var i = 0; i < nM.cMap; i++)
             {
-                var nE = Marshal.PtrToStructure<Vmmi.VMMDLL_MAP_POOLENTRY>((IntPtr)(pN.ToInt64() + cbMAP + i * cbENTRY));
+                var nE = Marshal.PtrToStructure<Vmmi.VMMDLL_MAP_POOLENTRY>(checked((IntPtr)(pN.ToInt64() + cbMAP + i * cbENTRY)));
                 eM[i].va = nE.va;
                 eM[i].cb = nE.cb;
                 eM[i].tpPool = nE.tpPool;
@@ -3120,7 +3109,7 @@ public sealed partial class Vmm : IDisposable
             var m = new UserEntry[nM.cMap];
             for (var i = 0; i < nM.cMap; i++)
             {
-                var n = Marshal.PtrToStructure<Vmmi.VMMDLL_MAP_USERENTRY>((IntPtr)(pMap.ToInt64() + cbMAP + i * cbENTRY));
+                var n = Marshal.PtrToStructure<Vmmi.VMMDLL_MAP_USERENTRY>(checked((IntPtr)(pMap.ToInt64() + cbMAP + i * cbENTRY)));
                 UserEntry e;
                 e.sSID = n.uszSID;
                 e.sText = n.uszText;
@@ -3160,7 +3149,7 @@ public sealed partial class Vmm : IDisposable
             var m = new VirtualMachineEntry[nM.cMap];
             for (var i = 0; i < nM.cMap; i++)
             {
-                var n = Marshal.PtrToStructure<Vmmi.VMMDLL_MAP_VMENTRY>((IntPtr)(pMap.ToInt64() + cbMAP + i * cbENTRY));
+                var n = Marshal.PtrToStructure<Vmmi.VMMDLL_MAP_VMENTRY>(checked((IntPtr)(pMap.ToInt64() + cbMAP + i * cbENTRY)));
                 VirtualMachineEntry e;
                 e.hVM = n.hVM;
                 e.sName = n.uszName;
@@ -3209,7 +3198,7 @@ public sealed partial class Vmm : IDisposable
             var m = new ServiceEntry[nM.cMap];
             for (var i = 0; i < nM.cMap; i++)
             {
-                var n = Marshal.PtrToStructure<Vmmi.VMMDLL_MAP_SERVICEENTRY>((IntPtr)(pMap.ToInt64() + cbMAP + i * cbENTRY));
+                var n = Marshal.PtrToStructure<Vmmi.VMMDLL_MAP_SERVICEENTRY>(checked((IntPtr)(pMap.ToInt64() + cbMAP + i * cbENTRY)));
                 ServiceEntry e;
                 e.vaObj = n.vaObj;
                 e.dwPID = n.dwPID;
@@ -3468,7 +3457,9 @@ public sealed partial class Vmm : IDisposable
     public struct VMMDLL_WIN_THUNKINFO_IAT
     {
         private int _fValid; // WIN32 BOOL
+#pragma warning disable IDE1006 // Naming Styles
         public bool fValid
+#pragma warning restore IDE1006 // Naming Styles
         {
             readonly get => _fValid != 0;
             set => _fValid = value ? 1 : 0;
@@ -3477,7 +3468,9 @@ public sealed partial class Vmm : IDisposable
         /// <summary>
         /// if TRUE fn is a 32-bit/4-byte entry, otherwise 64-bit/8-byte entry.
         /// </summary>
+#pragma warning disable IDE1006 // Naming Styles
         public bool f32
+#pragma warning restore IDE1006 // Naming Styles
         {
             readonly get => _f32 != 0;
             set => _f32 = value ? 1 : 0;
