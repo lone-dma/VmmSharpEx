@@ -33,7 +33,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Update="CI\dump.raw">
+	<None Include="..\dump.raw" />
+    <None Update="..\dump.raw">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
   </ItemGroup>

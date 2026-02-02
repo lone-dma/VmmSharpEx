@@ -53,12 +53,12 @@ internal static partial class Vmmi
     public const uint VMMDLL_VFS_FILELIST_VERSION = 2;
 
     [StructLayout(LayoutKind.Sequential)]
-    public struct VMMDLL_VFS_FILELIST
+    public unsafe struct VMMDLL_VFS_FILELIST
     {
         public uint dwVersion;
         public uint _Reserved;
-        public IntPtr pfnAddFile;
-        public IntPtr pfnAddDirectory;
+        public delegate* unmanaged<IntPtr, byte*, ulong, IntPtr, int> pfnAddFile;
+        public delegate* unmanaged<IntPtr, byte*, IntPtr, int> pfnAddDirectory;
         public IntPtr h;
     }
 
@@ -878,7 +878,7 @@ internal static partial class Vmmi
         public unsafe fixed byte pb[32];
 
         public unsafe fixed byte pbSkipMask[32];
-        //[MarshalAs(UnmanagedType.ByValArray, SizeConst = 32)] public byte[] pb;
+        //[MarshalAs(UnmanagedType.ByValArray, SizeConst = 32)] public byte[] pMEM;
         //[MarshalAs(UnmanagedType.ByValArray, SizeConst = 32)] public byte[] pbSkipMask;
     }
 
@@ -900,11 +900,11 @@ internal static partial class Vmmi
         private readonly uint _Filler2;
         private readonly uint cResult;
         public readonly ulong cbReadTotal;
-        private readonly IntPtr pvUserPtrOpt;
-        public IntPtr pfnResultOptCB;
+        public IntPtr pvUserPtrOpt;
+        public delegate* unmanaged<Vmmi.VMMDLL_MEM_SEARCH_CONTEXT, ulong, uint, int> pfnResultOptCB;
         public ulong ReadFlags;
-        private readonly int fForcePTE;
-        private readonly int fForceVAD;
+        private readonly int fForcePTE; // BOOL
+        private readonly int fForceVAD; // BOOL
         private readonly IntPtr pfnFilterOptCB;
     }
 
@@ -1466,19 +1466,13 @@ internal static partial class Vmmi
 
     // Misc
 
-    [LibraryImport("vmm.dll", EntryPoint = "VMMDLL_LogCallback")]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    public static partial bool VMMDLL_LogCallback(
-        IntPtr hVMM,
-        Vmm.VMMDLL_LOG_CALLBACK_PFN? pfnCB);
-
     [LibraryImport("vmm.dll", EntryPoint = "VMMDLL_MemCallback")]
     [return: MarshalAs(UnmanagedType.Bool)]
     public static unsafe partial bool VMMDLL_MemCallback(
         IntPtr hVMM,
         VmmMemCallbackType tp,
         IntPtr ctxUser,
-        Vmm.VMMDLL_MEM_CALLBACK_PFN pfnCB);
+        delegate* unmanaged<IntPtr, uint, uint, LeechCore.MEM_SCATTER_NATIVE**, void> pfnCB);
 
     [LibraryImport("vmm.dll", EntryPoint = "VMMDLL_WinGetThunkInfoIATW", StringMarshalling = StringMarshalling.Utf16)]
     [return: MarshalAs(UnmanagedType.Bool)]

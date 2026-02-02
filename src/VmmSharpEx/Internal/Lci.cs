@@ -26,7 +26,7 @@ internal static partial class Lci
     public static partial void LcClose(IntPtr hLC);
 
     [LibraryImport("leechcore.dll", EntryPoint = "LcMemFree")]
-    public static unsafe partial void LcMemFree(void* pv);
+    public static unsafe partial void LcMemFree(IntPtr pv);
 
     [LibraryImport("leechcore.dll", EntryPoint = "LcAllocScatter1")]
     [return: MarshalAs(UnmanagedType.Bool)]

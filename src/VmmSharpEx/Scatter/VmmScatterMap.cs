@@ -4,18 +4,18 @@
 */
 
 using Collections.Pooled;
-using System.Runtime.CompilerServices;
 using VmmSharpEx.Options;
 
 namespace VmmSharpEx.Scatter
 {
     /// <summary>
-    /// Convenience mapping API that allows for multiple 'rounds' of <see cref="VmmScatter"/> operations to be executed in sequence.
+    /// Convenience mapping API that allows for multiple 'rounds' of <see cref="IScatter{TSelf}"/> operations to be executed in sequence.
     /// </summary>
-    public sealed class VmmScatterMap : IDisposable
+    public sealed class VmmScatterMap<T> : IDisposable
+        where T : IScatter<T>
     {
         private readonly Lock _sync = new();
-        private readonly PooledList<VmmScatter> _rounds = new(capacity: 16);
+        private readonly PooledList<IScatter> _rounds = new(capacity: 16);
         private readonly Vmm _vmm;
         private readonly uint _pid;
         private bool _disposed;
@@ -38,14 +38,14 @@ namespace VmmSharpEx.Scatter
         /// Add a new scatter round to this map. Rounds will be executed in the order they are added when <see cref="Execute"/> is called.
         /// </summary>
         /// <param name="flags">Vmm Flag Options for this operation.</param>
-        /// <returns>Object reference to the added <see cref="VmmScatter"/> instance.</returns>
+        /// <returns>Object reference to the added <see cref="IScatter{TSelf}"/> instance.</returns>
         /// <exception cref="VmmException"></exception>
-        public VmmScatter AddRound(VmmFlags flags = VmmFlags.NONE)
+        public T AddRound(VmmFlags flags = VmmFlags.NONE)
         {
             lock (_sync)
             {
                 ObjectDisposedException.ThrowIf(_disposed, this);
-                var round = new VmmScatter(_vmm, _pid, flags);
+                var round = T.Create(_vmm, _pid, flags);
                 _rounds.Add(round);
                 return round;
             }
@@ -58,7 +58,6 @@ namespace VmmSharpEx.Scatter
         /// If no rounds have been added, this method is a no-op.
         /// </remarks>
         /// <exception cref="VmmException"></exception>
-        [MethodImpl(MethodImplOptions.NoInlining)]
         public void Execute()
         {
             lock (_sync)

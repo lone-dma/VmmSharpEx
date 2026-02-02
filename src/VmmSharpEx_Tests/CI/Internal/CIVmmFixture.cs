@@ -11,7 +11,7 @@ namespace VmmSharpEx_Tests.CI.Internal;
 
 public unsafe class CIVmmFixture : IDisposable
 {
-    private static readonly string DUMP_FILE = Path.Combine("CI", "dump.raw");
+    private static readonly string DUMP_FILE = "dump.raw";
     private const ulong PTR_STR_UNICODE = 0x0;
     private const ulong PTR_HEAP = 0x8;
     private const ulong INT_HEAPLEN = 0x10;
