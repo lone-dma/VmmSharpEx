@@ -118,11 +118,9 @@ public sealed class VmmScatterManaged : IScatter, IScatter<VmmScatterManaged>, I
                         }
                     }
                     _prepared.AddOrUpdate(
-                        pageBase,
-                        // add: no existing entry
-                        _ => new PreparedScatter(qwA: pageVa, cb: pageCb),
-                        // update: entry already exists
-                        (_, existing) =>
+                        key: pageBase,
+                        addValueFactory: _ => new PreparedScatter(qwA: pageVa, cb: pageCb),
+                        updater: (_, existing) =>
                         {
                             // If an entry already exists for this page, ensure we upgrade to full-prepared read.
                             // This preserves correctness when multiple requests overlap on the same page with different sizes/offsets.
