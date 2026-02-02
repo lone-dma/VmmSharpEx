@@ -490,17 +490,17 @@ public sealed class VmmScatterManaged : IScatter, IScatter<VmmScatterManaged>, I
 
                 var spanBytes = MemoryMarshal.AsBytes(span);
                 int cbTotal = spanBytes.Length;
-                ulong numPages = VmmUtilities.ADDRESS_AND_SIZE_TO_SPAN_PAGES(addr, (uint)cbTotal);
-                ulong basePageAddr = VmmUtilities.PAGE_ALIGN(addr);
+                ulong pageCount = VmmUtilities.ADDRESS_AND_SIZE_TO_SPAN_PAGES(addr, (uint)cbTotal);
+                ulong firstPageBase = VmmUtilities.PAGE_ALIGN(addr);
 
                 int pageOffset = (int)VmmUtilities.BYTE_OFFSET(addr);
                 int cb = Math.Min(cbTotal, 0x1000 - pageOffset);
                 int cbRead = 0;
 
-                for (ulong p = 0; p < numPages; p++)
+                for (ulong p = 0; p < pageCount; p++)
                 {
-                    ulong pageAddr = basePageAddr + (p << 12);
-                    if (!_results.TryGetValue(pageAddr, out var result) || result == IntPtr.Zero)
+                    ulong pageBase = firstPageBase + (p << 12);
+                    if (!_results.TryGetValue(pageBase, out var result) || result == IntPtr.Zero)
                         return false;
 
                     var pMEM = (LeechCore.MEM_SCATTER_NATIVE*)result;
