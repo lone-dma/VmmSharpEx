@@ -45,6 +45,7 @@
 		<IncludeContentInPack>true</IncludeContentInPack>
 		<GenerateDocumentationFile>true</GenerateDocumentationFile>
 		<IncludeSymbols>false</IncludeSymbols>
+		<PackageRequireLicenseAcceptance>True</PackageRequireLicenseAcceptance>
 	</PropertyGroup>
 
 	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -68,9 +69,6 @@
 	<PropertyGroup>
 		<IsAotCompatible>true</IsAotCompatible>
 		<IsTrimmable>false</IsTrimmable> <!-- Disable trimming due to heavy interop usage -->
-	</PropertyGroup>
-
-	<PropertyGroup>
 		<EmitAotDiagnostics>true</EmitAotDiagnostics>
 		<EnableAotAnalyzers>true</EnableAotAnalyzers>
 	</PropertyGroup>
