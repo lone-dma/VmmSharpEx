@@ -1057,13 +1057,11 @@ internal static partial class Vmmi
 
     [LibraryImport("vmm.dll", EntryPoint = "VMMDLL_Scatter_ExecuteRead")]
     [return: MarshalAs(UnmanagedType.Bool)]
-    public static unsafe partial bool VMMDLL_Scatter_ExecuteRead(
-        IntPtr hS);
+    public static unsafe partial bool VMMDLL_Scatter_ExecuteRead(IntPtr hS);
 
     [LibraryImport("vmm.dll", EntryPoint = "VMMDLL_Scatter_Execute")]
     [return: MarshalAs(UnmanagedType.Bool)]
-    public static unsafe partial bool VMMDLL_Scatter_Execute(
-        IntPtr hS);
+    public static unsafe partial bool VMMDLL_Scatter_Execute(IntPtr hS);
 
     [LibraryImport("vmm.dll", EntryPoint = "VMMDLL_Scatter_Read")]
     [return: MarshalAs(UnmanagedType.Bool)]
@@ -1082,8 +1080,7 @@ internal static partial class Vmmi
         VmmFlags flags);
 
     [LibraryImport("vmm.dll", EntryPoint = "VMMDLL_Scatter_CloseHandle")]
-    public static unsafe partial void VMMDLL_Scatter_CloseHandle(
-        IntPtr hS);
+    public static unsafe partial void VMMDLL_Scatter_CloseHandle(IntPtr hS);
 
     // PROCESS FUNCTIONALITY BELOW:
 
