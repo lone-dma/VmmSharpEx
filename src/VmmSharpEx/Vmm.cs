@@ -37,15 +37,7 @@ public sealed partial class Vmm : IDisposable
 {
     #region Base Functionality
 
-    /// <summary>
-    /// Implicitly converts a <see cref="Vmm"/> instance to its underlying native handle.
-    /// </summary>
-    /// <param name="x">The <see cref="Vmm"/> instance to convert.</param>
-    /// <returns>The native VMM handle, or <see cref="IntPtr.Zero"/> if <paramref name="x"/> is <see langword="null"/>.</returns>
-    public static implicit operator IntPtr(Vmm x)
-    {
-        return x?._handle ?? IntPtr.Zero;
-    }
+    public static implicit operator IntPtr(Vmm vmm) => vmm?._handle ?? IntPtr.Zero;
 
     private IntPtr _handle;
     private bool _disposed;

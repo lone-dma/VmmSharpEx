@@ -16,9 +16,14 @@ namespace VmmSharpEx
     [StructLayout(LayoutKind.Sequential, Pack = 8, Size = sizeof(ulong))]
     public readonly struct VmmPointer
     {
-        public static implicit operator VmmPointer(ulong x) => x;
-        public static implicit operator ulong(VmmPointer x) => x.Value;
+        public static implicit operator VmmPointer(ulong uint64) => new(uint64);
+        public static implicit operator ulong(VmmPointer ptr) => ptr.Value;
         public readonly ulong Value;
+
+        private VmmPointer(ulong value)
+        {
+            Value = value;
+        }
 
         /// <summary>
         /// True if the pointer is a valid virtual address, otherwise False.

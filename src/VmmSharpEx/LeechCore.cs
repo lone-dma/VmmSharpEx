@@ -35,6 +35,8 @@ namespace VmmSharpEx;
 /// </remarks>
 public sealed class LeechCore : IDisposable
 {
+    public static implicit operator IntPtr(LeechCore lc) => lc?._handle ?? IntPtr.Zero;
+
     private readonly Vmm? _parent;
     private IntPtr _handle;
     private bool _disposed;
@@ -90,16 +92,6 @@ public sealed class LeechCore : IDisposable
     {
         Dispose(disposing: true);
         GC.SuppressFinalize(this);
-    }
-
-    /// <summary>
-    /// Implicitly convert a <see cref="LeechCore"/> instance to its native LC handle.
-    /// </summary>
-    /// <param name="x">Instance to convert.</param>
-    /// <returns>The native LC handle or <see cref="IntPtr.Zero"/> if <paramref name="x"/> is <see langword="null"/>.</returns>
-    public static implicit operator IntPtr(LeechCore x)
-    {
-        return x?._handle ?? IntPtr.Zero;
     }
 
     /// <summary>
