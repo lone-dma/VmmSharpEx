@@ -13,8 +13,6 @@ This library is **Windows Only**, and only bundles/targets the Windows x64 nativ
 - Version 3.200
   - Bump MemProcFS to 5.16.13 (security update)
   - General optimizations and improvements.
-  - Refactored Scatter API(s) slightly. Some minor breaking changes.
-  - New VmmScatterManaged implementation. VmmScatter remains intact for compatibility purposes.
   - Fixed some major AOT issues with unmanaged callbacks/delegates (VmmSearch,etc.)
 - Version 3.160
   - Bump MemProcFS to 5.16.12 (supports Chinese paths)

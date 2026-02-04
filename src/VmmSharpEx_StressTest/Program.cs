@@ -44,7 +44,7 @@ internal static class Program
 
                 // Run all stress tests silently
                 RunStressTest(StressTestBasicMemoryReadWrite);
-                RunStressTest(StressTestScatterManagedConcurrent);
+                RunStressTest(StressTestScatterConcurrent);
                 RunStressTest(StressTestScatterCreateDisposeRapid);
                 RunStressTest(StressTestMemSearchStartStopAbort);
                 RunStressTest(StressTestLeechCoreDirect);
@@ -164,7 +164,7 @@ internal static class Program
         });
     }
 
-    private static void StressTestScatterManagedConcurrent()
+    private static void StressTestScatterConcurrent()
     {
         Parallel.For(0, THREAD_COUNT, _ =>
         {
@@ -172,7 +172,7 @@ internal static class Program
             {
                 try
                 {
-                    using var scatter = new VmmScatterManaged(_vmm, Vmm.PID_PHYSICALMEMORY);
+                    using var scatter = new VmmScatter(_vmm, Vmm.PID_PHYSICALMEMORY);
 
                     // Prepare multiple reads
                     for (int j = 0; j < 16; j++)
@@ -183,7 +183,7 @@ internal static class Program
 
                     // Prepare array reads
                     scatter.PrepareReadArray<byte>(Heap, 256);
-                    scatter.PrepareRead(Heap + 0x1000, 512);
+                    scatter.PrepareRead(Heap + 0x1000, 512u);
 
                     Interlocked.Increment(ref _totalOperations);
 
@@ -205,7 +205,7 @@ internal static class Program
                     if (arrResult is not null)
                         successCount++;
 
-                    var rawResult = scatter.Read(Heap + 0x1000, 512);
+                    var rawResult = scatter.Read(Heap + 0x1000, 512u);
                     if (rawResult is not null)
                         successCount++;
 
@@ -238,7 +238,7 @@ internal static class Program
                     Interlocked.Increment(ref _totalOperations);
 
                     // Rapid create/prepare/execute/dispose cycle
-                    using (var scatter = new VmmScatterManaged(_vmm, Vmm.PID_PHYSICALMEMORY, VmmFlags.NOCACHE))
+                    using (var scatter = new VmmScatter(_vmm, Vmm.PID_PHYSICALMEMORY, VmmFlags.NOCACHE))
                     {
                         scatter.PrepareReadValue<ulong>(Heap);
                         scatter.PrepareReadValue<int>(Heap + 8);
@@ -424,7 +424,7 @@ internal static class Program
 
                             case 2: // Scatter read
                                 Interlocked.Increment(ref _totalOperations);
-                                using (var scatter = new VmmScatterManaged(_vmm, Vmm.PID_PHYSICALMEMORY))
+                                using (var scatter = new VmmScatter(_vmm, Vmm.PID_PHYSICALMEMORY))
                                 {
                                     scatter.PrepareReadValue<ulong>(Heap);
                                     scatter.Execute();
@@ -482,14 +482,14 @@ internal static class Program
         {
             try
             {
-                using var scatter = new VmmScatterManaged(_vmm, Vmm.PID_PHYSICALMEMORY);
+                using var scatter = new VmmScatter(_vmm, Vmm.PID_PHYSICALMEMORY);
 
                 for (int cycle = 0; cycle < ITERATIONS_PER_TEST; cycle++)
                 {
                     Interlocked.Increment(ref _totalOperations);
 
                     // Reset and reprepare
-                    scatter.Reset();
+                    scatter.Clear();
 
                     // Prepare new set of reads
                     for (int j = 0; j < 8; j++)
@@ -607,7 +607,7 @@ internal static class Program
 
                     // Scatter ReadSpan
                     Interlocked.Increment(ref _totalOperations);
-                    using (var scatter = new VmmScatterManaged(_vmm, Vmm.PID_PHYSICALMEMORY))
+                    using (var scatter = new VmmScatter(_vmm, Vmm.PID_PHYSICALMEMORY))
                     {
                         scatter.PrepareRead(Heap, 128);
                         scatter.Execute();
@@ -677,7 +677,7 @@ internal static class Program
 
                     // Scatter ReadPooled
                     Interlocked.Increment(ref _totalOperations);
-                    using (var scatter = new VmmScatterManaged(_vmm, Vmm.PID_PHYSICALMEMORY))
+                    using (var scatter = new VmmScatter(_vmm, Vmm.PID_PHYSICALMEMORY))
                     {
                         scatter.PrepareReadArray<long>(Heap, 16);
                         scatter.Execute();
@@ -782,7 +782,7 @@ internal static class Program
 
                     // Scatter across page boundary
                     Interlocked.Increment(ref _totalOperations);
-                    using var scatter = new VmmScatterManaged(_vmm, Vmm.PID_PHYSICALMEMORY);
+                    using var scatter = new VmmScatter(_vmm, Vmm.PID_PHYSICALMEMORY);
                     scatter.PrepareRead(pageBase + 0xFF0, 32); // Crosses page
                     scatter.Execute();
                     var result = scatter.Read(pageBase + 0xFF0, 32);
@@ -808,7 +808,7 @@ internal static class Program
             {
                 try
                 {
-                    using var scatter = new VmmScatterManaged(_vmm, Vmm.PID_PHYSICALMEMORY);
+                    using var scatter = new VmmScatter(_vmm, Vmm.PID_PHYSICALMEMORY);
 
                     // Prepare overlapping reads (same page, different offsets)
                     scatter.PrepareRead(Heap, 64);
@@ -879,7 +879,7 @@ internal static class Program
 
                     // Scatter with no preparations
                     Interlocked.Increment(ref _totalOperations);
-                    using var emptyScatter = new VmmScatterManaged(_vmm, Vmm.PID_PHYSICALMEMORY);
+                    using var emptyScatter = new VmmScatter(_vmm, Vmm.PID_PHYSICALMEMORY);
                     emptyScatter.Execute(); // Should be no-op
                     Interlocked.Increment(ref _successfulOperations);
                 }
@@ -902,7 +902,7 @@ internal static class Program
             {
                 try
                 {
-                    using var scatter = new VmmScatterManaged(_vmm, Vmm.PID_PHYSICALMEMORY);
+                    using var scatter = new VmmScatter(_vmm, Vmm.PID_PHYSICALMEMORY);
 
                     // Random number of preparations (1-50)
                     int prepCount = random.Next(1, 51);
@@ -913,7 +913,7 @@ internal static class Program
                         ulong offset = (ulong)random.Next(0, Math.Max(1, HeapLen - 256));
                         int size = random.Next(1, 257);
                         addresses.Add((Heap + offset, size));
-                        scatter.PrepareRead(Heap + offset, size);
+                        scatter.PrepareRead(Heap + offset, (uint)size);
                     }
 
                     Interlocked.Increment(ref _totalOperations);
@@ -925,7 +925,7 @@ internal static class Program
                     for (int v = 0; v < verifyCount; v++)
                     {
                         var (addr, size) = addresses[random.Next(addresses.Count)];
-                        if (scatter.Read(addr, size) is not null)
+                        if (scatter.Read(addr, (uint)size) is not null)
                             successCount++;
                     }
 
@@ -970,8 +970,8 @@ internal static class Program
 
                     // Scatter string reads
                     Interlocked.Increment(ref _totalOperations);
-                    using var scatter = new VmmScatterManaged(_vmm, Vmm.PID_PHYSICALMEMORY);
-                    scatter.PrepareRead(Heap + offset, len);
+                    using var scatter = new VmmScatter(_vmm, Vmm.PID_PHYSICALMEMORY);
+                    scatter.PrepareRead(Heap + offset, (uint)len);
                     scatter.Execute();
                     var scatterStr = scatter.ReadString(Heap + offset, len, Encoding.Unicode);
                     Interlocked.Increment(ref _successfulOperations);
@@ -1013,7 +1013,7 @@ internal static class Program
                     var flags = flagCombinations[random.Next(flagCombinations.Length)];
 
                     Interlocked.Increment(ref _totalOperations);
-                    using var scatter = new VmmScatterManaged(_vmm, Vmm.PID_PHYSICALMEMORY, flags);
+                    using var scatter = new VmmScatter(_vmm, Vmm.PID_PHYSICALMEMORY, flags);
 
                     for (int j = 0; j < 8; j++)
                     {
@@ -1187,7 +1187,7 @@ internal static class Program
 
                     // Large scatter operations
                     Interlocked.Increment(ref _totalOperations);
-                    using var scatter = new VmmScatterManaged(_vmm, Vmm.PID_PHYSICALMEMORY);
+                    using var scatter = new VmmScatter(_vmm, Vmm.PID_PHYSICALMEMORY);
 
                     // Prepare many pages
                     int pageCount = Math.Min(16, HeapLen / 0x1000);
@@ -1305,7 +1305,7 @@ internal static class Program
             {
                 try
                 {
-                    using var scatter = new VmmScatterManaged(_vmm, Vmm.PID_PHYSICALMEMORY);
+                    using var scatter = new VmmScatter(_vmm, Vmm.PID_PHYSICALMEMORY);
 
                     // Prepare multiple string reads at different offsets
                     var stringReads = new List<(ulong addr, int len, Encoding enc)>();
@@ -1317,7 +1317,7 @@ internal static class Program
                         int len = random.Next(8, 65);
                         var enc = encodings[random.Next(encodings.Length)];
                         stringReads.Add((Heap + offset, len, enc));
-                        scatter.PrepareRead(Heap + offset, len);
+                        scatter.PrepareRead(Heap + offset, (uint)len);
                     }
 
                     Interlocked.Increment(ref _totalOperations);
@@ -1403,19 +1403,19 @@ internal static class Program
                             _ = _vmm.LeechCore.ReadValue<ulong>(Heap + randomOffset, out _);
                             break;
                         case 12: // Quick scatter
-                            using (var s = new VmmScatterManaged(_vmm, Vmm.PID_PHYSICALMEMORY))
+                            using (var s = new VmmScatter(_vmm, Vmm.PID_PHYSICALMEMORY))
                             {
-                                s.PrepareRead(Heap + randomOffset, randomSize);
+                                s.PrepareRead(Heap + randomOffset, (uint)randomSize);
                                 s.Execute();
-                                _ = s.Read(Heap + randomOffset, randomSize);
+                                _ = s.Read(Heap + randomOffset, (uint)randomSize);
                             }
                             break;
                         case 13: // Scatter with reset
-                            using (var s = new VmmScatterManaged(_vmm, Vmm.PID_PHYSICALMEMORY))
+                            using (var s = new VmmScatter(_vmm, Vmm.PID_PHYSICALMEMORY))
                             {
                                 s.PrepareReadValue<ulong>(Heap);
                                 s.Execute();
-                                s.Reset();
+                                s.Clear();
                                 s.PrepareReadValue<uint>(Heap + randomOffset);
                                 s.Execute();
                                 _ = s.ReadValue<uint>(Heap + randomOffset, out _);
@@ -1431,7 +1431,7 @@ internal static class Program
                             _ = _vmm.MemReadPage(Vmm.PID_PHYSICALMEMORY, Heap & ~0xFFFUL);
                             break;
                         case 17: // Scatter with various types
-                            using (var s = new VmmScatterManaged(_vmm, Vmm.PID_PHYSICALMEMORY))
+                            using (var s = new VmmScatter(_vmm, Vmm.PID_PHYSICALMEMORY))
                             {
                                 s.PrepareReadValue<byte>(Heap);
                                 s.PrepareReadValue<short>(Heap + 1);
@@ -1442,17 +1442,17 @@ internal static class Program
                             }
                             break;
                         case 18: // Multiple overlapping scatters
-                            using (var s = new VmmScatterManaged(_vmm, Vmm.PID_PHYSICALMEMORY))
+                            using (var s = new VmmScatter(_vmm, Vmm.PID_PHYSICALMEMORY))
                             {
                                 for (int j = 0; j < random.Next(5, 20); j++)
                                 {
-                                    s.PrepareRead(Heap + (ulong)random.Next(0, 256), random.Next(1, 64));
+                                    s.PrepareRead(Heap + (ulong)random.Next(0, 256), (uint)random.Next(1, 64));
                                 }
                                 s.Execute();
                             }
                             break;
                         case 19: // Scatter pooled
-                            using (var s = new VmmScatterManaged(_vmm, Vmm.PID_PHYSICALMEMORY))
+                            using (var s = new VmmScatter(_vmm, Vmm.PID_PHYSICALMEMORY))
                             {
                                 s.PrepareReadArray<long>(Heap + randomOffset, 8);
                                 s.Execute();

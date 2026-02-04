@@ -12,13 +12,13 @@ using VmmSharpEx_Tests.CI.Internal;
 namespace VmmSharpEx_Tests.CI;
 
 [Collection(nameof(CICollection))]
-public unsafe class VmmSharpEx_VmmScatterManagedTests : CITest
+public unsafe class VmmSharpEx_VmmScatterTests : CITest
 {
     private readonly Vmm _vmm;
     private readonly ulong _heapBase;
     private readonly int _heapLen;
 
-    public VmmSharpEx_VmmScatterManagedTests(CIVmmFixture fixture)
+    public VmmSharpEx_VmmScatterTests(CIVmmFixture fixture)
     {
         _vmm = fixture.Vmm;
         _heapBase = fixture.Heap;
@@ -49,7 +49,7 @@ public unsafe class VmmSharpEx_VmmScatterManagedTests : CITest
         return addr;
     }
 
-    private VmmScatterManaged CreateScatter(VmmFlags flags = VmmFlags.NONE) => new VmmScatterManaged(_vmm, Vmm.PID_PHYSICALMEMORY, flags);
+    private VmmScatter CreateScatter(VmmFlags flags = VmmFlags.NONE) => new VmmScatter(_vmm, Vmm.PID_PHYSICALMEMORY, flags);
 
     private byte[] CreatePattern(int length, byte seed = 0)
     {
@@ -70,9 +70,9 @@ public unsafe class VmmSharpEx_VmmScatterManagedTests : CITest
         ulong addr = HeapAddr(0x100);
         var pattern = CreatePattern(32, 0x20);
         WriteAndVerifyPattern(addr, pattern);
-        Assert.True(scatter.PrepareRead(addr, pattern.Length));
+        Assert.True(scatter.PrepareRead(addr, (uint)pattern.Length));
         scatter.Execute();
-        var bytes = scatter.Read(addr, pattern.Length);
+        var bytes = scatter.Read(addr, (uint)pattern.Length);
         Assert.NotNull(bytes);
         Assert.Equal(pattern, bytes);
     }
@@ -141,7 +141,7 @@ public unsafe class VmmSharpEx_VmmScatterManagedTests : CITest
         const string testStr = "ScatterStringTest";
         var bytes = Encoding.Unicode.GetBytes(testStr + '\0');
         Assert.True(_vmm.MemWriteArray<byte>(Vmm.PID_PHYSICALMEMORY, addr, bytes));
-        Assert.True(scatter.PrepareRead(addr, bytes.Length));
+        Assert.True(scatter.PrepareRead(addr, (uint)bytes.Length));
         scatter.Execute();
         var read = scatter.ReadString(addr, bytes.Length, Encoding.Unicode);
         Assert.Equal(testStr, read);
@@ -168,97 +168,6 @@ public unsafe class VmmSharpEx_VmmScatterManagedTests : CITest
 
     #endregion
 
-    #region Tiny Mem Optimization Tests (single page, cb <= 0x400)
-
-    [Theory]
-    [InlineData(1)]      // Minimum
-    [InlineData(8)]      // 8-byte aligned
-    [InlineData(16)]     // Common struct size
-    [InlineData(64)]     // Small buffer
-    [InlineData(0x100)]  // 256 bytes
-    [InlineData(0x200)]  // 512 bytes
-    [InlineData(0x400)]  // Max tiny pMEM threshold
-    public void Scatter_TinyMem_VariousSizes_PageAligned(int cb)
-    {
-        using var scatter = CreateScatter();
-        ulong addr = PageAlignedHeapAddr(1, 0); // Page-aligned start
-        var pattern = CreatePattern(cb);
-        WriteAndVerifyPattern(addr, pattern);
-
-        Assert.True(scatter.PrepareRead(addr, cb));
-        scatter.Execute();
-        var result = scatter.Read(addr, cb);
-
-        Assert.NotNull(result);
-        Assert.Equal(pattern, result);
-    }
-
-    [Theory]
-    [InlineData(1, 0x001)]   // Offset 1
-    [InlineData(8, 0x007)]   // Just before 8-byte boundary
-    [InlineData(8, 0x008)]   // On 8-byte boundary
-    [InlineData(16, 0x123)]  // Random offset
-    [InlineData(64, 0x7FF)]  // Near end of page (but fits)
-    [InlineData(0x100, 0x600)] // Mid-page (changed from 0x500 to avoid collision)
-    [InlineData(0x400, 0x100)] // Max tiny at offset
-    public void Scatter_TinyMem_VariousOffsets(int cb, int offsetInPage)
-    {
-        // Ensure it fits within the page
-        if (offsetInPage + cb > 0x1000)
-            return;
-
-        using var scatter = CreateScatter();
-        ulong addr = PageAlignedHeapAddr(8, offsetInPage);
-        var pattern = CreatePattern(cb, (byte)(offsetInPage | 0x10));  // Ensure non-zero seed
-        WriteAndVerifyPattern(addr, pattern);
-
-        Assert.True(scatter.PrepareRead(addr, cb));
-        scatter.Execute();
-        var result = scatter.Read(addr, cb);
-
-        Assert.NotNull(result);
-        Assert.Equal(pattern, result);
-    }
-
-    [Theory]
-    [InlineData(8, 0xFF8)]   // 8 bytes at end of page
-    [InlineData(16, 0xFF0)]  // 16 bytes at end of page
-    [InlineData(0x100, 0xF00)] // 256 bytes at end
-    [InlineData(0x400, 0xC00)] // Max tiny at end
-    public void Scatter_TinyMem_NearPageEnd(int cb, int offsetInPage)
-    {
-        using var scatter = CreateScatter();
-        ulong addr = PageAlignedHeapAddr(3, offsetInPage);
-        var pattern = CreatePattern(cb, 0xAA);
-        WriteAndVerifyPattern(addr, pattern);
-
-        Assert.True(scatter.PrepareRead(addr, cb));
-        scatter.Execute();
-        var result = scatter.Read(addr, cb);
-
-        Assert.NotNull(result);
-        Assert.Equal(pattern, result);
-    }
-
-    [Fact]
-    public void Scatter_TinyMem_ForcePageRead_DisablesOptimization()
-    {
-        using var scatter = CreateScatter(VmmFlags.SCATTER_FORCE_PAGEREAD);
-        ulong addr = PageAlignedHeapAddr(4, 0x100);
-        int cb = 64; // Would normally be tiny pMEM
-        var pattern = CreatePattern(cb);
-        WriteAndVerifyPattern(addr, pattern);
-
-        Assert.True(scatter.PrepareRead(addr, cb));
-        scatter.Execute();
-        var result = scatter.Read(addr, cb);
-
-        Assert.NotNull(result);
-        Assert.Equal(pattern, result);
-    }
-
-    #endregion
-
     #region Single Page Full Read Tests (cb > 0x400, single page)
 
     [Theory]
@@ -275,9 +184,9 @@ public unsafe class VmmSharpEx_VmmScatterManagedTests : CITest
         var pattern = CreatePattern(cb);
         WriteAndVerifyPattern(addr, pattern);
 
-        Assert.True(scatter.PrepareRead(addr, cb));
+        Assert.True(scatter.PrepareRead(addr, (uint)cb));
         scatter.Execute();
-        var result = scatter.Read(addr, cb);
+        var result = scatter.Read(addr, (uint)cb);
 
         Assert.NotNull(result);
         Assert.Equal(pattern, result);
@@ -296,9 +205,9 @@ public unsafe class VmmSharpEx_VmmScatterManagedTests : CITest
         var pattern = CreatePattern(cb);
         WriteAndVerifyPattern(addr, pattern);
 
-        Assert.True(scatter.PrepareRead(addr, cb));
+        Assert.True(scatter.PrepareRead(addr, (uint)cb));
         scatter.Execute();
-        var result = scatter.Read(addr, cb);
+        var result = scatter.Read(addr, (uint)cb);
 
         Assert.NotNull(result);
         Assert.Equal(pattern, result);
@@ -322,9 +231,9 @@ public unsafe class VmmSharpEx_VmmScatterManagedTests : CITest
         var pattern = CreatePattern(cb);
         WriteAndVerifyPattern(addr, pattern);
 
-        Assert.True(scatter.PrepareRead(addr, cb));
+        Assert.True(scatter.PrepareRead(addr, (uint)cb));
         scatter.Execute();
-        var result = scatter.Read(addr, cb);
+        var result = scatter.Read(addr, (uint)cb);
 
         Assert.NotNull(result);
         Assert.Equal(pattern, result);
@@ -343,9 +252,9 @@ public unsafe class VmmSharpEx_VmmScatterManagedTests : CITest
         var pattern = CreatePattern(cb, (byte)offsetInPage);
         WriteAndVerifyPattern(addr, pattern);
 
-        Assert.True(scatter.PrepareRead(addr, cb));
+        Assert.True(scatter.PrepareRead(addr, (uint)cb));
         scatter.Execute();
-        var result = scatter.Read(addr, cb);
+        var result = scatter.Read(addr, (uint)cb);
 
         Assert.NotNull(result);
         Assert.Equal(pattern, result);
@@ -362,9 +271,9 @@ public unsafe class VmmSharpEx_VmmScatterManagedTests : CITest
         var pattern = CreatePattern(cb);
         WriteAndVerifyPattern(addr, pattern);
 
-        Assert.True(scatter.PrepareRead(addr, cb));
+        Assert.True(scatter.PrepareRead(addr, (uint)cb));
         scatter.Execute();
-        var result = scatter.Read(addr, cb);
+        var result = scatter.Read(addr, (uint)cb);
 
         Assert.NotNull(result);
         Assert.Equal(pattern, result);
@@ -389,9 +298,9 @@ public unsafe class VmmSharpEx_VmmScatterManagedTests : CITest
         var pattern = CreatePattern(cb, 0xBB);
         WriteAndVerifyPattern(addr, pattern);
 
-        Assert.True(scatter.PrepareRead(addr, cb));
+        Assert.True(scatter.PrepareRead(addr, (uint)cb));
         scatter.Execute();
-        var result = scatter.Read(addr, cb);
+        var result = scatter.Read(addr, (uint)cb);
 
         Assert.NotNull(result);
         Assert.Equal(pattern, result);
@@ -406,7 +315,7 @@ public unsafe class VmmSharpEx_VmmScatterManagedTests : CITest
         byte expected = 0x42;
         Assert.True(_vmm.MemWriteValue<byte>(Vmm.PID_PHYSICALMEMORY, addr, expected));
 
-        Assert.True(scatter.PrepareRead(addr, 1));
+        Assert.True(scatter.PrepareRead(addr, 1u));
         scatter.Execute();
         Assert.True(scatter.ReadValue<byte>(addr, out var actual));
         Assert.Equal(expected, actual);
@@ -503,14 +412,14 @@ public unsafe class VmmSharpEx_VmmScatterManagedTests : CITest
         foreach (var (addr, cb, pattern) in reads)
         {
             WriteAndVerifyPattern(addr, pattern);
-            Assert.True(scatter.PrepareRead(addr, cb));
+            Assert.True(scatter.PrepareRead(addr, (uint)cb));
         }
 
         scatter.Execute();
 
         foreach (var (addr, cb, pattern) in reads)
         {
-            var result = scatter.Read(addr, cb);
+            var result = scatter.Read(addr, (uint)cb);
             Assert.NotNull(result);
             Assert.Equal(pattern, result);
         }
@@ -529,15 +438,15 @@ public unsafe class VmmSharpEx_VmmScatterManagedTests : CITest
         // First execution
         var pattern1 = CreatePattern(32, 0xAA);
         WriteAndVerifyPattern(addr, pattern1);
-        Assert.True(scatter.PrepareRead(addr, 32));
+        Assert.True(scatter.PrepareRead(addr, 32u));
         scatter.Execute();
-        Assert.Equal(pattern1, scatter.Read(addr, 32));
+        Assert.Equal(pattern1, scatter.Read(addr, 32u));
 
         // Change the data and re-execute (same prepared entries)
         var pattern2 = CreatePattern(32, 0xBB);
         WriteAndVerifyPattern(addr, pattern2);
         scatter.Execute();
-        Assert.Equal(pattern2, scatter.Read(addr, 32));
+        Assert.Equal(pattern2, scatter.Read(addr, 32u));
     }
 
     #endregion
@@ -545,24 +454,17 @@ public unsafe class VmmSharpEx_VmmScatterManagedTests : CITest
     #region Edge Cases and Error Handling
 
     [Fact]
-    public void Scatter_PrepareRead_ZeroSize_ReturnsFalse()
-    {
-        using var scatter = CreateScatter();
-        Assert.False(scatter.PrepareRead(HeapAddr(0), 0));
-    }
-
-    [Fact]
     public void Scatter_PrepareRead_NegativeSize_ReturnsFalse()
     {
         using var scatter = CreateScatter();
-        Assert.False(scatter.PrepareRead(HeapAddr(0), -1));
+        Assert.False(scatter.PrepareRead(HeapAddr(0), unchecked((uint)-1)));
     }
 
     [Fact]
-    public void Scatter_Execute_NoPreparations_NoOp()
+    public void Scatter_Execute_NoPreparations_Throws()
     {
         using var scatter = CreateScatter();
-        scatter.Execute(); // Should not throw
+        Assert.Throws<VmmException>(() => scatter.Execute());
     }
 
     [Fact]
@@ -572,36 +474,11 @@ public unsafe class VmmSharpEx_VmmScatterManagedTests : CITest
         ulong preparedAddr = HeapAddr(0x6100);
         ulong unpreparedAddr = HeapAddr(0x7000);
 
-        Assert.True(scatter.PrepareRead(preparedAddr, 32));
+        Assert.True(scatter.PrepareRead(preparedAddr, 32u));
         scatter.Execute();
 
         // Reading from unprepared address should return null
-        Assert.Null(scatter.Read(unpreparedAddr, 32));
-    }
-
-    #endregion
-
-    #region 8-Byte Alignment Edge Cases (Tiny Mem Specific)
-
-    [Theory]
-    [InlineData(0x101, 7)]  // Offset 1 (relative), size 7 -> should align to 8 bytes
-    [InlineData(0x103, 5)]  // Offset 3 (relative), size 5 -> straddles alignment
-    [InlineData(0x107, 1)]  // Offset 7 (relative), size 1 -> at alignment boundary
-    [InlineData(0x110, 8)]  // 8-byte aligned (changed from 0x108 to avoid collision)
-    [InlineData(0x10F, 17)] // Unaligned offset, unaligned size
-    public void Scatter_TinyMem_AlignmentEdgeCases(int offsetInPage, int cb)
-    {
-        using var scatter = CreateScatter();
-        ulong addr = PageAlignedHeapAddr(9, offsetInPage);
-        var pattern = CreatePattern(cb, (byte)((offsetInPage ^ cb) | 0x10));  // Ensure non-zero seed
-        WriteAndVerifyPattern(addr, pattern);
-
-        Assert.True(scatter.PrepareRead(addr, cb));
-        scatter.Execute();
-        var result = scatter.Read(addr, cb);
-
-        Assert.NotNull(result);
-        Assert.Equal(pattern, result);
+        Assert.Null(scatter.Read(unpreparedAddr, 32u));
     }
 
     #endregion
