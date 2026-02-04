@@ -8,7 +8,7 @@
     <PublishAot>true</PublishAot>
     <InvariantGlobalization>true</InvariantGlobalization>
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
-    <PlatformTarget>AnyCPU</PlatformTarget>
+    <PlatformTarget>x64</PlatformTarget>
     <Platforms>x64</Platforms>
   </PropertyGroup>
 
@@ -23,12 +23,5 @@
   <ItemGroup>
     <ProjectReference Include="..\VmmSharpEx\VmmSharpEx.csproj" />
   </ItemGroup>
-
-	<ItemGroup>
-		<None Include="..\dump.raw" />
-		<None Update="..\dump.raw">
-			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
-		</None>
-	</ItemGroup>
 
 </Project>
