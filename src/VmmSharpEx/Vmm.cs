@@ -388,7 +388,7 @@ public sealed partial class Vmm : IDisposable
     public unsafe byte[]? MemRead(uint pid, ulong va, uint cb, out uint cbRead, VmmFlags flags = VmmFlags.NONE)
     {
         var arr = new byte[cb];
-        fixed (byte* pb = arr)
+        fixed (void* pb = arr)
         {
             if (!Vmmi.VMMDLL_MemReadEx(_handle, pid, va, pb, cb, out cbRead, flags))
             {
@@ -427,7 +427,7 @@ public sealed partial class Vmm : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public unsafe bool MemRead(uint pid, ulong va, void* pb, uint cb, out uint cbRead, VmmFlags flags = VmmFlags.NONE)
     {
-        return Vmmi.VMMDLL_MemReadEx(_handle, pid, va, (byte*)pb, cb, out cbRead, flags);
+        return Vmmi.VMMDLL_MemReadEx(_handle, pid, va, pb, cb, out cbRead, flags);
     }
 
     /// <summary>
@@ -464,7 +464,7 @@ public sealed partial class Vmm : IDisposable
         result = default;
         fixed (void* pb = &result)
         {
-            return Vmmi.VMMDLL_MemReadEx(_handle, pid, va, (byte*)pb, cb, out var cbRead, flags) && cbRead == cb;
+            return Vmmi.VMMDLL_MemReadEx(_handle, pid, va, pb, cb, out var cbRead, flags) && cbRead == cb;
         }
     }
 
@@ -489,7 +489,7 @@ public sealed partial class Vmm : IDisposable
         uint cb = checked((uint)sizeof(T) * (uint)count);
         fixed (T* pb = array)
         {
-            if (!Vmmi.VMMDLL_MemReadEx(_handle, pid, va, (byte*)pb, cb, out var cbRead, flags) || cbRead != cb)
+            if (!Vmmi.VMMDLL_MemReadEx(_handle, pid, va, pb, cb, out var cbRead, flags) || cbRead != cb)
             {
                 return null;
             }
@@ -515,7 +515,7 @@ public sealed partial class Vmm : IDisposable
         uint cb = checked((uint)sizeof(T) * (uint)count);
         fixed (T* pb = arr.Span)
         {
-            if (!Vmmi.VMMDLL_MemReadEx(_handle, pid, va, (byte*)pb, cb, out var cbRead, flags) || cbRead != cb)
+            if (!Vmmi.VMMDLL_MemReadEx(_handle, pid, va, pb, cb, out var cbRead, flags) || cbRead != cb)
             {
                 arr.Dispose();
                 return null;
@@ -539,7 +539,7 @@ public sealed partial class Vmm : IDisposable
         uint cb = checked((uint)sizeof(T) * (uint)span.Length);
         fixed (T* pb = span)
         {
-            return Vmmi.VMMDLL_MemReadEx(_handle, pid, va, (byte*)pb, cb, out var cbRead, flags) && cbRead == cb;
+            return Vmmi.VMMDLL_MemReadEx(_handle, pid, va, pb, cb, out var cbRead, flags) && cbRead == cb;
         }
     }
 
@@ -594,7 +594,7 @@ public sealed partial class Vmm : IDisposable
     public unsafe byte[]? MemReadPage(uint pid, ulong qwA)
     {
         var arr = new byte[0x1000];
-        fixed (byte* pb = arr)
+        fixed (void* pb = arr)
         {
             if (!Vmmi.VMMDLL_MemReadPage(_handle, pid, qwA, pb))
                 return null;
@@ -611,7 +611,7 @@ public sealed partial class Vmm : IDisposable
     public unsafe IMemoryOwner<byte>? MemReadPagePooled(uint pid, ulong qwA)
     {
         var pooled = new PooledMemory<byte>(0x1000);
-        fixed (byte* pb = pooled.Memory.Span)
+        fixed (void* pb = pooled.Memory.Span)
         {
             if (!Vmmi.VMMDLL_MemReadPage(_handle, pid, qwA, pb))
             {
@@ -632,7 +632,7 @@ public sealed partial class Vmm : IDisposable
     {
         fixed (void* pb = vas)
         {
-            return Vmmi.VMMDLL_MemPrefetchPages(_handle, pid, (byte*)pb, (uint)vas.Length);
+            return Vmmi.VMMDLL_MemPrefetchPages(_handle, pid, pb, (uint)vas.Length);
         }
     }
 
@@ -662,7 +662,7 @@ public sealed partial class Vmm : IDisposable
     public unsafe bool MemWrite(uint pid, ulong va, void* pb, uint cb)
     {
         ThrowIfMemWritesDisabled();
-        return Vmmi.VMMDLL_MemWrite(_handle, pid, va, (byte*)pb, cb);
+        return Vmmi.VMMDLL_MemWrite(_handle, pid, va, pb, cb);
     }
 
     /// <summary>
@@ -678,7 +678,7 @@ public sealed partial class Vmm : IDisposable
     {
         ThrowIfMemWritesDisabled();
         uint cb = (uint)sizeof(T);
-        return Vmmi.VMMDLL_MemWrite(_handle, pid, va, (byte*)&value, cb);
+        return Vmmi.VMMDLL_MemWrite(_handle, pid, va, &value, cb);
     }
 
     /// <summary>
@@ -696,7 +696,7 @@ public sealed partial class Vmm : IDisposable
         uint cb = checked((uint)sizeof(T) * (uint)data.Length);
         fixed (T* pb = data)
         {
-            return Vmmi.VMMDLL_MemWrite(_handle, pid, va, (byte*)pb, cb);
+            return Vmmi.VMMDLL_MemWrite(_handle, pid, va, pb, cb);
         }
     }
 
@@ -715,7 +715,7 @@ public sealed partial class Vmm : IDisposable
         uint cb = checked((uint)sizeof(T) * (uint)span.Length);
         fixed (T* pb = span)
         {
-            return Vmmi.VMMDLL_MemWrite(_handle, pid, va, (byte*)pb, cb);
+            return Vmmi.VMMDLL_MemWrite(_handle, pid, va, pb, cb);
         }
     }
 
@@ -803,7 +803,7 @@ public sealed partial class Vmm : IDisposable
     }
 
     [UnmanagedCallersOnly]
-    private static unsafe int VfsList_AddFileCB(IntPtr hCtx, byte* pName, ulong cb, IntPtr pExInfo)
+    private static unsafe int VfsList_AddFileCB(IntPtr hCtx, void* pName, ulong cb, IntPtr pExInfo)
     {
         var h = GCHandle.FromIntPtr(hCtx);
         var ctx = (VfsContext?)h.Target ?? throw new ArgumentNullException(nameof(hCtx));
@@ -823,7 +823,7 @@ public sealed partial class Vmm : IDisposable
     }
 
     [UnmanagedCallersOnly]
-    private static unsafe int VfsList_AddDirectoryCB(IntPtr hCtx, byte* pName, IntPtr pExInfo)
+    private static unsafe int VfsList_AddDirectoryCB(IntPtr hCtx, void* pName, IntPtr pExInfo)
     {
         var h = GCHandle.FromIntPtr(hCtx);
         var ctx = (VfsContext?)h.Target ?? throw new ArgumentNullException(nameof(hCtx));
@@ -878,7 +878,7 @@ public sealed partial class Vmm : IDisposable
         }
 
         var dataLocal = new byte[size];
-        fixed (byte* pb = dataLocal)
+        fixed (void* pb = dataLocal)
         {
             uint ret = Vmmi.VMMDLL_VfsRead(_handle, fileName.Replace('/', '\\'), pb, size, out cbRead, offset);
             if (ret == 0) // STATUS_SUCCESS
@@ -907,7 +907,7 @@ public sealed partial class Vmm : IDisposable
     public unsafe uint VfsWrite(string fileName, ReadOnlySpan<byte> data, ulong offset = 0)
     {
         uint cbRead = 0;
-        fixed (byte* pb = data)
+        fixed (void* pb = data)
         {
             return Vmmi.VMMDLL_VfsWrite(_handle, fileName.Replace('/', '\\'), pb, (uint)data.Length, out cbRead, offset);
         }
@@ -1038,7 +1038,7 @@ public sealed partial class Vmm : IDisposable
         }
         finally
         {
-            Vmmi.VMMDLL_MemFree(pMap.ToPointer());
+            Vmmi.VMMDLL_MemFree(pMap);
         }
     }
 
@@ -1103,7 +1103,7 @@ public sealed partial class Vmm : IDisposable
         }
         finally
         {
-            Vmmi.VMMDLL_MemFree(pMap.ToPointer());
+            Vmmi.VMMDLL_MemFree(pMap);
         }
     }
 
@@ -1154,7 +1154,7 @@ public sealed partial class Vmm : IDisposable
         }
         finally
         {
-            Vmmi.VMMDLL_MemFree(pMap.ToPointer());
+            Vmmi.VMMDLL_MemFree(pMap);
         }
     }
 
@@ -1254,7 +1254,7 @@ public sealed partial class Vmm : IDisposable
         }
         finally
         {
-            Vmmi.VMMDLL_MemFree(pMap.ToPointer());
+            Vmmi.VMMDLL_MemFree(pMap);
         }
     }
 
@@ -1293,7 +1293,7 @@ public sealed partial class Vmm : IDisposable
         }
         finally
         {
-            Vmmi.VMMDLL_MemFree(pMap.ToPointer());
+            Vmmi.VMMDLL_MemFree(pMap);
         }
     }
 
@@ -1338,7 +1338,7 @@ public sealed partial class Vmm : IDisposable
         }
         finally
         {
-            Vmmi.VMMDLL_MemFree(pMap.ToPointer());
+            Vmmi.VMMDLL_MemFree(pMap);
         }
     }
 
@@ -1395,7 +1395,7 @@ public sealed partial class Vmm : IDisposable
         }
         finally
         {
-            Vmmi.VMMDLL_MemFree(pMap.ToPointer());
+            Vmmi.VMMDLL_MemFree(pMap);
         }
     }
 
@@ -1445,7 +1445,7 @@ public sealed partial class Vmm : IDisposable
         }
         finally
         {
-            Vmmi.VMMDLL_MemFree(pMap.ToPointer());
+            Vmmi.VMMDLL_MemFree(pMap);
         }
     }
 
@@ -1498,7 +1498,7 @@ public sealed partial class Vmm : IDisposable
         }
         finally
         {
-            Vmmi.VMMDLL_MemFree(pMap.ToPointer());
+            Vmmi.VMMDLL_MemFree(pMap);
         }
     }
 
@@ -1603,7 +1603,7 @@ public sealed partial class Vmm : IDisposable
         }
         finally
         {
-            Vmmi.VMMDLL_MemFree(pMap.ToPointer());
+            Vmmi.VMMDLL_MemFree(pMap);
         }
     }
 
@@ -1654,7 +1654,7 @@ public sealed partial class Vmm : IDisposable
         }
         finally
         {
-            Vmmi.VMMDLL_MemFree(pMap.ToPointer());
+            Vmmi.VMMDLL_MemFree(pMap);
         }
     }
 
@@ -1704,7 +1704,7 @@ public sealed partial class Vmm : IDisposable
         }
         finally
         {
-            Vmmi.VMMDLL_MemFree(pMap.ToPointer());
+            Vmmi.VMMDLL_MemFree(pMap);
         }
     }
 
@@ -1964,7 +1964,7 @@ public sealed partial class Vmm : IDisposable
         }
         finally
         {
-            Vmmi.VMMDLL_MemFree(pMap.ToPointer());
+            Vmmi.VMMDLL_MemFree(pMap);
         }
     }
 
@@ -2475,7 +2475,7 @@ public sealed partial class Vmm : IDisposable
     {
         uint cbRead;
         var data = new byte[cb];
-        fixed (byte* pb = data)
+        fixed (void* pb = data)
         {
             if (!Vmmi.VMMDLL_WinReg_HiveReadEx(_handle, vaCMHIVE, ra, pb, cb, out cbRead, flags))
             {
@@ -2503,7 +2503,7 @@ public sealed partial class Vmm : IDisposable
     /// <returns><see langword="true"/> on success; otherwise <see langword="false"/>.</returns>
     public unsafe bool WinReg_HiveWrite(ulong vaCMHIVE, uint ra, ReadOnlySpan<byte> data)
     {
-        fixed (byte* pb = data)
+        fixed (void* pb = data)
         {
             return Vmmi.VMMDLL_WinReg_HiveWrite(_handle, vaCMHIVE, ra, pb, (uint)data.Length);
         }
@@ -2523,7 +2523,7 @@ public sealed partial class Vmm : IDisposable
             KeyList = new List<RegEnumKeyEntry>(),
             ValueList = new List<RegEnumValueEntry>()
         };
-        fixed (byte* pb = new byte[0x1000])
+        fixed (void* pb = new byte[0x1000])
         {
             i = 0;
             cchName = 0x800;
@@ -2575,7 +2575,7 @@ public sealed partial class Vmm : IDisposable
         }
 
         var data = new byte[cb];
-        fixed (byte* pb = data)
+        fixed (void* pb = data)
         {
             result = Vmmi.VMMDLL_WinReg_QueryValueEx(_handle, sValueFullPath, out tp, pb, ref cb);
             return result ? data : null;
@@ -2841,7 +2841,7 @@ public sealed partial class Vmm : IDisposable
         }
         finally
         {
-            Vmmi.VMMDLL_MemFree(pMap.ToPointer());
+            Vmmi.VMMDLL_MemFree(pMap);
         }
     }
 
@@ -2880,7 +2880,7 @@ public sealed partial class Vmm : IDisposable
         }
         finally
         {
-            Vmmi.VMMDLL_MemFree(pMap.ToPointer());
+            Vmmi.VMMDLL_MemFree(pMap);
         }
     }
 
@@ -2925,7 +2925,7 @@ public sealed partial class Vmm : IDisposable
         }
         finally
         {
-            Vmmi.VMMDLL_MemFree(pMap.ToPointer());
+            Vmmi.VMMDLL_MemFree(pMap);
         }
     }
 
@@ -2975,7 +2975,7 @@ public sealed partial class Vmm : IDisposable
         }
         finally
         {
-            Vmmi.VMMDLL_MemFree(pMap.ToPointer());
+            Vmmi.VMMDLL_MemFree(pMap);
         }
     }
 
@@ -3022,7 +3022,7 @@ public sealed partial class Vmm : IDisposable
         }
         finally
         {
-            Vmmi.VMMDLL_MemFree(pMap.ToPointer());
+            Vmmi.VMMDLL_MemFree(pMap);
         }
     }
 
@@ -3112,7 +3112,7 @@ public sealed partial class Vmm : IDisposable
         }
         finally
         {
-            Vmmi.VMMDLL_MemFree(pMap.ToPointer());
+            Vmmi.VMMDLL_MemFree(pMap);
         }
     }
 
@@ -3161,7 +3161,7 @@ public sealed partial class Vmm : IDisposable
         }
         finally
         {
-            Vmmi.VMMDLL_MemFree(pMap.ToPointer());
+            Vmmi.VMMDLL_MemFree(pMap);
         }
     }
 
@@ -3215,7 +3215,7 @@ public sealed partial class Vmm : IDisposable
         }
         finally
         {
-            Vmmi.VMMDLL_MemFree(pMap.ToPointer());
+            Vmmi.VMMDLL_MemFree(pMap);
         }
     }
 
@@ -3241,8 +3241,8 @@ public sealed partial class Vmm : IDisposable
             fixed (byte* pb = new byte[cbPfns])
             {
                 result =
-                    Vmmi.VMMDLL_Map_GetPfn(_handle, (byte*)pbPfns, (uint)pfns.Length, null, ref cbPfns) &&
-                    Vmmi.VMMDLL_Map_GetPfn(_handle, (byte*)pbPfns, (uint)pfns.Length, pb, ref cbPfns);
+                    Vmmi.VMMDLL_Map_GetPfn(_handle, pbPfns, (uint)pfns.Length, null, ref cbPfns) &&
+                    Vmmi.VMMDLL_Map_GetPfn(_handle, pbPfns, (uint)pfns.Length, pb, ref cbPfns);
                 if (!result)
                 {
                     return null;
@@ -3300,7 +3300,7 @@ public sealed partial class Vmm : IDisposable
     {
         szModuleName = null;
         var data = new byte[260];
-        fixed (byte* pb = data)
+        fixed (void* pb = data)
         {
             var result = Vmmi.VMMDLL_PdbLoad(_handle, pid, vaModuleBase, pb);
             if (!result)
@@ -3328,7 +3328,7 @@ public sealed partial class Vmm : IDisposable
         szSymbolName = null;
         pdwSymbolDisplacement = 0;
         var data = new byte[260];
-        fixed (byte* pb = data)
+        fixed (void* pb = data)
         {
             var result = Vmmi.VMMDLL_PdbSymbolName(_handle, szModule, cbSymbolAddressOrOffset, pb, out pdwSymbolDisplacement);
             if (!result)

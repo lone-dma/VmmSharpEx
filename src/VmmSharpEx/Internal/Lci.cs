@@ -26,7 +26,10 @@ internal static partial class Lci
     public static partial void LcClose(IntPtr hLC);
 
     [LibraryImport("leechcore.dll", EntryPoint = "LcMemFree")]
-    public static unsafe partial void LcMemFree(IntPtr pv);
+    public static unsafe partial void LcMemFree(void* pv);
+
+    [LibraryImport("leechcore.dll", EntryPoint = "LcMemFree")]
+    public static partial void LcMemFree(IntPtr pv);
 
     [LibraryImport("leechcore.dll", EntryPoint = "LcAllocScatter1")]
     [return: MarshalAs(UnmanagedType.Bool)]
@@ -34,14 +37,14 @@ internal static partial class Lci
 
     [LibraryImport("leechcore.dll", EntryPoint = "LcRead")]
     [return: MarshalAs(UnmanagedType.Bool)]
-    public static unsafe partial bool LcRead(IntPtr hLC, ulong pa, uint cb, byte* pb);
+    public static unsafe partial bool LcRead(IntPtr hLC, ulong pa, uint cb, void* pb);
 
     [LibraryImport("leechcore.dll", EntryPoint = "LcReadScatter")]
     public static unsafe partial void LcReadScatter(IntPtr hLC, uint cMEMs, IntPtr ppMEMs);
 
     [LibraryImport("leechcore.dll", EntryPoint = "LcWrite")]
     [return: MarshalAs(UnmanagedType.Bool)]
-    public static unsafe partial bool LcWrite(IntPtr hLC, ulong pa, uint cb, byte* pb);
+    public static unsafe partial bool LcWrite(IntPtr hLC, ulong pa, uint cb, void* pb);
 
     [LibraryImport("leechcore.dll", EntryPoint = "LcGetOption")]
     [return: MarshalAs(UnmanagedType.Bool)]
@@ -53,7 +56,7 @@ internal static partial class Lci
 
     [LibraryImport("leechcore.dll", EntryPoint = "LcCommand")]
     [return: MarshalAs(UnmanagedType.Bool)]
-    public static unsafe partial bool LcCommand(IntPtr hLC, LcCmd fOption, uint cbDataIn, byte* pbDataIn, out IntPtr ppbDataOut, out uint pcbDataOut);
+    public static unsafe partial bool LcCommand(IntPtr hLC, LcCmd fOption, uint cbDataIn, void* pbDataIn, out IntPtr ppbDataOut, out uint pcbDataOut);
 
     [StructLayout(LayoutKind.Sequential)]
     public struct LC_CONFIG_ERRORINFO

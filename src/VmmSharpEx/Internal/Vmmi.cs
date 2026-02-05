@@ -57,8 +57,8 @@ internal static partial class Vmmi
     {
         public uint dwVersion;
         public uint _Reserved;
-        public delegate* unmanaged<IntPtr, byte*, ulong, IntPtr, int> pfnAddFile;
-        public delegate* unmanaged<IntPtr, byte*, IntPtr, int> pfnAddDirectory;
+        public delegate* unmanaged<IntPtr, void*, ulong, IntPtr, int> pfnAddFile;
+        public delegate* unmanaged<IntPtr, void*, IntPtr, int> pfnAddDirectory;
         public IntPtr h;
     }
 
@@ -941,8 +941,10 @@ internal static partial class Vmmi
         ulong qwValue);
 
     [LibraryImport("vmm.dll", EntryPoint = "VMMDLL_MemFree")]
-    public static unsafe partial void VMMDLL_MemFree(
-        void* pvMem);
+    public static unsafe partial void VMMDLL_MemFree(void* pvMem);
+
+    [LibraryImport("vmm.dll", EntryPoint = "VMMDLL_MemFree")]
+    public static partial void VMMDLL_MemFree(IntPtr pvMem);
 
     // VFS (VIRTUAL FILE SYSTEM) FUNCTIONALITY BELOW:
 
@@ -957,7 +959,7 @@ internal static partial class Vmmi
     public static unsafe partial uint VMMDLL_VfsRead(
         IntPtr hVMM,
         [MarshalAs(UnmanagedType.LPUTF8Str)] string wcsFileName,
-        byte* pb,
+        void* pb,
         uint cb,
         out uint pcbRead,
         ulong cbOffset);
@@ -966,7 +968,7 @@ internal static partial class Vmmi
     public static unsafe partial uint VMMDLL_VfsWrite(
         IntPtr hVMM,
         [MarshalAs(UnmanagedType.LPUTF8Str)] string wcsFileName,
-        byte* pb,
+        void* pb,
         uint cb,
         out uint pcbRead,
         ulong cbOffset);
@@ -993,7 +995,7 @@ internal static partial class Vmmi
         IntPtr hVMM,
         uint dwPID,
         ulong qwA,
-        byte* pb,
+        void* pb,
         uint cb,
         out uint pcbReadOpt,
         VmmFlags flags);
@@ -1004,14 +1006,14 @@ internal static partial class Vmmi
         IntPtr hVMM,
         uint dwPID,
         ulong qwA,
-        byte* pbPage);
+        void* pbPage);
 
     [LibraryImport("vmm.dll", EntryPoint = "VMMDLL_MemPrefetchPages")]
     [return: MarshalAs(UnmanagedType.Bool)]
     public static unsafe partial bool VMMDLL_MemPrefetchPages(
         IntPtr hVMM,
         uint dwPID,
-        byte* pPrefetchAddresses,
+        void* pPrefetchAddresses,
         uint cPrefetchAddresses);
 
     [LibraryImport("vmm.dll", EntryPoint = "VMMDLL_MemWrite")]
@@ -1020,7 +1022,7 @@ internal static partial class Vmmi
         IntPtr hVMM,
         uint dwPID,
         ulong qwA,
-        byte* pb,
+        void* pb,
         uint cb);
 
     [LibraryImport("vmm.dll", EntryPoint = "VMMDLL_MemVirt2Phys")]
@@ -1086,7 +1088,7 @@ internal static partial class Vmmi
 
     [LibraryImport("vmm.dll", EntryPoint = "VMMDLL_PidList")]
     [return: MarshalAs(UnmanagedType.Bool)]
-    public static unsafe partial bool VMMDLL_PidList(IntPtr hVMM, byte* pPIDs, ref ulong pcPIDs);
+    public static unsafe partial bool VMMDLL_PidList(IntPtr hVMM, void* pPIDs, ref ulong pcPIDs);
 
     [LibraryImport("vmm.dll", EntryPoint = "VMMDLL_PidGetFromName")]
     [return: MarshalAs(UnmanagedType.Bool)]
@@ -1103,7 +1105,7 @@ internal static partial class Vmmi
     public static unsafe partial bool VMMDLL_ProcessGetInformation(
         IntPtr hVMM,
         uint dwPID,
-        byte* pProcessInformation,
+        void* pProcessInformation,
         ref ulong pcbProcessInformation);
 
     [LibraryImport("vmm.dll", EntryPoint = "VMMDLL_ProcessGetInformationAll")]
@@ -1115,7 +1117,7 @@ internal static partial class Vmmi
     );
 
     [LibraryImport("vmm.dll", EntryPoint = "VMMDLL_ProcessGetInformationString")]
-    public static unsafe partial byte* VMMDLL_ProcessGetInformationString(
+    public static unsafe partial void* VMMDLL_ProcessGetInformationString(
         IntPtr hVMM,
         uint dwPID,
         uint fOptionString);
@@ -1126,7 +1128,7 @@ internal static partial class Vmmi
         IntPtr hVMM,
         uint dwPID,
         [MarshalAs(UnmanagedType.LPUTF8Str)] string uszModule,
-        byte* pData);
+        void* pData);
 
     [LibraryImport("vmm.dll", EntryPoint = "VMMDLL_ProcessGetSectionsU")]
     [return: MarshalAs(UnmanagedType.Bool)]
@@ -1134,7 +1136,7 @@ internal static partial class Vmmi
         IntPtr hVMM,
         uint dwPID,
         [MarshalAs(UnmanagedType.LPUTF8Str)] string uszModule,
-        byte* pData,
+        void* pData,
         uint cData,
         out uint pcData);
 
@@ -1146,7 +1148,7 @@ internal static partial class Vmmi
         IntPtr hVMM,
         uint dwPID,
         ulong vaModuleBase,
-        byte* pModuleMapEntry);
+        void* pModuleMapEntry);
 
     [LibraryImport("vmm.dll", EntryPoint = "VMMDLL_PdbSymbolName")]
     [return: MarshalAs(UnmanagedType.Bool)]
@@ -1154,7 +1156,7 @@ internal static partial class Vmmi
         IntPtr hVMM,
         [MarshalAs(UnmanagedType.LPStr)] string szModule,
         ulong cbSymbolAddressOrOffset,
-        byte* szSymbolName,
+        void* szSymbolName,
         out uint pdwSymbolDisplacement);
 
     [LibraryImport("vmm.dll", EntryPoint = "VMMDLL_PdbSymbolAddress")]
@@ -1367,9 +1369,9 @@ internal static partial class Vmmi
     [return: MarshalAs(UnmanagedType.Bool)]
     public static unsafe partial bool VMMDLL_Map_GetPfn(
         IntPtr hVMM,
-        byte* pPfns,
+        void* pPfns,
         uint cPfns,
-        byte* pPfnMap,
+        void* pPfnMap,
         ref uint pcbPfnMap);
 
     // REGISTRY FUNCTIONALITY BELOW:
@@ -1377,7 +1379,7 @@ internal static partial class Vmmi
     [return: MarshalAs(UnmanagedType.Bool)]
     public static unsafe partial bool VMMDLL_WinReg_HiveList(
         IntPtr hVMM,
-        byte* pHives,
+        void* pHives,
         uint cHives,
         out uint pcHives);
 
@@ -1387,7 +1389,7 @@ internal static partial class Vmmi
         IntPtr hVMM,
         ulong vaCMHive,
         uint ra,
-        byte* pb,
+        void* pb,
         uint cb,
         out uint pcbReadOpt,
         VmmFlags flags);
@@ -1398,7 +1400,7 @@ internal static partial class Vmmi
         IntPtr hVMM,
         ulong vaCMHive,
         uint ra,
-        byte* pb,
+        void* pb,
         uint cb);
 
     [LibraryImport("vmm.dll", EntryPoint = "VMMDLL_WinReg_EnumKeyExU")]
@@ -1407,7 +1409,7 @@ internal static partial class Vmmi
         IntPtr hVMM,
         [MarshalAs(UnmanagedType.LPUTF8Str)] string uszFullPathKey,
         uint dwIndex,
-        byte* lpName,
+        void* lpName,
         ref uint lpcchName,
         out ulong lpftLastWriteTime);
 
@@ -1417,10 +1419,10 @@ internal static partial class Vmmi
         IntPtr hVMM,
         [MarshalAs(UnmanagedType.LPUTF8Str)] string uszFullPathKey,
         uint dwIndex,
-        byte* lpValueName,
+        void* lpValueName,
         ref uint lpcchValueName,
         out uint lpType,
-        byte* lpData,
+        void* lpData,
         ref uint lpcbData);
 
     [LibraryImport("vmm.dll", EntryPoint = "VMMDLL_WinReg_QueryValueExU")]
@@ -1429,7 +1431,7 @@ internal static partial class Vmmi
         IntPtr hVMM,
         [MarshalAs(UnmanagedType.LPUTF8Str)] string uszFullPathKeyValue,
         out uint lpType,
-        byte* lpData,
+        void* lpData,
         ref uint lpcbData);
 
     // MEMORY SEARCH FUNCTIONALITY BELOW:
@@ -1446,10 +1448,10 @@ internal static partial class Vmmi
     [LibraryImport("vmm.dll", EntryPoint = "VMMDLL_UtilFillHexAscii")]
     [return: MarshalAs(UnmanagedType.Bool)]
     public static unsafe partial bool VMMDLL_UtilFillHexAscii(
-        byte* pb,
+        void* pb,
         uint cb,
         uint cbInitialOffset,
-        byte* sz,
+        void* sz,
         ref uint pcsz);
 
     [LibraryImport("vmm.dll", EntryPoint = "VMMDLL_Log")]

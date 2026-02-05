@@ -188,7 +188,7 @@ public sealed class LeechCore : IDisposable
     public unsafe byte[]? Read(ulong pa, uint cb)
     {
         var arr = new byte[cb];
-        fixed (byte* pb = arr)
+        fixed (void* pb = arr)
         {
             if (!Lci.LcRead(_handle, pa, cb, pb))
             {
@@ -205,7 +205,7 @@ public sealed class LeechCore : IDisposable
     /// <param name="pa">Physical address to read.</param>
     /// <param name="result">Receives the value read from memory on success.</param>
     /// <returns><see langword="true"/> if successful; otherwise <see langword="false"/>.</returns>
-    /// <seealso cref="Lci.LcRead(IntPtr, ulong, uint, byte*)"/>
+    /// <seealso cref="Lci.LcRead(IntPtr, ulong, uint, void*)"/>
     public unsafe bool ReadValue<T>(ulong pa, out T result)
         where T : unmanaged, allows ref struct
     {
@@ -213,7 +213,7 @@ public sealed class LeechCore : IDisposable
         result = default;
         fixed (void* pb = &result)
         {
-            return Lci.LcRead(_handle, pa, cb, (byte*)pb);
+            return Lci.LcRead(_handle, pa, cb, pb);
         }
     }
 
@@ -236,7 +236,7 @@ public sealed class LeechCore : IDisposable
         uint cb = checked((uint)sizeof(T) * (uint)count);
         fixed (T* pb = arr)
         {
-            if (!Lci.LcRead(_handle, pa, cb, (byte*)pb))
+            if (!Lci.LcRead(_handle, pa, cb, pb))
             {
                 return null;
             }
@@ -260,7 +260,7 @@ public sealed class LeechCore : IDisposable
         uint cb = checked((uint)sizeof(T) * (uint)count);
         fixed (T* pb = arr.Span)
         {
-            if (!Lci.LcRead(_handle, pa, cb, (byte*)pb))
+            if (!Lci.LcRead(_handle, pa, cb, pb))
             {
                 arr.Dispose();
                 return null;
@@ -282,7 +282,7 @@ public sealed class LeechCore : IDisposable
         uint cb = checked((uint)sizeof(T) * (uint)span.Length);
         fixed (T* pb = span)
         {
-            return Lci.LcRead(_handle, pa, cb, (byte*)pb);
+            return Lci.LcRead(_handle, pa, cb, pb);
         }
     }
 
@@ -300,7 +300,7 @@ public sealed class LeechCore : IDisposable
         uint cb = checked((uint)sizeof(T) * (uint)span.Length);
         fixed (T* pb = span)
         {
-            return Lci.LcWrite(_handle, pa, cb, (byte*)pb);
+            return Lci.LcWrite(_handle, pa, cb, pb);
         }
     }
 
@@ -326,7 +326,7 @@ public sealed class LeechCore : IDisposable
     /// <returns><see langword="true"/> on success; otherwise <see langword="false"/>.</returns>
     public unsafe bool Read(ulong pa, void* pb, uint cb)
     {
-        if (!Lci.LcRead(_handle, pa, cb, (byte*)pb))
+        if (!Lci.LcRead(_handle, pa, cb, pb))
         {
             return false;
         }
@@ -390,7 +390,7 @@ public sealed class LeechCore : IDisposable
     {
         _parent?.ThrowIfMemWritesDisabled();
         uint cb = (uint)sizeof(T);
-        return Lci.LcWrite(_handle, pa, cb, (byte*)&value);
+        return Lci.LcWrite(_handle, pa, cb, &value);
     }
 
     /// <summary>
@@ -407,7 +407,7 @@ public sealed class LeechCore : IDisposable
         uint cb = checked((uint)sizeof(T) * (uint)data.Length);
         fixed (T* pb = data)
         {
-            return Lci.LcWrite(_handle, pa, cb, (byte*)pb);
+            return Lci.LcWrite(_handle, pa, cb, pb);
         }
     }
 
@@ -434,7 +434,7 @@ public sealed class LeechCore : IDisposable
     public unsafe bool Write(ulong pa, void* pb, uint cb)
     {
         _parent?.ThrowIfMemWritesDisabled();
-        return Lci.LcWrite(_handle, pa, cb, (byte*)pb);
+        return Lci.LcWrite(_handle, pa, cb, pb);
     }
 
     /// <summary>
@@ -488,7 +488,7 @@ public sealed class LeechCore : IDisposable
         }
         else
         {
-            fixed (byte* pbDataIn = dataIn)
+            fixed (void* pbDataIn = dataIn)
             {
                 if (!Lci.LcCommand(_handle, fOption, (uint)dataIn.Length, pbDataIn, out pbDataOut, out cbDataOut))
                 {
@@ -598,7 +598,7 @@ public sealed class LeechCore : IDisposable
         /// A read-only view over the page contents pointed at by <see cref="pb"/>.
         /// </summary>
         /// <remarks>
-        /// DANGER: Do not access this memory after the memory is freed via <see cref="Lci.LcMemFree"/>.
+        /// DANGER: Do not access this memory after the memory is freed via <see cref="Lci.LcMemFree(nint)"/>.
         /// </remarks>
         public readonly unsafe ReadOnlySpan<byte> Data => new(
             pointer: pb.ToPointer(),
