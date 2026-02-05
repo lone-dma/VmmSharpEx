@@ -1539,7 +1539,7 @@ public sealed partial class Vmm : IDisposable
         }
         finally
         {
-            Vmmi.VMMDLL_MemFree(pHeapAllocMap.ToPointer());
+            Vmmi.VMMDLL_MemFree(pHeapAllocMap);
         }
     }
 
@@ -3072,7 +3072,7 @@ public sealed partial class Vmm : IDisposable
         }
         finally
         {
-            Vmmi.VMMDLL_MemFree(pN.ToPointer());
+            Vmmi.VMMDLL_MemFree(pN);
         }
     }
 
