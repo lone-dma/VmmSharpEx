@@ -1749,12 +1749,12 @@ public sealed partial class Vmm : IDisposable
         var pb = Vmmi.VMMDLL_ProcessGetInformationString(_handle, pid, fOptionString);
         try
         {
-            if (pb is null)
+            if (pb == IntPtr.Zero)
             {
                 return null;
             }
 
-            var s = Marshal.PtrToStringAnsi((IntPtr)pb);
+            var s = Marshal.PtrToStringAnsi(pb);
             return s;
         }
         finally

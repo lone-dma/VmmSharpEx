@@ -1117,7 +1117,7 @@ internal static partial class Vmmi
     );
 
     [LibraryImport("vmm.dll", EntryPoint = "VMMDLL_ProcessGetInformationString")]
-    public static unsafe partial void* VMMDLL_ProcessGetInformationString(
+    public static unsafe partial IntPtr VMMDLL_ProcessGetInformationString(
         IntPtr hVMM,
         uint dwPID,
         uint fOptionString);
