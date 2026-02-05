@@ -67,10 +67,11 @@
 	</ItemGroup>
 
 	<PropertyGroup>
-		<IsAotCompatible>true</IsAotCompatible>
 		<IsTrimmable>false</IsTrimmable> <!-- Disable trimming due to heavy interop usage -->
-		<EmitAotDiagnostics>true</EmitAotDiagnostics>
-		<EnableAotAnalyzers>true</EnableAotAnalyzers>
+		<EnableTrimAnalyzer>false</EnableTrimAnalyzer>
+		<EnableAotAnalyzer>true</EnableAotAnalyzer>
+		<EnableSingleFileAnalyzer>true</EnableSingleFileAnalyzer>
+		<TreatWarningsAsErrors>true</TreatWarningsAsErrors>
 	</PropertyGroup>
 	
 </Project>

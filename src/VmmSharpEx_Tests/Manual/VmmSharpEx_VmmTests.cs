@@ -100,20 +100,6 @@ public class VmmSharpEx_VmmTests
     }
 
     [Fact]
-    public void TestMap_GetHeap_HeapAlloc()
-    {
-        return; // Couldn't get this test to work, not sure if a bug or doing something wrong atm, but don't use this a ton so leaving this alone for now.
-        Assert.True(_vmm.Map_GetHeap(_explorerPid, out var heapMap));
-        Assert.NotEmpty(heapMap.heaps);
-        _output.WriteLine($"Heap entries: {heapMap.heaps.Length}");
-
-        var result = _vmm.Map_GetHeapAlloc(_explorerPid, heapMap.heaps[0].iHeapNum);
-        Assert.NotNull(result);
-        Assert.NotEmpty(result);
-        _output.WriteLine($"Heap alloc entries: {result.Length}");
-    }
-
-    [Fact]
     public void TestMap_GetThread()
     {
         var result = _vmm.Map_GetThread(_explorerPid);
@@ -214,16 +200,6 @@ public class VmmSharpEx_VmmTests
         Assert.NotNull(result);
         Assert.NotEmpty(result);
         _output.WriteLine($"User entries: {result.Length}");
-    }
-
-    [Fact]
-    public void TestMap_GetVM()
-    {
-        return; // Disabled: No VM to test
-        var result = _vmm.Map_GetVM();
-        Assert.NotNull(result);
-        // Virtual machines may not exist on all systems
-        _output.WriteLine($"VM entries: {result.Length}");
     }
 
     [Fact]
