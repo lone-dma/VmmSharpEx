@@ -22,6 +22,7 @@ internal static class RefreshManager
     /// <exception cref="VmmException"></exception>
     public static void Register(Vmm instance, RefreshOption option, TimeSpan interval)
     {
+        ArgumentNullException.ThrowIfNull(instance, nameof(instance));
         lock (_lock)
         {
             if (!_refreshers.TryGetValue(instance, out var dict))
@@ -41,6 +42,8 @@ internal static class RefreshManager
     /// <param name="option"></param>
     public static void Unregister(Vmm instance, RefreshOption option)
     {
+        if (instance is null)
+            return;
         lock (_lock)
         {
             if (_refreshers.TryGetValue(instance, out var dict) && dict.TryGetValue(option, out var refresher))
@@ -58,6 +61,8 @@ internal static class RefreshManager
     /// <param name="instance"></param>
     public static void UnregisterAll(Vmm instance)
     {
+        if (instance is null)
+            return;
         lock (_lock)
         {
             if (_refreshers.TryGetValue(instance, out var dict))
