@@ -35,17 +35,17 @@ namespace VmmSharpEx;
 /// </remarks>
 public sealed class LeechCore : IDisposable
 {
-    public static implicit operator SafeHandle(LeechCore lc) => lc._handle;
+    public static implicit operator LeechCore.Handle(LeechCore lc) => lc._handle;
 
     private readonly Vmm? _parent;
-    private readonly LeechCoreHandle _handle;
+    private readonly LeechCore.Handle _handle;
     private bool _disposed;
 
     private LeechCore() { throw new NotImplementedException(); }
 
     private LeechCore(IntPtr hLC)
     {
-        _handle = new LeechCoreHandle(handle: hLC);
+        _handle = new Handle(handle: hLC);
     }
 
     /// <summary>
@@ -75,7 +75,7 @@ public sealed class LeechCore : IDisposable
                 throw new VmmException("LeechCore: failed to create object.");
             }
 
-            _handle = new LeechCoreHandle(handle: hLC);
+            _handle = new Handle(handle: hLC);
             _parent = vmm;
         }
         finally
@@ -161,11 +161,11 @@ public sealed class LeechCore : IDisposable
         }
     }
 
-    internal sealed class LeechCoreHandle : SafeHandle
+    public sealed class Handle : SafeHandle
     {
-        public LeechCoreHandle() : base(IntPtr.Zero, true) { }
+        public Handle() : base(IntPtr.Zero, true) { }
 
-        public LeechCoreHandle(IntPtr handle) : base(IntPtr.Zero, true)
+        internal Handle(IntPtr handle) : base(IntPtr.Zero, true)
         {
             SetHandle(handle);
         }

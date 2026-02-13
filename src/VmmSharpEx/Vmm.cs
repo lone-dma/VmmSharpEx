@@ -37,9 +37,9 @@ public sealed partial class Vmm : IDisposable
 {
     #region Base Functionality
 
-    public static implicit operator SafeHandle(Vmm vmm) => vmm._handle;
+    public static implicit operator Vmm.Handle(Vmm vmm) => vmm._handle;
 
-    private readonly VmmHandle _handle;
+    private readonly Vmm.Handle _handle;
     private bool _disposed;
 
     /// <summary>
@@ -135,7 +135,7 @@ public sealed partial class Vmm : IDisposable
     {
         try
         {
-            _handle = new VmmHandle(handle: Create(out configErrorInfo, args));
+            _handle = new Handle(handle: Create(out configErrorInfo, args));
             LeechCore = new LeechCore(this);
             Log($"VmmSharpEx Initialized ({_handle:X16}).");
         }
@@ -184,11 +184,11 @@ public sealed partial class Vmm : IDisposable
         Vmmi.VMMDLL_CloseAll();
     }
 
-    internal sealed class VmmHandle : SafeHandle
+    public sealed class Handle : SafeHandle
     {
-        public VmmHandle() : base(IntPtr.Zero, true) { }
+        public Handle() : base(IntPtr.Zero, true) { }
 
-        public VmmHandle(IntPtr handle) : base(IntPtr.Zero, true)
+        internal Handle(IntPtr handle) : base(IntPtr.Zero, true)
         {
             SetHandle(handle);
         }

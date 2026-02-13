@@ -34,7 +34,7 @@ public sealed class VmmScatter : IDisposable
     #region Base Functionality
 
     private readonly Vmm _vmm;
-    private readonly ScatterHandle _handle;
+    private readonly VmmScatter.Handle _handle;
     private uint _pid;
     private VmmFlags _flags;
     private bool _disposed;
@@ -62,7 +62,7 @@ public sealed class VmmScatter : IDisposable
         _vmm = vmm;
         _pid = pid;
         _flags = flags;
-        _handle = new ScatterHandle(handle: Create(vmm, pid, flags));
+        _handle = new Handle(handle: Create(vmm, pid, flags));
     }
 
     private static IntPtr Create(Vmm vmm, uint pid, VmmFlags flags)
@@ -106,11 +106,11 @@ public sealed class VmmScatter : IDisposable
         return $"VmmScatter:Virtual:{_pid}";
     }
 
-    internal sealed class ScatterHandle : SafeHandle
+    internal sealed class Handle : SafeHandle
     {
-        public ScatterHandle() : base(IntPtr.Zero, true) { }
+        public Handle() : base(IntPtr.Zero, true) { }
 
-        public ScatterHandle(IntPtr handle) : base(IntPtr.Zero, true)
+        internal Handle(IntPtr handle) : base(IntPtr.Zero, true)
         {
             SetHandle(handle);
         }

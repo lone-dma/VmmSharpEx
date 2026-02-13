@@ -37,26 +37,26 @@ internal static partial class Lci
 
     [LibraryImport("leechcore.dll", EntryPoint = "LcRead")]
     [return: MarshalAs(UnmanagedType.Bool)]
-    public static unsafe partial bool LcRead(LeechCore.LeechCoreHandle hLC, ulong pa, uint cb, void* pb);
+    public static unsafe partial bool LcRead(LeechCore.Handle hLC, ulong pa, uint cb, void* pb);
 
     [LibraryImport("leechcore.dll", EntryPoint = "LcReadScatter")]
-    public static unsafe partial void LcReadScatter(LeechCore.LeechCoreHandle hLC, uint cMEMs, IntPtr ppMEMs);
+    public static unsafe partial void LcReadScatter(LeechCore.Handle hLC, uint cMEMs, IntPtr ppMEMs);
 
     [LibraryImport("leechcore.dll", EntryPoint = "LcWrite")]
     [return: MarshalAs(UnmanagedType.Bool)]
-    public static unsafe partial bool LcWrite(LeechCore.LeechCoreHandle hLC, ulong pa, uint cb, void* pb);
+    public static unsafe partial bool LcWrite(LeechCore.Handle hLC, ulong pa, uint cb, void* pb);
 
     [LibraryImport("leechcore.dll", EntryPoint = "LcGetOption")]
     [return: MarshalAs(UnmanagedType.Bool)]
-    public static partial bool GetOption(LeechCore.LeechCoreHandle hLC, LcOption fOption, out ulong pqwValue);
+    public static partial bool GetOption(LeechCore.Handle hLC, LcOption fOption, out ulong pqwValue);
 
     [LibraryImport("leechcore.dll", EntryPoint = "LcSetOption")]
     [return: MarshalAs(UnmanagedType.Bool)]
-    public static partial bool SetOption(LeechCore.LeechCoreHandle hLC, LcOption fOption, ulong qwValue);
+    public static partial bool SetOption(LeechCore.Handle hLC, LcOption fOption, ulong qwValue);
 
     [LibraryImport("leechcore.dll", EntryPoint = "LcCommand")]
     [return: MarshalAs(UnmanagedType.Bool)]
-    public static unsafe partial bool LcCommand(LeechCore.LeechCoreHandle hLC, LcCmd fOption, uint cbDataIn, void* pbDataIn, out IntPtr ppbDataOut, out uint pcbDataOut);
+    public static unsafe partial bool LcCommand(LeechCore.Handle hLC, LcCmd fOption, uint cbDataIn, void* pbDataIn, out IntPtr ppbDataOut, out uint pcbDataOut);
 
     [StructLayout(LayoutKind.Sequential)]
     public struct LC_CONFIG_ERRORINFO
