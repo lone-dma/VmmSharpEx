@@ -62,7 +62,7 @@ public sealed class VmmScatter : IDisposable
         _vmm = vmm;
         _pid = pid;
         _flags = flags;
-        _handle = new Handle(handle: Create(vmm, pid, flags));
+        _handle = new VmmScatter.Handle(handle: Create(vmm, pid, flags));
     }
 
     private static IntPtr Create(Vmm vmm, uint pid, VmmFlags flags)

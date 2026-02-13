@@ -135,7 +135,7 @@ public sealed partial class Vmm : IDisposable
     {
         try
         {
-            _handle = new Handle(handle: Create(out configErrorInfo, args));
+            _handle = new Vmm.Handle(handle: Create(out configErrorInfo, args));
             LeechCore = new LeechCore(this);
             Log($"VmmSharpEx Initialized ({_handle:X16}).");
         }

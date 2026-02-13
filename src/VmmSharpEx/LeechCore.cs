@@ -45,7 +45,7 @@ public sealed class LeechCore : IDisposable
 
     private LeechCore(IntPtr hLC)
     {
-        _handle = new Handle(handle: hLC);
+        _handle = new LeechCore.Handle(handle: hLC);
     }
 
     /// <summary>
@@ -75,7 +75,7 @@ public sealed class LeechCore : IDisposable
                 throw new VmmException("LeechCore: failed to create object.");
             }
 
-            _handle = new Handle(handle: hLC);
+            _handle = new LeechCore.Handle(handle: hLC);
             _parent = vmm;
         }
         finally
