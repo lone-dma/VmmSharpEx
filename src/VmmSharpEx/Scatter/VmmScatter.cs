@@ -18,6 +18,7 @@
 using Collections.Pooled;
 using System.Buffers;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Text;
 using VmmSharpEx.Internal;
 using VmmSharpEx.Options;
@@ -26,16 +27,16 @@ namespace VmmSharpEx.Scatter;
 
 /// <summary>
 /// The <see cref="VmmScatter"/> class is used to ease the reading and writing of memory in bulk using this thin wrapper around the Vmm Scatter API.
-/// All operations incur native calls to vmm.dll (using <see cref="Vmmi.VMMDLL_Scatter_Initialize(nint, uint, VmmFlags)"/>).
+/// All operations incur native calls to vmm.dll (using <see cref="Vmmi.VMMDLL_Scatter_Initialize"/>).
 /// </summary>
 public sealed class VmmScatter : IDisposable
 {
     #region Base Functionality
 
     private readonly Vmm _vmm;
+    private readonly VmmScatter.Handle _handle;
     private uint _pid;
     private VmmFlags _flags;
-    private IntPtr _handle;
     private bool _disposed;
 
     /// <summary>
@@ -61,7 +62,7 @@ public sealed class VmmScatter : IDisposable
         _vmm = vmm;
         _pid = pid;
         _flags = flags;
-        _handle = Create(vmm, pid, flags);
+        _handle = new VmmScatter.Handle(handle: Create(vmm, pid, flags));
     }
 
     private static IntPtr Create(Vmm vmm, uint pid, VmmFlags flags)
@@ -75,24 +76,12 @@ public sealed class VmmScatter : IDisposable
         return hS;
     }
 
-    ~VmmScatter() => Dispose(disposing: false);
-
     public void Dispose()
-    {
-        Dispose(disposing: true);
-        GC.SuppressFinalize(this);
-    }
-
-    private void Dispose(bool disposing)
     {
         if (Interlocked.Exchange(ref _disposed, true) == false)
         {
-            if (disposing)
-            {
-                Completed = null;
-            }
-            Vmmi.VMMDLL_Scatter_CloseHandle(_handle);
-            _handle = IntPtr.Zero;
+            Completed = null;
+            _handle?.Dispose();
         }
     }
 
@@ -115,6 +104,24 @@ public sealed class VmmScatter : IDisposable
         }
 
         return $"VmmScatter:Virtual:{_pid}";
+    }
+
+    internal sealed class Handle : SafeHandle
+    {
+        public Handle() : base(IntPtr.Zero, true) { }
+
+        internal Handle(IntPtr handle) : base(IntPtr.Zero, true)
+        {
+            SetHandle(handle);
+        }
+
+        public override bool IsInvalid => this.handle == IntPtr.Zero;
+
+        protected override bool ReleaseHandle()
+        {
+            Vmmi.VMMDLL_Scatter_CloseHandle(this.handle);
+            return true;
+        }
     }
 
     #endregion

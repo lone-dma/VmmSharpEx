@@ -37,9 +37,9 @@ public sealed partial class Vmm : IDisposable
 {
     #region Base Functionality
 
-    public static implicit operator IntPtr(Vmm vmm) => vmm?._handle ?? IntPtr.Zero;
+    public static implicit operator Vmm.Handle(Vmm vmm) => vmm._handle;
 
-    private IntPtr _handle;
+    private readonly Vmm.Handle _handle;
     private bool _disposed;
 
     /// <summary>
@@ -135,7 +135,7 @@ public sealed partial class Vmm : IDisposable
     {
         try
         {
-            _handle = Create(out configErrorInfo, args);
+            _handle = new Vmm.Handle(handle: Create(out configErrorInfo, args));
             LeechCore = new LeechCore(this);
             Log($"VmmSharpEx Initialized ({_handle:X16}).");
         }
@@ -162,36 +162,14 @@ public sealed partial class Vmm : IDisposable
     /// <returns><see langword="true"/> if plugins are loaded successfully; otherwise <see langword="false"/>.</returns>
     public bool InitializePlugins() => Vmmi.VMMDLL_InitializePlugins(_handle);
 
-    /// <summary>
-    /// Finalizer to ensure the native handle is closed if <see cref="Dispose()"/> was not called.
-    /// </summary>
-    ~Vmm() => Dispose(disposing: false);
-
     /// <inheritdoc />
     public void Dispose()
     {
-        Dispose(disposing: true);
-        GC.SuppressFinalize(this);
-    }
-
-    /// <summary>
-    /// Releases the native handle and any managed resources if requested.
-    /// </summary>
-    /// <param name="disposing">
-    /// <see langword="true"/> to release managed resources as well as unmanaged resources; otherwise,
-    /// <see langword="false"/> to release only unmanaged resources.
-    /// </param>
-    private void Dispose(bool disposing)
-    {
         if (Interlocked.Exchange(ref _disposed, true) == false)
         {
-            if (disposing)
-            {
-                LeechCore?.Dispose(); // Since this can be called from the ctor, Leechcore may be null here.
-                RefreshManager.UnregisterAll(this);
-            }
-            Vmmi.VMMDLL_Close(_handle);
-            _handle = IntPtr.Zero;
+            LeechCore?.Dispose(); // Since this can be called from the ctor, Leechcore may be null here.
+            RefreshManager.UnregisterAll(this);
+            _handle?.Dispose();
         }
     }
 
@@ -204,6 +182,24 @@ public sealed partial class Vmm : IDisposable
     public static void CloseAll()
     {
         Vmmi.VMMDLL_CloseAll();
+    }
+
+    public sealed class Handle : SafeHandle
+    {
+        public Handle() : base(IntPtr.Zero, true) { }
+
+        internal Handle(IntPtr handle) : base(IntPtr.Zero, true)
+        {
+            SetHandle(handle);
+        }
+
+        public override bool IsInvalid => this.handle == IntPtr.Zero;
+
+        protected override bool ReleaseHandle()
+        {
+            Vmmi.VMMDLL_Close(this.handle);
+            return true;
+        }
     }
 
     #endregion

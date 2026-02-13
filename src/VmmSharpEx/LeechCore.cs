@@ -35,17 +35,17 @@ namespace VmmSharpEx;
 /// </remarks>
 public sealed class LeechCore : IDisposable
 {
-    public static implicit operator IntPtr(LeechCore lc) => lc?._handle ?? IntPtr.Zero;
+    public static implicit operator LeechCore.Handle(LeechCore lc) => lc._handle;
 
     private readonly Vmm? _parent;
-    private IntPtr _handle;
+    private readonly LeechCore.Handle _handle;
     private bool _disposed;
 
     private LeechCore() { throw new NotImplementedException(); }
 
     private LeechCore(IntPtr hLC)
     {
-        _handle = hLC;
+        _handle = new LeechCore.Handle(handle: hLC);
     }
 
     /// <summary>
@@ -75,7 +75,7 @@ public sealed class LeechCore : IDisposable
                 throw new VmmException("LeechCore: failed to create object.");
             }
 
-            _handle = hLC;
+            _handle = new LeechCore.Handle(handle: hLC);
             _parent = vmm;
         }
         finally
@@ -90,8 +90,10 @@ public sealed class LeechCore : IDisposable
     /// </summary>
     public void Dispose()
     {
-        Dispose(disposing: true);
-        GC.SuppressFinalize(this);
+        if (Interlocked.Exchange(ref _disposed, true) == false)
+        {
+            _handle?.Dispose();
+        }
     }
 
     /// <summary>
@@ -159,16 +161,21 @@ public sealed class LeechCore : IDisposable
         }
     }
 
-    ~LeechCore() => Dispose(disposing: false);
-
-#pragma warning disable IDE0060 // Remove unused parameter
-    private void Dispose(bool disposing)
-#pragma warning restore IDE0060 // Remove unused parameter
+    public sealed class Handle : SafeHandle
     {
-        if (Interlocked.Exchange(ref _disposed, true) == false)
+        public Handle() : base(IntPtr.Zero, true) { }
+
+        internal Handle(IntPtr handle) : base(IntPtr.Zero, true)
         {
-            Lci.LcClose(_handle);
-            _handle = IntPtr.Zero;
+            SetHandle(handle);
+        }
+
+        public override bool IsInvalid => this.handle == IntPtr.Zero;
+
+        protected override bool ReleaseHandle()
+        {
+            Lci.LcClose(this.handle);
+            return true;
         }
     }
 
@@ -205,7 +212,7 @@ public sealed class LeechCore : IDisposable
     /// <param name="pa">Physical address to read.</param>
     /// <param name="result">Receives the value read from memory on success.</param>
     /// <returns><see langword="true"/> if successful; otherwise <see langword="false"/>.</returns>
-    /// <seealso cref="Lci.LcRead(IntPtr, ulong, uint, void*)"/>
+    /// <seealso cref="Lci.LcRead"/>
     public unsafe bool ReadValue<T>(ulong pa, out T result)
         where T : unmanaged, allows ref struct
     {
@@ -438,7 +445,7 @@ public sealed class LeechCore : IDisposable
     }
 
     /// <summary>
-    /// Retrieve a LeechCore option value via <see cref="Lci.GetOption(IntPtr, LcOption, out ulong)"/>.
+    /// Retrieve a LeechCore option value via <see cref="Lci.GetOption"/>.
     /// </summary>
     /// <param name="fOption">The <see cref="LcOption"/> to query.</param>
     /// <returns>The option value on success; otherwise <see langword="null"/>.</returns>
@@ -453,7 +460,7 @@ public sealed class LeechCore : IDisposable
     }
 
     /// <summary>
-    /// Set a LeechCore option value via <see cref="Lci.SetOption(IntPtr, LcOption, ulong)"/>.
+    /// Set a LeechCore option value via <see cref="Lci.SetOption"/>.
     /// </summary>
     /// <param name="fOption">The <see cref="LcOption"/> to set.</param>
     /// <param name="qwValue">The value to assign.</param>
